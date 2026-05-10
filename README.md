@@ -8,3 +8,10 @@ Basically this is modified termux which has preinstalled alpine bootstrap. and a
 
 
 GUI is comming. Currently only the base is made.
+
+
+#Install
+
+1. Disable google play protect. Check [here](https://www.esper.io/blog/how-to-disable-google-play-protect-on-your-android-device-and-why-you-might-want-to)  This step is crutial as the apk is not verified by google.
+
+2. Go to release page and install the apk. Only aarch64 devices are supported (currently)
