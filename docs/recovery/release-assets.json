@@ -1,0 +1,1202 @@
+{
+  "tag": "termux-recovery-2026-09-14",
+  "assets": [
+    {
+      "name": "android-development-history.tar.gz",
+      "bytes": 23608013,
+      "sha256": "e00289bf48dd9127e825595955d0ba56403a71272f3d22d78e751fbc9cfd300e",
+      "group": "history",
+      "sources": [
+        "Codex original JSONL + Markdown",
+        "Gemini project chats, user logs and tool outputs"
+      ]
+    },
+    {
+      "name": "alpineo-vectras-android-projects.tar.gz",
+      "bytes": 180779974,
+      "sha256": "d01902a8092828e0b1123262054c08607d7c1d4d6974a58875b34c505d9a3b3a",
+      "group": "historical-android-sources",
+      "sources": [
+        "old-other-workspaces-20260510.tar.zst:Alpineo-Project/",
+        "old-other-workspaces-20260510.tar.zst:Vectras-VM-Android-master-alpineo/"
+      ]
+    },
+    {
+      "name": "bootstrap-aarch64-v66-incomplete.zip",
+      "bytes": 204984759,
+      "sha256": "af4107177ffa0f0e4dd16b5f5d33f0543ef1b342e654ce4a7a42187b5bbf77b4",
+      "group": "current-bootstrap",
+      "sources": [
+        "alpine-build/app/src/main/cpp/bootstrap-aarch64.zip"
+      ]
+    },
+    {
+      "name": "alpine-v52-assembly.tar.gz",
+      "bytes": 207752688,
+      "sha256": "0994cbca35c8ae53cd8569d7d82cbba35103bc16b0fe04bbe5514266141e7a4e",
+      "group": "03-assembly-history",
+      "sources": [
+        "/data/data/com.termux/files/home/alpine-v52-assembly"
+      ]
+    },
+    {
+      "name": "alpine-v53-assembly.tar.gz",
+      "bytes": 207753618,
+      "sha256": "9e896c60ccbc01c97add8377b93872faf98a9cd7cc772716bb38dfe79d6c6f47",
+      "group": "03-assembly-history",
+      "sources": [
+        "/data/data/com.termux/files/home/alpine-v53-assembly"
+      ]
+    },
+    {
+      "name": "alpine-v54-assembly.tar.gz",
+      "bytes": 207754506,
+      "sha256": "6595fcf1881d2262cc4ff5bdb798146b5bbaf1c80551d602e5ce476dfe60655d",
+      "group": "03-assembly-history",
+      "sources": [
+        "/data/data/com.termux/files/home/alpine-v54-assembly"
+      ]
+    },
+    {
+      "name": "alpine-v55-assembly.tar.gz",
+      "bytes": 207761460,
+      "sha256": "b13a686e4f4a3386679bd082099da8b5ef6d1383197bd3882121efc803eed8b3",
+      "group": "03-assembly-history",
+      "sources": [
+        "/data/data/com.termux/files/home/alpine-v55-assembly"
+      ]
+    },
+    {
+      "name": "alpine-v56-assembly.tar.gz",
+      "bytes": 208982398,
+      "sha256": "bf2aad8e976bb484ba6294590ad266c8c146284e2dd8b767bf87d991b30b9353",
+      "group": "03-assembly-history",
+      "sources": [
+        "/data/data/com.termux/files/home/alpine-v56-assembly"
+      ]
+    },
+    {
+      "name": "alpine-v57-assembly.tar.gz",
+      "bytes": 208980706,
+      "sha256": "68016468d4a46624724bfe551ded907b1bd79a4f838312ec8bf7858c11488940",
+      "group": "03-assembly-history",
+      "sources": [
+        "/data/data/com.termux/files/home/alpine-v57-assembly"
+      ]
+    },
+    {
+      "name": "alpine-v58-assembly.tar.gz",
+      "bytes": 208981677,
+      "sha256": "727750b23c3a0819072d776b40551ad69b5812a5546e1ebca932853fffc09709",
+      "group": "03-assembly-history",
+      "sources": [
+        "/data/data/com.termux/files/home/alpine-v58-assembly"
+      ]
+    },
+    {
+      "name": "alpine-v59-assembly.tar.gz",
+      "bytes": 208982553,
+      "sha256": "8fbd4ea31fd3eea209eb440014b27b3c12235c0132458a13ccc76eb704faa9db",
+      "group": "03-assembly-history",
+      "sources": [
+        "/data/data/com.termux/files/home/alpine-v59-assembly"
+      ]
+    },
+    {
+      "name": "alpine-v60-assembly.tar.gz",
+      "bytes": 208983190,
+      "sha256": "0cd1ae1be21fc9d1bfac3a6287282ac18349d41593bb804c0c04e995ec0e04b5",
+      "group": "03-assembly-history",
+      "sources": [
+        "/data/data/com.termux/files/home/alpine-v60-assembly"
+      ]
+    },
+    {
+      "name": "alpine-v61-assembly.tar.gz",
+      "bytes": 208983907,
+      "sha256": "52d49c3e506ae8a9c10a24db0420662a636a77798c86899bc91449c258dee5b7",
+      "group": "03-assembly-history",
+      "sources": [
+        "/data/data/com.termux/files/home/alpine-v61-assembly"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-branded-v2.zip",
+      "bytes": 30747593,
+      "sha256": "545ee282e70523dbefae39b9e2587beaa06d5f2a25cf68e34c433ed57d76f293",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-branded-v2.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-branded-v8.zip",
+      "bytes": 30775664,
+      "sha256": "a859e81ada4bf1366123a39064412001fe692bffa5a08ed5975886b6261195f3",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-branded-v8.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-branded.zip",
+      "bytes": 30747937,
+      "sha256": "05d286572474c193fdf2888e8504492eb1343768e176c5d9d33eff0d179cee26",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-branded.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-final.zip",
+      "bytes": 34960908,
+      "sha256": "0b3fdfef9c3ef4897e3532100a399c467fe8642afca0996a5af879bd2c18bf9f",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-final.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-fixed.zip",
+      "bytes": 30638495,
+      "sha256": "0d9137ed5e0fc0c09062a1c29ea18877af3f1fcdba13186920f79c0791afa693",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-fixed.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-lite.zip",
+      "bytes": 30997716,
+      "sha256": "92ba2fa86e4c2b8f8465363a8b25b84979c7365e312971cb45a59a3216afca66",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-lite.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-mega.zip",
+      "bytes": 34927735,
+      "sha256": "b466832fb23257266622a27ceeb6b50640aa0633124e35aba26a2c2bd1a7a2c9",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-mega.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-ultimate-v29.zip",
+      "bytes": 35117008,
+      "sha256": "6f002644faacf2e033bf5a68ed19ecf4dc809bfa4ace0383ea2575dc339ae39f",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-ultimate-v29.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-ultimate.zip",
+      "bytes": 35159653,
+      "sha256": "1e48ff04edef469c78565d48b486aa91a2445cc81f5b3e76e65f5f3dd8a5c939",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-ultimate.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v52.zip",
+      "bytes": 203885963,
+      "sha256": "c3142d9a18606c55a40634130e18ef2eedcf529e4b19ef8f81a144ffb1a595f9",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v52.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v53.zip",
+      "bytes": 203886741,
+      "sha256": "12e0812e36932450dbb6a56755f849a10a013409f1c582ba09d8457b01d82d5a",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v53.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v54.zip",
+      "bytes": 203886918,
+      "sha256": "56bdc12a33a8453f0982ce1b407b708d757fa4e3e3cffc11d1be7fd80decfa57",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v54.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v55.zip",
+      "bytes": 203893293,
+      "sha256": "c8544d9fa7625e0f883d3b5ad6914e4523ddfc7ef4387b30d8c531510fb4b7ea",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v55.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v56.zip",
+      "bytes": 205205269,
+      "sha256": "02001a5e38004b759b00139dc4f2900ad80549cdfc1b37480dea36a34ac040c7",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v56.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v57.zip",
+      "bytes": 204981124,
+      "sha256": "030205263b951b4ba83df682810e010d87263c5e59c93ed2c8adeb4693784bd4",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v57.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v58.zip",
+      "bytes": 204981498,
+      "sha256": "9b0c4870376c56b0058d185b93687ef0eec6778a16f9259e25742c0531ed85f4",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v58.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v59.zip",
+      "bytes": 204981976,
+      "sha256": "b10219da597eb5c2897cddd980f5c274d8e29a04e69d3ad72da0c1cebc2d1796",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v59.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v60.zip",
+      "bytes": 204982050,
+      "sha256": "62831356421eda07ac0955e99b2b673f321ca0113aa4654ccde820a43158b414",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v60.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v61.zip",
+      "bytes": 204982174,
+      "sha256": "522c86ce28a8e79a5577f41b7c74bcea6f6907f4518152521c6ee9949a176af4",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v61.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v62.zip",
+      "bytes": 204982559,
+      "sha256": "f4856481dedd34502004d7463853a0b2ab9da1853af2f8ee66751137c016d9bd",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v62.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v63.zip",
+      "bytes": 204982641,
+      "sha256": "516a196796926afd4af5ec3580504a431cdfd5d013c09c9d34ae08c7811e4904",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v63.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v64.zip",
+      "bytes": 204982705,
+      "sha256": "1ccd8a1d50e263f8af871a51e79a8d77b6fb68d270d2948e85da19d44f0f1c49",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v64.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64-v65.zip",
+      "bytes": 204982812,
+      "sha256": "384457c8d5bb87a561e8846fa2b5f9c3ebbc03e18aab477c4fe273cea11ac1a2",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64-v65.zip"
+      ]
+    },
+    {
+      "name": "historical-bootstrap-aarch64.zip",
+      "bytes": 30747888,
+      "sha256": "c09c19607153a54e6ca777e532aa3795ad7500f99a1a9acc309e2e3b99c80956",
+      "group": "04-bootstrap-history",
+      "sources": [
+        "/data/data/com.termux/files/home/bootstrap-aarch64.zip"
+      ]
+    },
+    {
+      "name": "literal-tilde-alpine-v46-assembly.tar.gz",
+      "bytes": 4187610,
+      "sha256": "08901db112dba741e88b20dc7453c6714abf17877a298d5270c84a69a82ef537",
+      "group": "03-assembly-history",
+      "sources": [
+        "/data/data/com.termux/files/home/~/alpine-v46-assembly"
+      ]
+    },
+    {
+      "name": "literal-tilde-alpine-v47-assembly.tar.gz",
+      "bytes": 595,
+      "sha256": "334b9c69f17c47d4943b51c90be27b9cc4b721346e44f1509642d875b36c879b",
+      "group": "03-assembly-history",
+      "sources": [
+        "/data/data/com.termux/files/home/~/alpine-v47-assembly"
+      ]
+    },
+    {
+      "name": "old-alpine-workdirs-20260510.tar.zst",
+      "bytes": 1175551905,
+      "sha256": "a4541e68eb83ecfe6ffa5f6d96f3d7444f79e62913fd2192fe5f2a401df89185",
+      "group": "05-existing-archives",
+      "sources": [
+        "/data/data/com.termux/files/home/workspace-archives/old-alpine-workdirs-20260510.tar.zst"
+      ]
+    },
+    {
+      "name": "old-bootstrap-zips-20260510.tar.zst",
+      "bytes": 1013970575,
+      "sha256": "fdc3ba3867583e3ac6d9fc0f7b77b0affb1b98fe2de593f6b537a9bd9389ab68",
+      "group": "05-existing-archives",
+      "sources": [
+        "/data/data/com.termux/files/home/workspace-archives/old-bootstrap-zips-20260510.tar.zst"
+      ]
+    },
+    {
+      "name": "Alpine.apk",
+      "bytes": 45922125,
+      "sha256": "3ebfad3c3b50b56caa455c3d15e9047f9ade340129905a32bbcb6b88dbf4cc1b",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/Alpine.apk"
+      ]
+    },
+    {
+      "name": "AlpineLXQt-1.apk",
+      "bytes": 47601631,
+      "sha256": "799cb7d54aef8af4b756525f8da913cef388cd1cacfbf9a3ad44456b7705b137",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/AlpineLXQt-1.apk",
+        "/data/data/com.termux/files/home/storage/downloads/AlpineLXQt-2.apk"
+      ]
+    },
+    {
+      "name": "AlpineLXQt-3.apk",
+      "bytes": 61966303,
+      "sha256": "d7a544b9d36ce919b79bc72c186edec953cfb171012d5af51864134d6d318781",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/AlpineLXQt-3.apk"
+      ]
+    },
+    {
+      "name": "AlpineLXQt-funcpatch.apk",
+      "bytes": 60237795,
+      "sha256": "7f4f76cf413773104174084775196ad438458225b5e78aafe6917134d4393747",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/AlpineLXQt-funcpatch.apk"
+      ]
+    },
+    {
+      "name": "AlpineLXQt.apk",
+      "bytes": 45922125,
+      "sha256": "78b213ceb2df2888424c0e8b944586fe87cd62786ce224fe3b7dbfc3de1ab6b1",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/AlpineLXQt.apk"
+      ]
+    },
+    {
+      "name": "download-AlpineTerminal-source-1.zip",
+      "bytes": 21443705,
+      "sha256": "b3da379c8d9646459a332ed08f346f65300762dc97f01ad735a6457f3a4c0b06",
+      "group": "07-download-sources",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/AlpineTerminal-source-1.zip",
+        "/data/data/com.termux/files/home/storage/downloads/AlpineTerminal-source.zip"
+      ]
+    },
+    {
+      "name": "download-Alpinelogo.png",
+      "bytes": 8902,
+      "sha256": "106ade49ebb4f865ad3008d32bbc788ff0c5f89f59a71939ab3d2cf043193e13",
+      "group": "07-download-sources",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/Alpinelogo.png"
+      ]
+    },
+    {
+      "name": "download-Alpineo-rename-of-vectrass-source-code-.zip",
+      "bytes": 27322250,
+      "sha256": "fab895a2d994bf3a2c6592c06c7ed3a955467da692ce809acd87959a403608a7",
+      "group": "07-download-sources",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/Alpineo (rename of vectrass source code).zip"
+      ]
+    },
+    {
+      "name": "download-Vectras-VM-Android-master-alpineo.zip",
+      "bytes": 29618695,
+      "sha256": "07a4559a7caac0fa0ca5a341623c579e926dab45286b3d5fba21653289b6a5f9",
+      "group": "07-download-sources",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/Vectras-VM-Android-master-alpineo.zip"
+      ]
+    },
+    {
+      "name": "download-alpine-app-master-termux-modification-.zip",
+      "bytes": 31148617,
+      "sha256": "e3afad163bee495a3a859172ac7a08b4038d267b5cf3d0d88d9608d11109fca8",
+      "group": "07-download-sources",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-app-master(termux modification).zip"
+      ]
+    },
+    {
+      "name": "alpine-automated-final.apk",
+      "bytes": 68664459,
+      "sha256": "791bc2b54a4e1cfec48d94c0f6c34ba79ae350477bc1991996cf0daca4c9f2c2",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-automated-final.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-final-full.apk"
+      ]
+    },
+    {
+      "name": "alpine-branded-final.apk",
+      "bytes": 68664459,
+      "sha256": "f087f17c9965bef73040f51cb0069155aa0277d09f49ffd2d30d39e973bec044",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-branded-final.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-branded-v2.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-branded-v6.apk"
+      ]
+    },
+    {
+      "name": "alpine-branded-v7.apk",
+      "bytes": 42916047,
+      "sha256": "40230b322bb6a26dc8b835ef655d4419cfe563cd3163beae05e813f7a03cff0a",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-branded-v7.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-branded-v8.apk"
+      ]
+    },
+    {
+      "name": "alpine-branded-v9.apk",
+      "bytes": 42917326,
+      "sha256": "e30d111b730380b07b892e43a11fe6978f1b020a5aaf60325d5ec4e87cd75ef8",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-branded-v9.apk"
+      ]
+    },
+    {
+      "name": "alpine-debug.apk",
+      "bytes": 38511397,
+      "sha256": "2789dd9a1a2c1cf74c82c8e9b8a0cfb75b491c11b7da6deffe14ca20fd35a18f",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-debug.apk"
+      ]
+    },
+    {
+      "name": "alpine-dpkg-patched-v26.apk",
+      "bytes": 42954049,
+      "sha256": "7f366f9fc1bdf806466031db9b5faa4185541518ddfa2cb3be0e35e39e60ba5a",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-dpkg-patched-v26.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-guaranteed-v24.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-guaranteed-v27.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-guaranteed-v28.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-guaranteed-v29.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-pd-patched-v25.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-preinstalled-v27.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-proot-distro-v22.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-proot-distro-v23.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v24.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v25.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v27.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v28.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v29.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v30.apk"
+      ]
+    },
+    {
+      "name": "alpine-final-v1.apk",
+      "bytes": 68664389,
+      "sha256": "7ccd62c56e2849a7c59375be7e44263de1c770bc85268e78fecc24ecffda8581",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-final-v1.apk"
+      ]
+    },
+    {
+      "name": "alpine-final-v14.apk",
+      "bytes": 42915788,
+      "sha256": "7bc1338a2c36fa4d14c60b7a0bd147434b2bb9acb8703e5b6adf09a427197839",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-final-v14.apk"
+      ]
+    },
+    {
+      "name": "alpine-fixed-v2.apk",
+      "bytes": 38766125,
+      "sha256": "b5168b1ad20cb7dfc2de4ee7be25b754dec8fdb44583157d187b49d3d5945b4b",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-fixed-v2.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-fixed-v3.apk"
+      ]
+    },
+    {
+      "name": "alpine-fixed-v4.apk",
+      "bytes": 38522955,
+      "sha256": "c9ba1ed94c13cf38243c4aec86a0754de739ace4a17c638c865109d4e3b43875",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-fixed-v4.apk"
+      ]
+    },
+    {
+      "name": "alpine-fixed-v5.apk",
+      "bytes": 38574897,
+      "sha256": "a0c93f552bd767e8e912ba0a19084ec0f4fe8d1ee749695d2562adb8d0c67056",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-fixed-v5.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-1.apk",
+      "bytes": 18469001,
+      "sha256": "1cc5d63faf43f0aa0db43e4de8a70a3e69fca471212478ca74ed91cff567c0b2",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-1.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-10.apk",
+      "bytes": 27382706,
+      "sha256": "aba8e8c82544d941bd4002c462ee50d39ee3d637fd3529cae15be1c451fb30d0",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-10.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-11.apk",
+      "bytes": 27382706,
+      "sha256": "551aa14d3768310db87e65c1f97dec2453e533d3baa71bef41cfd5d4d280606c",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-11.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-12.apk",
+      "bytes": 27382706,
+      "sha256": "5713badfacac78dfdb95d841b9f29d30b813893110513a76360acd758877f2ac",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-12.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-17.apk",
+      "bytes": 27382706,
+      "sha256": "d955dd9879c0364c826b65f89d52cc08d7fac4aba870c74544a7a5ca473d5f19",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-17.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-19.apk",
+      "bytes": 27382702,
+      "sha256": "9b2cb8d425b9c9a1d488b8a4582cf72a83b4f43d18095eebf4217e0a6de05e08",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-19.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-2.apk",
+      "bytes": 22225191,
+      "sha256": "e1091a7b4d71398181c99f2f205004ad907f3f72edf2b8b6a4a102e135fac9e4",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-2.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-25.apk",
+      "bytes": 27382706,
+      "sha256": "dce1961cb6fcb5fc1dd04c9a393658a6582000164b137fe03ff96eefbf32cbcd",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-25.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-3.apk",
+      "bytes": 25909761,
+      "sha256": "7f30c04ba80bcfae424900c8b9c0239d3bc7f625d1c7a85185de036e63be59bc",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-3.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-4.apk",
+      "bytes": 27382789,
+      "sha256": "a923133f13ef4be3d726bfa08c21d49aa38b32bb5d266fccd1edc11673e9cbed",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-4.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-5.apk",
+      "bytes": 27382793,
+      "sha256": "6c91b15dfd2257a7e3d92d03905edda0758e6a6f9db1dc47fd72110abcc9c5f4",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-5.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-6.apk",
+      "bytes": 27382793,
+      "sha256": "a6d8f57a7890422f7e40cb57ccc70b131120a37f449092cdd4f12e35adda60ed",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-6.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-7.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-8.apk",
+      "bytes": 27382793,
+      "sha256": "5a6116a2156aad7801d367fa8a9136e1f15c82d42ffd0e16529bc85fbfe77c3b",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-8.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt-9.apk",
+      "bytes": 27382706,
+      "sha256": "39c03f06313933ce73c01334ca4e3dd9447dd89945fd402cfab1dbcc2f0f9b8c",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-9.apk"
+      ]
+    },
+    {
+      "name": "alpine-lxqt.apk",
+      "bytes": 22010398,
+      "sha256": "295a8664f636621482cc48dc04bc47a725c00c9e780899de11ae78730b44007f",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-lxqt.apk"
+      ]
+    },
+    {
+      "name": "download-alpine-minirootfs-3.23.3-aarch64.tar.gz",
+      "bytes": 4040567,
+      "sha256": "f219bb9d65febed9046951b19f2b893b331315740af32c47e39b38fcca4be543",
+      "group": "07-download-sources",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-minirootfs-3.23.3-aarch64.tar.gz"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v10.apk",
+      "bytes": 42917538,
+      "sha256": "25f5e6360e05e0bd4cd586e89ae13246202ebdfcd779280a37033c4ae68a7282",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v10.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v11.apk",
+      "bytes": 42917346,
+      "sha256": "e93c0460d102727b15be8ab730ccb3e7842a14c3d462febc91c50442412accdd",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v11.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v12.apk",
+      "bytes": 42915954,
+      "sha256": "5d19f5e5830be9a3a4c6b3c146ef4c689446a977d3dabeb13c687b7f19dfc88c",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v12.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v13.apk",
+      "bytes": 42916628,
+      "sha256": "775ef201b3bfb15d0a63faf6f7b61f30102fe44b4c40e19749b54a182531c1fe",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v13.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v15.apk",
+      "bytes": 43003302,
+      "sha256": "1a8e82cb061e7717dc6ecc7b8786cb188f72f38421fdf7d9693d32ac947e2723",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v15.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v16.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v17.apk",
+      "bytes": 42953505,
+      "sha256": "5fad5fa49680543890f5b14ff22a3bc589fddc340a3d41751432198b40983e70",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v17.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v18.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v19.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v20.apk",
+      "bytes": 43002413,
+      "sha256": "f7f583fc73d8d4badb4f72d54f7d082b1957ee2138c6b1de1eec30a8e9d9e2ac",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v20.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v21.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v31-final-verified.apk",
+      "bytes": 47112286,
+      "sha256": "da884548c55f2e157292c0e566085ed6ae743f3f602cbebab4615565cd2307d4",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v31-final-verified.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v31-final.apk",
+      "bytes": 47097435,
+      "sha256": "f7d6d2340d33bc043852048f29e8ec7036ed7a4110e2f73621bac14320e35c51",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v31-final.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v31.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v32.apk",
+      "bytes": 47111668,
+      "sha256": "5f6b5ed84757e6d12b04118ef9fad7c45c4979bbe0255d76894d7a7d5484ea03",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v32.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v33.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v33-verified.apk",
+      "bytes": 43088384,
+      "sha256": "759760280cd506c8308e00a5b599cabd595c80ff71c71cec8167f287bb07667a",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v33-verified.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v36.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v34.apk",
+      "bytes": 47111998,
+      "sha256": "b98d33725986c69a5c025e8183bb647c569bfa28857e2cc12c85912bc3ba23e3",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v34.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v37.apk",
+      "bytes": 47023566,
+      "sha256": "4cecf74cbdd26bf7b937140e28bc10c809f147840fa3e90fdaaccd00f5168813",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v37.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v38.apk",
+      "bytes": 47023124,
+      "sha256": "0a849aeae56f9e3a643074602c4eb638b2fb84a261ebcf8049fc9f910799c690",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v38.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v39.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v40.apk",
+      "bytes": 47023493,
+      "sha256": "250f805990e1475a69a3ab8572b5465214749aae7fe4e132d938361ca3a2f553",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v40.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v41.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v43.apk",
+      "bytes": 47099590,
+      "sha256": "889025154e83fc3a9134794d35d2696580ddda7750d13c933b5ceb2d12dad405",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v43.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v44.apk",
+      "bytes": 47147553,
+      "sha256": "c41aa43a1bee4053d4d7cbc8fcf4150b103aa99cad7a0a604998a115f3c6a0f2",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v44.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v45.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v46.apk",
+      "bytes": 48104998,
+      "sha256": "c36e89a4a77d0b8a4604516cd59e88e94569ed2c70d8fcf3e6e2bf366c562c53",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v46.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v47.apk",
+      "bytes": 48104789,
+      "sha256": "1f867bcd7d171e5e0916545fea3dd293d87bbae8bb6de3794721d05bd2bae1c4",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v47.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v48.apk",
+      "bytes": 204560880,
+      "sha256": "e5130e562bb0e0930a79f10f51221e0dac7b2f213d03e030e2b00ad60758b7ac",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v48.apk",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v49.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v50.apk",
+      "bytes": 396300349,
+      "sha256": "9cbb88b5f00b08cae81c074f7a3c4526cd092f8713b3d19d78879d41bd7e8941",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v50.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v51.apk",
+      "bytes": 204563000,
+      "sha256": "63cbbc7c5d066f0fa467e4f4edbe1891d234377c27ae93e6bde67ce394da4b38",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v51.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v52.apk",
+      "bytes": 215657972,
+      "sha256": "016859bc464a2fbfd20954531c36ff5c60f23f5cd5d3a5c18bda650b053aaeb1",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v52.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v53.apk",
+      "bytes": 215658639,
+      "sha256": "4e21119d34d2de56fed3703d6eb1fe2ee1a7c2f55899f972a939d8946a9a60d0",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v53.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v54.apk",
+      "bytes": 215658660,
+      "sha256": "45ad4eed5846862051c8fe097d9b236d2c83910c64d1b1ba4b16f18a9680d328",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v54.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v55-x11-button.apk",
+      "bytes": 215668740,
+      "sha256": "a1e8c95b99308f2f8b45920b84585581fabae3abbd61b2c833d76e80e93df765",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v55-x11-button.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v56-x11-docfix.apk",
+      "bytes": 216906543,
+      "sha256": "86705974dd2ef727b72747b1e698614f8d6bcbbe02a8d23d3645ea5351e07b9f",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v56-x11-docfix.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v57-embedded-x11.apk",
+      "bytes": 218908164,
+      "sha256": "70dc7e8e8352991540236aae3ac489083449b98a327c0dc2efd7b0828f77878f",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v57-embedded-x11.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v58-x11-cwdfix.apk",
+      "bytes": 218413719,
+      "sha256": "e0366ad01a3f3d1acad7f555b591e8929c14cf01f390251f27840ea21c22a931",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v58-x11-cwdfix.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v59-x11-hostbridge.apk",
+      "bytes": 218413880,
+      "sha256": "bfbc9793704771b967edba114c12fa5973aec25051a04ac48e17ff67fbda5ada",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v59-x11-hostbridge.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v60-x11-appbridge.apk",
+      "bytes": 218414600,
+      "sha256": "c8af37cff7f2166dbfc4ba468049070883605f41624b096034109d9beff1e818",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v60-x11-appbridge.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v61-x11-layoutfix.apk",
+      "bytes": 218417401,
+      "sha256": "a34b5ed70a686b592da51b30ea30ffb18e9478899eebb4059085e747892c6e46",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v61-x11-layoutfix.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v62-x11-fontpath.apk",
+      "bytes": 218417700,
+      "sha256": "5ba34c7c925ed44cfe7f80debdaa4925072dc03004a32bfb95c2061e4d81a946",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v62-x11-fontpath.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v63-apk-progress.apk",
+      "bytes": 218417708,
+      "sha256": "fc6c1a60ecf9bb4c204482fde1b28c57fc5f401ffce915a8d39e3f077270c5de",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v63-apk-progress.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v64-apk-progress-cleanup.apk",
+      "bytes": 218417706,
+      "sha256": "3e099b8b9a8a28743118a65fba9aeefe8e34ff31773965490e8e5d34cd61d6d9",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v64-apk-progress-cleanup.apk"
+      ]
+    },
+    {
+      "name": "alpine-ultimate-v65-apk-commitfix.apk",
+      "bytes": 218417722,
+      "sha256": "2f68fc373dc445f4df7196339b2652216b7d34792bbfb22945c868ac724cee3c",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v65-apk-commitfix.apk"
+      ]
+    },
+    {
+      "name": "download-bootstrap-aarch64.zip",
+      "bytes": 30542758,
+      "sha256": "ea2aeba8819e517db711f8c32369e89e7c52cee73e07930ff91185e1ab93f4f3",
+      "group": "07-download-sources",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/bootstrap-aarch64.zip"
+      ]
+    },
+    {
+      "name": "com.alpinelinux.org_aee-signed.apk",
+      "bytes": 201173635,
+      "sha256": "b6db85eca793314f42ba9a6e30cfcfbb4c3447cf885baea3b4fd7a5588dec52a",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/com.alpinelinux.org_aee-signed.apk"
+      ]
+    },
+    {
+      "name": "download-logcat-c-logcat__E_grep-A20_com.alpinelinux.org_.txt",
+      "bytes": 5962,
+      "sha256": "d63726c6ed0d3748e066b7fdd1907aaecd615fe72d1006a37159e6cb7450f67b",
+      "group": "07-download-sources",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/logcat-c&&logcat__E_grep-A20_com.alpinelinux.org_.txt"
+      ]
+    },
+    {
+      "name": "download-logcat__Elogcat_grepalpine.txt",
+      "bytes": 2776,
+      "sha256": "ad9a6a0eb539510987ef5e375ba3c6b7cc982bc735b4185a519989b41c7ec253",
+      "group": "07-download-sources",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/logcat__Elogcat_grepalpine.txt"
+      ]
+    },
+    {
+      "name": "download-logcat__Elogcat_grepcom.alpine.txt",
+      "bytes": 3057,
+      "sha256": "24f4c2622e41e01b12813ef9d30d72d660f70c93480949260db47a77f8df9ce2",
+      "group": "07-download-sources",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/logcat__Elogcat_grepcom.alpine.txt"
+      ]
+    },
+    {
+      "name": "ooonana-alpine.apk",
+      "bytes": 21774374,
+      "sha256": "e07a91c5e2cae73ef1fa447aaa93438438c02f05e1128a38dcde2b0e6be7868e",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/ooonana-alpine.apk"
+      ]
+    },
+    {
+      "name": "termux-x11-arm64-v8a-nightly.apk",
+      "bytes": 5017278,
+      "sha256": "d064f749651a58e18922499fe66ea0c5a7d5ebbc5a97791535b94e1721223968",
+      "group": "06-download-apks",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/termux-x11-arm64-v8a-nightly.apk"
+      ]
+    },
+    {
+      "name": "download-vectras_apk_analysis.md",
+      "bytes": 9139,
+      "sha256": "31618b169da5f4594783db96c80bf6246a0f07d24917edbb202e51ac3a367fca",
+      "group": "07-download-sources",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/vectras_apk_analysis.md"
+      ]
+    },
+    {
+      "name": "termux-toolchain-installer.sh",
+      "bytes": 8236,
+      "sha256": "aa93014c35b41db3f42733c7b10506e2f80df9c80cc5cf366191bd5bd6ec5b19",
+      "group": "10-optional-termux-toolchain",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/installer.sh"
+      ]
+    },
+    {
+      "name": "termux-toolchain-android-ndk-r29-aarch64.7z",
+      "bytes": 348595391,
+      "sha256": "21ca4237997da6c601eda6de48418609d6d8308b26c631620ae57cf1fa06c4c7",
+      "group": "10-optional-termux-toolchain",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/android-ndk-r29-aarch64.7z"
+      ]
+    },
+    {
+      "name": "termux-toolchain-termux-sdk-tools-34.0.0.tar.xz",
+      "bytes": 4874212,
+      "sha256": "b53ea64da872f56d6a28f105a20d510f23187b9074841d1aaffe193c5962fdbf",
+      "group": "10-optional-termux-toolchain",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/termux-sdk-tools-34.0.0.tar.xz"
+      ]
+    },
+    {
+      "name": "android-build-support.tar.gz",
+      "bytes": 21606534,
+      "sha256": "890fe7ea5565b779ee778bf44e06fc12213b40a6f0b64137589a7105821bdbc5",
+      "group": "support",
+      "sources": [
+        "/data/data/com.termux/files/home/alpine-debug-packages",
+        "/data/data/com.termux/files/home/alpine-downloads",
+        "/data/data/com.termux/files/home/alpine-inject",
+        "/data/data/com.termux/files/home/alpine-refine",
+        "/data/data/com.termux/files/home/audit-sources",
+        "/data/data/com.termux/files/home/dpkg-check",
+        "/data/data/com.termux/files/home/libncursesw-6.5_p20251123-r0.apk",
+        "/data/data/com.termux/files/home/musl-1.2.5-r23.apk",
+        "/data/data/com.termux/files/home/nano-8.7-r0.apk",
+        "/data/data/com.termux/files/home/ncurses-terminfo-base-6.5_p20251123-r0.apk",
+        "/data/data/com.termux/files/home/pd-bundle",
+        "/data/data/com.termux/files/home/termux-x11-Loader.java",
+        "/data/data/com.termux/files/home/termux-x11-README.md",
+        "/data/data/com.termux/files/home/termux-x11-deb-control",
+        "/data/data/com.termux/files/home/termux-x11-deb-extract",
+        "/data/data/com.termux/files/home/termux-x11-nightly-1.03.01-0-all.deb",
+        "/data/data/com.termux/files/home/termux-x11-src",
+        "/data/data/com.termux/files/home/etc/motd"
+      ]
+    },
+    {
+      "name": "original-android-source-copies.tar.gz",
+      "bytes": 69712940,
+      "sha256": "f0dcb6679d0d2999c4a098efd4256a3e441a334aff90341f1d65c37b29e5031f",
+      "group": "original-source-copies",
+      "sources": [
+        "/data/data/com.termux/files/home/storage/downloads/Vectras-VM-Android-master-alpineo",
+        "/data/data/com.termux/files/home/storage/downloads/alpine-app-master",
+        "/data/data/com.termux/files/home/storage/downloads/termux-sdk-tools-34.0.0"
+      ]
+    }
+  ]
+}

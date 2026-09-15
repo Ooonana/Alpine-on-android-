@@ -1,0 +1,15 @@
+{
+  "path": "/data/data/com.termux/files/home/.codex/sessions/2026/09/13/rollout-2026-09-13T15-05-15-01a09b4d-15c7-7383-92af-1d60f1ac277e.jsonl",
+  "sha256": "e5bf2b4f754e680e573948519d25fab0869a99fc9475d4b02026cf66f1b634aa",
+  "records": 6343,
+  "types": {
+    "session_meta": 2,
+    "event_msg": 1725,
+    "response_item": 4554,
+    "turn_context": 53,
+    "compacted": 7,
+    "world_state": 2
+  },
+  "invalid_lines": [],
+  "repair_attempted": false
+}

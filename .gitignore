@@ -1,0 +1,15 @@
+# Regenerable Android build output
+**/.gradle/
+**/.cxx/
+**/build/
+**/local.properties
+# Exact bootstrap is a checksummed release asset.
+android/app/src/main/cpp/bootstrap-*.zip
+# Downloaded release archives and local upload state
+/downloads/
+/upload-state.json
+*.part
+
+# Python test caches
+__pycache__/
+*.pyc

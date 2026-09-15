@@ -1,0 +1,418 @@
+#!/bin/sh
+
+REAL_APK="/sbin/apk.static"
+LOCAL_REPOS="/etc/apk/repositories"
+REMOTE_REPOS="/etc/apk/remote-repositories"
+MIRROR="/var/cache/apk-mirror"
+ARCH="$("$REAL_APK" --print-arch 2>/dev/null || echo aarch64)"
+
+download_file() {
+    url="$1"
+    dst="$2"
+    tmp="${dst}.tmp"
+    rm -f "$tmp"
+    if command -v wget >/dev/null 2>&1; then
+        wget -O "$tmp" "$url"
+    else
+        busybox wget -O "$tmp" "$url"
+    fi
+    status=$?
+    if [ "$status" -eq 0 ] && [ -s "$tmp" ]; then
+        mv "$tmp" "$dst"
+        return 0
+    fi
+    rm -f "$tmp"
+    return 1
+}
+
+ensure_repo_files() {
+    mkdir -p "$MIRROR/main/$ARCH" "$MIRROR/community/$ARCH" /etc/apk
+    if [ ! -s "$REMOTE_REPOS" ]; then
+        {
+            echo "http://dl-cdn.alpinelinux.org/alpine/v3.23/main"
+            echo "http://dl-cdn.alpinelinux.org/alpine/v3.23/community"
+        } > "$REMOTE_REPOS"
+    fi
+    if ! grep -q '^/var/cache/apk-mirror/' "$LOCAL_REPOS" 2>/dev/null; then
+        {
+            echo "/var/cache/apk-mirror/main"
+            echo "/var/cache/apk-mirror/community"
+        } > "$LOCAL_REPOS"
+    fi
+}
+
+refresh_indexes() {
+    ensure_repo_files
+    failed=0
+    while IFS= read -r repo; do
+        case "$repo" in
+            ""|\#*) continue ;;
+        esac
+        name="${repo##*/}"
+        dest="$MIRROR/$name/$ARCH/APKINDEX.tar.gz"
+        url="${repo%/}/$ARCH/APKINDEX.tar.gz"
+        mkdir -p "$MIRROR/$name/$ARCH"
+        echo "fetch $url"
+        if ! download_file "$url" "$dest"; then
+            if [ -s "$dest" ]; then
+                echo "WARNING: keeping stale $name APKINDEX"
+            else
+                echo "WARNING: failed to fetch $url"
+                failed=1
+            fi
+        fi
+    done < "$REMOTE_REPOS"
+    return "$failed"
+}
+
+prefetch_paths() {
+    "$REAL_APK" --repositories-file "$LOCAL_REPOS" fetch --url --recursive "$@" 2>/dev/null
+}
+
+remote_for_repo() {
+    wanted="$1"
+    while IFS= read -r repo; do
+        case "$repo" in
+            ""|\#*) continue ;;
+        esac
+        name="${repo##*/}"
+        if [ "$name" = "$wanted" ]; then
+            echo "$repo"
+            return 0
+        fi
+    done < "$REMOTE_REPOS"
+    return 1
+}
+
+download_packages_for() {
+    ensure_repo_files
+    list_file="/tmp/apk-fetch-list-$$"
+    rm -f "$list_file"
+    prefetch_paths "$@" > "$list_file"
+    status=$?
+    if [ "$status" -ne 0 ]; then
+        rm -f "$list_file"
+        return "$status"
+    fi
+    download_prefetch_list "$list_file"
+    status=$?
+    rm -f "$list_file"
+    return "$status"
+}
+
+download_world() {
+    ensure_repo_files
+    list_file="/tmp/apk-fetch-list-$$"
+    rm -f "$list_file"
+    "$REAL_APK" --repositories-file "$LOCAL_REPOS" fetch --url --recursive --world > "$list_file" 2>/dev/null
+    status=$?
+    if [ "$status" -ne 0 ]; then
+        rm -f "$list_file"
+        return "$status"
+    fi
+    download_prefetch_list "$list_file"
+    status=$?
+    rm -f "$list_file"
+    return "$status"
+}
+
+download_prefetch_list() {
+    list_file="$1"
+    total="$(wc -l < "$list_file" 2>/dev/null | tr -d ' ')"
+    current=0
+    [ "${total:-0}" -gt 0 ] 2>/dev/null || return 0
+
+    while IFS= read -r path; do
+        case "$path" in
+            "$MIRROR"/*/"$ARCH"/*.apk) ;;
+            *) continue ;;
+        esac
+        current=$((current + 1))
+        if [ -s "$path" ]; then
+            echo "cached [$current/$total] ${path##*/}"
+            continue
+        fi
+        rel="${path#$MIRROR/}"
+        repo_name="${rel%%/*}"
+        file="${path##*/}"
+        remote="$(remote_for_repo "$repo_name")" || exit 1
+        url="${remote%/}/$ARCH/$file"
+        mkdir -p "${path%/*}"
+        echo "fetch [$current/$total] $url"
+        download_file "$url" "$path" || exit 1
+    done < "$list_file"
+}
+
+download_upgrade_targets() {
+    if [ "$#" -eq 0 ]; then
+        download_world
+    else
+        download_packages_for "$@"
+    fi
+}
+
+package_field() {
+    pkgfile="$1"
+    field="$2"
+    tar -xOzf "$pkgfile" .PKGINFO 2>/dev/null | sed -n "s/^${field} = //p" | head -n 1
+}
+
+package_file_for() {
+    wanted_name="$1"
+    wanted_ver="$2"
+    for pkgfile in "$MIRROR"/*/"$ARCH"/"$wanted_name-$wanted_ver.apk"; do
+        [ -f "$pkgfile" ] || continue
+        echo "$pkgfile"
+        return 0
+    done
+
+    for pkgfile in "$MIRROR"/*/"$ARCH"/*.apk; do
+        [ -f "$pkgfile" ] || continue
+        name="$(package_field "$pkgfile" pkgname)"
+        [ "$name" = "$wanted_name" ] || continue
+        ver="$(package_field "$pkgfile" pkgver)"
+        [ "$ver" = "$wanted_ver" ] || continue
+        echo "$pkgfile"
+        return 0
+    done
+    return 1
+}
+
+prepare_root_cwd_links() {
+    APK_ROOT_CWD_LINKS=""
+    for dir in bin dev etc home lib media mnt opt proc run sbin srv sys tmp usr var; do
+        if [ ! -e "$dir" ] && [ ! -L "$dir" ]; then
+            ln -s "/$dir" "$dir" 2>/dev/null && APK_ROOT_CWD_LINKS="$APK_ROOT_CWD_LINKS $dir"
+        fi
+    done
+}
+
+cleanup_root_cwd_links() {
+    for dir in $APK_ROOT_CWD_LINKS; do
+        [ -L "$dir" ] && rm -f "$dir"
+    done
+}
+
+run_package_script() {
+    pkgfile="$1"
+    script="$2"
+    shift 2
+    tmp="/tmp/apk-script-${script}-$$"
+
+    if ! tar -xOzf "$pkgfile" ".$script" > "$tmp" 2>/dev/null; then
+        rm -f "$tmp"
+        return 0
+    fi
+
+    package_name="$(package_field "$pkgfile" pkgname)"
+    chmod 700 "$tmp" 2>/dev/null || true
+    echo "Executing ${pkgfile##*/}.${script}"
+    (
+        prepare_root_cwd_links
+        export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        export APK_SCRIPT="$script"
+        export APK_PACKAGE="$package_name"
+        /bin/sh "$tmp" "$@"
+        script_status=$?
+        cleanup_root_cwd_links
+        exit "$script_status"
+    )
+    status=$?
+    rm -f "$tmp"
+    return "$status"
+}
+
+run_package_script_or_warn() {
+    pkgfile="$1"
+    script="$2"
+    shift 2
+
+    run_package_script "$pkgfile" "$script" "$@"
+    status=$?
+    if [ "$status" -ne 0 ]; then
+        echo "WARNING: ${pkgfile##*/}.${script} failed with status $status"
+        echo "WARNING: continuing because Android/proot can reject maintainer-script syscalls"
+        [ "${APK_STRICT_SCRIPTS:-0}" = "1" ] && return "$status"
+    fi
+    return 0
+}
+
+package_file_for_or_warn() {
+    name="$1"
+    ver="$2"
+
+    if package_file_for "$name" "$ver"; then
+        return 0
+    fi
+
+    echo "WARNING: package payload not found for $name-$ver" >&2
+    [ "${APK_STRICT_SCRIPTS:-0}" = "1" ] && return 1
+    return 2
+}
+
+transaction_plan() {
+    action="$1"
+    shift
+    "$REAL_APK" --repositories-file "$LOCAL_REPOS" --simulate "$action" "$@" 2>/dev/null |
+        sed -n \
+            -e 's/^([^)]*) Installing \([^ ]*\) (\([^)]*\)).*/I \1 \2/p' \
+            -e 's/^([^)]*) Upgrading \([^ ]*\) (\([^ ]*\) -> \([^)]*\)).*/U \1 \2 \3/p' \
+            -e 's/^([^)]*) Reinstalling \([^ ]*\) (\([^)]*\)).*/R \1 \2/p'
+}
+
+run_pre_scripts() {
+    while read -r op name oldver newver; do
+        [ -n "$op" ] || continue
+        case "$op" in
+            I)
+                pkgfile="$(package_file_for_or_warn "$name" "$oldver")" || {
+                    [ "$?" -eq 2 ] && continue
+                    return 1
+                }
+                run_package_script_or_warn "$pkgfile" pre-install "$oldver" || return 1
+                ;;
+            U)
+                pkgfile="$(package_file_for_or_warn "$name" "$newver")" || {
+                    [ "$?" -eq 2 ] && continue
+                    return 1
+                }
+                run_package_script_or_warn "$pkgfile" pre-upgrade "$newver" "$oldver" || return 1
+                ;;
+            R)
+                pkgfile="$(package_file_for_or_warn "$name" "$oldver")" || {
+                    [ "$?" -eq 2 ] && continue
+                    return 1
+                }
+                run_package_script_or_warn "$pkgfile" pre-upgrade "$oldver" "$oldver" || return 1
+                ;;
+        esac
+    done
+}
+
+run_post_scripts() {
+    while read -r op name oldver newver; do
+        [ -n "$op" ] || continue
+        case "$op" in
+            I)
+                pkgfile="$(package_file_for_or_warn "$name" "$oldver")" || {
+                    [ "$?" -eq 2 ] && continue
+                    return 1
+                }
+                run_package_script_or_warn "$pkgfile" post-install "$oldver" || return 1
+                ;;
+            U)
+                pkgfile="$(package_file_for_or_warn "$name" "$newver")" || {
+                    [ "$?" -eq 2 ] && continue
+                    return 1
+                }
+                run_package_script_or_warn "$pkgfile" post-upgrade "$newver" "$oldver" || return 1
+                ;;
+            R)
+                pkgfile="$(package_file_for_or_warn "$name" "$oldver")" || {
+                    [ "$?" -eq 2 ] && continue
+                    return 1
+                }
+                run_package_script_or_warn "$pkgfile" post-upgrade "$oldver" "$oldver" || return 1
+                ;;
+        esac
+    done
+}
+
+cleanup_package_files() {
+    while read -r op name oldver newver; do
+        [ -n "$op" ] || continue
+        case "$op" in
+            I|R)
+                cleanup_ver="$oldver"
+                ;;
+            U)
+                cleanup_ver="$newver"
+                ;;
+            *)
+                continue
+                ;;
+        esac
+
+        pkgfile="$(package_file_for "$name" "$cleanup_ver" 2>/dev/null)" || continue
+        rm -f "$pkgfile"
+    done
+}
+
+commit_with_manual_scripts() {
+    action="$1"
+    shift
+    plan_file="/tmp/apk-plan-${action}-$$"
+
+    echo "Resolving apk transaction..."
+    transaction_plan "$action" "$@" > "$plan_file"
+    plan_count="$(wc -l < "$plan_file" 2>/dev/null | tr -d ' ')"
+    echo "Transaction packages: ${plan_count:-0}"
+
+    echo "Running package pre-install scripts (best effort under Android/proot)..."
+    run_pre_scripts < "$plan_file" || {
+        rm -f "$plan_file"
+        return 1
+    }
+
+    echo "Installing package files..."
+    "$REAL_APK" --repositories-file "$LOCAL_REPOS" "$action" --no-scripts "$@"
+    status=$?
+    if [ "$status" -ne 0 ]; then
+        rm -f "$plan_file"
+        return "$status"
+    fi
+
+    echo "Running package post-install scripts (best effort under Android/proot)..."
+    run_post_scripts < "$plan_file"
+    status=$?
+    if [ "$status" -eq 0 ]; then
+        echo "Cleaning downloaded package payloads..."
+        cleanup_package_files < "$plan_file"
+    fi
+    rm -f "$plan_file"
+    return "$status"
+}
+
+case "${1:-}" in
+    ""|--help|-h|--version|-V|--print-arch)
+        exec "$REAL_APK" "$@"
+        ;;
+esac
+
+cmd="$1"
+shift
+
+case "$cmd" in
+    update)
+        refresh_indexes || exit 1
+        count="$("$REAL_APK" --repositories-file "$LOCAL_REPOS" search 2>/dev/null | wc -l | tr -d ' ')"
+        echo "OK: ${count:-0} distinct packages available"
+        exit 0
+        ;;
+    add)
+        refresh_indexes || exit 1
+        echo "Downloading package payloads. Large desktop installs can take a long time on Android/proot."
+        download_packages_for "$@" || exit 1
+        echo "Package payload download complete. Starting apk install."
+        commit_with_manual_scripts add "$@"
+        exit $?
+        ;;
+    upgrade)
+        refresh_indexes || exit 1
+        echo "Downloading package payloads. Large upgrades can take a long time on Android/proot."
+        download_upgrade_targets "$@" || exit 1
+        echo "Package payload download complete. Starting apk upgrade."
+        commit_with_manual_scripts upgrade --no-self-upgrade "$@"
+        exit $?
+        ;;
+    search|info|list|policy|version)
+        ensure_repo_files
+        if [ ! -s "$MIRROR/main/$ARCH/APKINDEX.tar.gz" ]; then
+            refresh_indexes || true
+        fi
+        exec "$REAL_APK" --repositories-file "$LOCAL_REPOS" "$cmd" "$@"
+        ;;
+    *)
+        exec "$REAL_APK" --repositories-file "$LOCAL_REPOS" "$cmd" "$@"
+        ;;
+esac

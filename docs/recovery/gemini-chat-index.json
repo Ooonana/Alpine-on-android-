@@ -1,0 +1,86 @@
+[
+  {
+    "source": ".gemini/tmp/home/logs.json",
+    "bytes": 224219,
+    "sha256": "33d0bc8db8a2e29e3fd3a3a8abf5488f4eb92bd4bbe578ab2a96ca1c56aa42e6",
+    "mentions_alpine": true
+  },
+  {
+    "source": ".gemini/tmp/home/chats/session-2026-02-25T15-40-2f992b49.json",
+    "bytes": 116410,
+    "sha256": "eb863452963f1b6e0915cbb82f666daf978c6ea441ff1dc5c10a62672ea6e5e6",
+    "mentions_alpine": true
+  },
+  {
+    "source": ".gemini/tmp/home/chats/session-2026-02-25T22-24-b66f872b.json",
+    "bytes": 21070,
+    "sha256": "83ee69499095679acda70dc27500ac9ae20ae81a1152abbdebf942a650a040e7",
+    "mentions_alpine": true
+  },
+  {
+    "source": ".gemini/tmp/home/chats/session-2026-02-23T23-11-badc9d7c.json",
+    "bytes": 1289,
+    "sha256": "eb80291054d12746da9510e94ee6c7ac5b1b73f8d7d70a5f79d10feca73da7d0",
+    "mentions_alpine": true
+  },
+  {
+    "source": ".gemini/tmp/home/chats/session-2026-02-23T23-21-f33b3601.json",
+    "bytes": 4692212,
+    "sha256": "538eef717fd54fbb944c52c17af79bff36eb16332c9aa1efb5cd495b908dbb07",
+    "mentions_alpine": true
+  },
+  {
+    "source": ".gemini/tmp/home/chats/session-2026-02-24T10-16-611fb15e.json",
+    "bytes": 1322205,
+    "sha256": "e76d0a807b2f0897e0ca16a3e4cde2fc5fc8b36ee12ccaf5d8856c1460b8b5dd",
+    "mentions_alpine": true
+  },
+  {
+    "source": ".gemini/tmp/home/chats/session-2026-02-24T10-56-dc8aed03.json",
+    "bytes": 2742798,
+    "sha256": "3f09b0235f0569673c097bcc66e1c0bd98c24b02a8be122d3f157eed5d4a42b8",
+    "mentions_alpine": true
+  },
+  {
+    "source": ".gemini/tmp/home/chats/session-2026-05-04T12-40-fe34ba8c.json",
+    "bytes": 34917,
+    "sha256": "390b3a910705f02a1d4fb4638d119c9a4782246e37b647ffac2ff27faa5694e7",
+    "mentions_alpine": false
+  },
+  {
+    "source": ".gemini/tmp/home/chats/session-2026-05-08T00-44-25023569.jsonl",
+    "bytes": 85314,
+    "sha256": "3612237578dd674b4eb5b933428ee6fd97f69dca7cc5ac18a8f27de8cae9c5b8",
+    "mentions_alpine": false
+  },
+  {
+    "source": ".gemini/tmp/home/chats/session-2026-02-25T02-00-1c0d7989.json",
+    "bytes": 30312086,
+    "sha256": "fb7d917582739bc5bb4608dbb665b677f02dcea5256ab237cae72f9e772d0ce6",
+    "mentions_alpine": true
+  },
+  {
+    "source": ".gemini/tmp/home/chats/session-2026-02-25T02-40-51b275a6.json",
+    "bytes": 876,
+    "sha256": "df5296d6347bed766b01967c5616f311fc25344e3694cd11f7d78b3ab3229db8",
+    "mentions_alpine": false
+  },
+  {
+    "source": ".gemini/tmp/home/chats/session-2026-02-25T02-00-1c0d7989.jsonl",
+    "bytes": 30013389,
+    "sha256": "6be1cbfdf992b90e4facc9f5d6719c291038719fcff6bb3f322c0d95b0959f2e",
+    "mentions_alpine": true
+  },
+  {
+    "source": ".gemini/tmp/home/chats/session-2026-02-25T15-37-54bede92.json",
+    "bytes": 4714,
+    "sha256": "1d00ddc99841ea626033bb5922251efbecb443288505dca288bab02206bb506a",
+    "mentions_alpine": true
+  },
+  {
+    "source": ".gemini/tmp/download/logs.json",
+    "bytes": 2,
+    "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "mentions_alpine": false
+  }
+]

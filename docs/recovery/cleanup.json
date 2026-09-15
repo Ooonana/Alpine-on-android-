@@ -1,0 +1,37 @@
+{
+  "utc": "2026-09-13T15:16:38.430820+00:00",
+  "free_before": 11151544320,
+  "free_after": 15228223488,
+  "removed": [
+    {
+      "path": "/data/data/com.termux/files/home/.npm/_cacache",
+      "logical_bytes": 1449331112,
+      "reason": "Regenerable build or download cache"
+    },
+    {
+      "path": "/data/data/com.termux/files/home/.cache/node-gyp",
+      "logical_bytes": 119718889,
+      "reason": "Regenerable build or download cache"
+    },
+    {
+      "path": "/data/data/com.termux/files/home/.gradle/caches/9.2.1",
+      "logical_bytes": 287004979,
+      "reason": "Regenerable build or download cache"
+    },
+    {
+      "path": "/data/data/com.termux/files/home/.gradle/caches/9.3.1",
+      "logical_bytes": 601945815,
+      "reason": "Regenerable build or download cache"
+    },
+    {
+      "path": "/data/data/com.termux/files/home/.gradle/caches/9.4.1",
+      "logical_bytes": 326932806,
+      "reason": "Regenerable build or download cache"
+    },
+    {
+      "path": "/data/data/com.termux/files/home/alpine-build/app/build/intermediates",
+      "logical_bytes": 874039090,
+      "reason": "Regenerable build or download cache"
+    }
+  ]
+}

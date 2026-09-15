@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "errors": [],
+  "git_source_files_verified": 420,
+  "release_asset_count": 127,
+  "release_bytes": 14593762762,
+  "original_codex_jsonl_preserved": true,
+  "history_scope": "8 Android-related Gemini sessions, corresponding tool outputs, session-filtered user log, original Codex JSONL and Markdown",
+  "generated_archives_crc_verified": true,
+  "notes": "Historical text/credential-filename scan passed; nested bootstrap archive audit recorded separately. No Android build or runtime test performed."
+}

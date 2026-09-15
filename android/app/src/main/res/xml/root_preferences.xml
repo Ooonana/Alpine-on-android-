@@ -1,0 +1,49 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <Preference
+        app:key="alpine"
+        app:title="@string/alpine_preferences_title"
+        app:summary="@string/alpine_preferences_summary"
+        app:fragment="com.alpine.app.fragments.settings.AlpinePreferencesFragment"/>
+
+    <Preference
+        app:key="alpine_api"
+        app:title="@string/alpine_api_preferences_title"
+        app:summary="@string/alpine_api_preferences_summary"
+        app:isPreferenceVisible="false"
+        app:fragment="com.alpine.app.fragments.settings.AlpineAPIPreferencesFragment"/>
+
+    <Preference
+        app:key="alpine_float"
+        app:title="@string/alpine_float_preferences_title"
+        app:summary="@string/alpine_float_preferences_summary"
+        app:isPreferenceVisible="false"
+        app:fragment="com.alpine.app.fragments.settings.AlpineFloatPreferencesFragment"/>
+
+    <Preference
+        app:key="alpine_tasker"
+        app:title="@string/alpine_tasker_preferences_title"
+        app:summary="@string/alpine_tasker_preferences_summary"
+        app:isPreferenceVisible="false"
+        app:fragment="com.alpine.app.fragments.settings.AlpineTaskerPreferencesFragment"/>
+
+    <Preference
+        app:key="alpine_widget"
+        app:title="@string/alpine_widget_preferences_title"
+        app:summary="@string/alpine_widget_preferences_summary"
+        app:isPreferenceVisible="false"
+        app:fragment="com.alpine.app.fragments.settings.AlpineWidgetPreferencesFragment"/>
+
+    <Preference
+        app:key="about"
+        app:title="@string/about_preference_title"
+        app:persistent="false"/>
+    <!-- app:layout="@layout/preference_markdown_text" -->
+
+    <Preference
+        app:key="donate"
+        app:title="@string/donate_preference_title"
+        app:persistent="false"
+        app:isPreferenceVisible="false"/>
+
+</PreferenceScreen>

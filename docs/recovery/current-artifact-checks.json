@@ -1,0 +1,52 @@
+{
+  "/data/data/com.termux/files/home/alpine-build/app/src/main/cpp/bootstrap-aarch64.zip": {
+    "path": "/data/data/com.termux/files/home/alpine-build/app/src/main/cpp/bootstrap-aarch64.zip",
+    "bytes": 204984759,
+    "sha256": "af4107177ffa0f0e4dd16b5f5d33f0543ef1b342e654ce4a7a42187b5bbf77b4",
+    "zip_entries": 4556,
+    "markers": {
+      "etc/alpine-bootstrap-version": "v65",
+      "var/lib/proot-distro/installed-rootfs/alpine/etc/alpine-bootstrap-version": "v65"
+    }
+  },
+  "/data/data/com.termux/files/home/bootstrap-aarch64-v65.zip": {
+    "path": "/data/data/com.termux/files/home/bootstrap-aarch64-v65.zip",
+    "bytes": 204982812,
+    "sha256": "384457c8d5bb87a561e8846fa2b5f9c3ebbc03e18aab477c4fe273cea11ac1a2",
+    "zip_entries": 4556,
+    "markers": {
+      "etc/alpine-bootstrap-version": "v65",
+      "var/lib/proot-distro/installed-rootfs/alpine/etc/alpine-bootstrap-version": "v65"
+    }
+  },
+  "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v65-apk-commitfix.apk": {
+    "path": "/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v65-apk-commitfix.apk",
+    "bytes": 218417722,
+    "sha256": "2f68fc373dc445f4df7196339b2652216b7d34792bbfb22945c868ac724cee3c",
+    "zip_entries": 1080,
+    "contains_native_libs": [
+      "lib/arm64-v8a/libXlorie.so",
+      "lib/arm64-v8a/libalpine-bootstrap.so"
+    ]
+  },
+  "/data/data/com.termux/files/home/alpine-build/app/build/outputs/apk/debug/alpine-app_apt-android-7-debug_arm64-v8a.apk": {
+    "path": "/data/data/com.termux/files/home/alpine-build/app/build/outputs/apk/debug/alpine-app_apt-android-7-debug_arm64-v8a.apk",
+    "bytes": 218417722,
+    "sha256": "2f68fc373dc445f4df7196339b2652216b7d34792bbfb22945c868ac724cee3c",
+    "zip_entries": 1080,
+    "contains_native_libs": [
+      "lib/arm64-v8a/libXlorie.so",
+      "lib/arm64-v8a/libalpine-bootstrap.so"
+    ]
+  },
+  "/data/data/com.termux/files/home/alpine-build/app/build/outputs/apk/debug/alpine-app_apt-android-7-debug_universal.apk": {
+    "path": "/data/data/com.termux/files/home/alpine-build/app/build/outputs/apk/debug/alpine-app_apt-android-7-debug_universal.apk",
+    "bytes": 218417722,
+    "sha256": "2f68fc373dc445f4df7196339b2652216b7d34792bbfb22945c868ac724cee3c",
+    "zip_entries": 1080,
+    "contains_native_libs": [
+      "lib/arm64-v8a/libXlorie.so",
+      "lib/arm64-v8a/libalpine-bootstrap.so"
+    ]
+  }
+}

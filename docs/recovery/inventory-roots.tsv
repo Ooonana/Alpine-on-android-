@@ -1,0 +1,187 @@
+group	bytes	files	path	reason
+01-current	708466354	1132	/data/data/com.termux/files/home/alpine-build	Current Android source and unfinished v66 overlay
+02-support	2794236	681	/data/data/com.termux/files/home/alpine-debug-packages	Alpine support/patch inputs
+02-support	12534072	7	/data/data/com.termux/files/home/alpine-downloads	Alpine support/patch inputs
+02-support	8952449	425	/data/data/com.termux/files/home/alpine-inject	Alpine support/patch inputs
+02-support	471	1	/data/data/com.termux/files/home/alpine-refine	Alpine support/patch inputs
+03-assembly-history	387894156	3841	/data/data/com.termux/files/home/alpine-v52-assembly	Earlier rootfs/bootstrap assembly
+03-assembly-history	387897920	3841	/data/data/com.termux/files/home/alpine-v53-assembly	Earlier rootfs/bootstrap assembly
+03-assembly-history	387898438	3841	/data/data/com.termux/files/home/alpine-v54-assembly	Earlier rootfs/bootstrap assembly
+03-assembly-history	387907037	3845	/data/data/com.termux/files/home/alpine-v55-assembly	Earlier rootfs/bootstrap assembly
+03-assembly-history	391790330	4140	/data/data/com.termux/files/home/alpine-v56-assembly	Earlier rootfs/bootstrap assembly
+03-assembly-history	391787507	4139	/data/data/com.termux/files/home/alpine-v57-assembly	Earlier rootfs/bootstrap assembly
+03-assembly-history	391788744	4139	/data/data/com.termux/files/home/alpine-v58-assembly	Earlier rootfs/bootstrap assembly
+03-assembly-history	391790723	4139	/data/data/com.termux/files/home/alpine-v59-assembly	Earlier rootfs/bootstrap assembly
+03-assembly-history	391790912	4139	/data/data/com.termux/files/home/alpine-v60-assembly	Earlier rootfs/bootstrap assembly
+03-assembly-history	391794718	4139	/data/data/com.termux/files/home/alpine-v61-assembly	Earlier rootfs/bootstrap assembly
+01-current	548911	12	/data/data/com.termux/files/home/alpine-v66-work	Current Android source and unfinished v66 overlay
+02-support	405610	35	/data/data/com.termux/files/home/audit-sources	Runtime or X11 integration input
+04-bootstrap-history	30747593	1	/data/data/com.termux/files/home/bootstrap-aarch64-branded-v2.zip	Standalone bootstrap version
+04-bootstrap-history	30775664	1	/data/data/com.termux/files/home/bootstrap-aarch64-branded-v8.zip	Standalone bootstrap version
+04-bootstrap-history	30747937	1	/data/data/com.termux/files/home/bootstrap-aarch64-branded.zip	Standalone bootstrap version
+04-bootstrap-history	34960908	1	/data/data/com.termux/files/home/bootstrap-aarch64-final.zip	Standalone bootstrap version
+04-bootstrap-history	30638495	1	/data/data/com.termux/files/home/bootstrap-aarch64-fixed.zip	Standalone bootstrap version
+04-bootstrap-history	30997716	1	/data/data/com.termux/files/home/bootstrap-aarch64-lite.zip	Standalone bootstrap version
+04-bootstrap-history	34927735	1	/data/data/com.termux/files/home/bootstrap-aarch64-mega.zip	Standalone bootstrap version
+04-bootstrap-history	35117008	1	/data/data/com.termux/files/home/bootstrap-aarch64-ultimate-v29.zip	Standalone bootstrap version
+04-bootstrap-history	35159653	1	/data/data/com.termux/files/home/bootstrap-aarch64-ultimate.zip	Standalone bootstrap version
+04-bootstrap-history	203885963	1	/data/data/com.termux/files/home/bootstrap-aarch64-v52.zip	Standalone bootstrap version
+04-bootstrap-history	203886741	1	/data/data/com.termux/files/home/bootstrap-aarch64-v53.zip	Standalone bootstrap version
+04-bootstrap-history	203886918	1	/data/data/com.termux/files/home/bootstrap-aarch64-v54.zip	Standalone bootstrap version
+04-bootstrap-history	203893293	1	/data/data/com.termux/files/home/bootstrap-aarch64-v55.zip	Standalone bootstrap version
+04-bootstrap-history	205205269	1	/data/data/com.termux/files/home/bootstrap-aarch64-v56.zip	Standalone bootstrap version
+04-bootstrap-history	204981124	1	/data/data/com.termux/files/home/bootstrap-aarch64-v57.zip	Standalone bootstrap version
+04-bootstrap-history	204981498	1	/data/data/com.termux/files/home/bootstrap-aarch64-v58.zip	Standalone bootstrap version
+04-bootstrap-history	204981976	1	/data/data/com.termux/files/home/bootstrap-aarch64-v59.zip	Standalone bootstrap version
+04-bootstrap-history	204982050	1	/data/data/com.termux/files/home/bootstrap-aarch64-v60.zip	Standalone bootstrap version
+04-bootstrap-history	204982174	1	/data/data/com.termux/files/home/bootstrap-aarch64-v61.zip	Standalone bootstrap version
+04-bootstrap-history	204982559	1	/data/data/com.termux/files/home/bootstrap-aarch64-v62.zip	Standalone bootstrap version
+04-bootstrap-history	204982641	1	/data/data/com.termux/files/home/bootstrap-aarch64-v63.zip	Standalone bootstrap version
+04-bootstrap-history	204982705	1	/data/data/com.termux/files/home/bootstrap-aarch64-v64.zip	Standalone bootstrap version
+04-bootstrap-history	204982812	1	/data/data/com.termux/files/home/bootstrap-aarch64-v65.zip	Standalone bootstrap version
+04-bootstrap-history	30747888	1	/data/data/com.termux/files/home/bootstrap-aarch64.zip	Standalone bootstrap version
+02-support	293080	2	/data/data/com.termux/files/home/dpkg-check	Runtime or X11 integration input
+02-support	161252	1	/data/data/com.termux/files/home/libncursesw-6.5_p20251123-r0.apk	Alpine Linux package used in investigation
+02-support	416104	1	/data/data/com.termux/files/home/musl-1.2.5-r23.apk	Alpine Linux package used in investigation
+02-support	164344	1	/data/data/com.termux/files/home/nano-8.7-r0.apk	Alpine Linux package used in investigation
+02-support	21839	1	/data/data/com.termux/files/home/ncurses-terminfo-base-6.5_p20251123-r0.apk	Alpine Linux package used in investigation
+02-support	9107645	451	/data/data/com.termux/files/home/pd-bundle	Runtime or X11 integration input
+02-support	2438	1	/data/data/com.termux/files/home/termux-x11-Loader.java	Runtime or X11 integration input
+02-support	9161	1	/data/data/com.termux/files/home/termux-x11-README.md	Runtime or X11 integration input
+02-support	331	2	/data/data/com.termux/files/home/termux-x11-deb-control	Runtime or X11 integration input
+02-support	7212	3	/data/data/com.termux/files/home/termux-x11-deb-extract	Runtime or X11 integration input
+02-support	5242	1	/data/data/com.termux/files/home/termux-x11-nightly-1.03.01-0-all.deb	Runtime or X11 integration input
+02-support	3227296	185	/data/data/com.termux/files/home/termux-x11-src	Runtime or X11 integration input
+03-assembly-history	8702507	419	/data/data/com.termux/files/home/~/alpine-v46-assembly	Historical assembly accidentally created under literal tilde directory
+03-assembly-history	0	1	/data/data/com.termux/files/home/~/alpine-v47-assembly	Historical assembly accidentally created under literal tilde directory
+05-existing-archives	15778304	1	/data/data/com.termux/files/home/workspace-archives/gemini-20260510.tar.zst	Already compressed history; mixed old-other archive also holds Alpineo/Vectras source
+05-existing-archives	678	1	/data/data/com.termux/files/home/workspace-archives/old-alpine-workdirs-20260510.list	Already compressed history; mixed old-other archive also holds Alpineo/Vectras source
+05-existing-archives	1175551905	1	/data/data/com.termux/files/home/workspace-archives/old-alpine-workdirs-20260510.tar.zst	Already compressed history; mixed old-other archive also holds Alpineo/Vectras source
+05-existing-archives	806	1	/data/data/com.termux/files/home/workspace-archives/old-bootstrap-zips-20260510.list	Already compressed history; mixed old-other archive also holds Alpineo/Vectras source
+05-existing-archives	1013970575	1	/data/data/com.termux/files/home/workspace-archives/old-bootstrap-zips-20260510.tar.zst	Already compressed history; mixed old-other archive also holds Alpineo/Vectras source
+05-existing-archives	202	1	/data/data/com.termux/files/home/workspace-archives/old-other-workspaces-20260510.existing.list	Already compressed history; mixed old-other archive also holds Alpineo/Vectras source
+05-existing-archives	202	1	/data/data/com.termux/files/home/workspace-archives/old-other-workspaces-20260510.list	Already compressed history; mixed old-other archive also holds Alpineo/Vectras source
+05-existing-archives	2118081358	1	/data/data/com.termux/files/home/workspace-archives/old-other-workspaces-20260510.tar.zst	SOURCE CONTAINER ONLY: extract Alpineo-Project/ and Vectras-VM-Android-master-alpineo/; do not package entire mixed archive
+06-download-apks	45922125	1	/data/data/com.termux/files/home/storage/downloads/Alpine.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47601631	1	/data/data/com.termux/files/home/storage/downloads/AlpineLXQt-1.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47601631	1	/data/data/com.termux/files/home/storage/downloads/AlpineLXQt-2.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	61966303	1	/data/data/com.termux/files/home/storage/downloads/AlpineLXQt-3.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	60237795	1	/data/data/com.termux/files/home/storage/downloads/AlpineLXQt-funcpatch.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	45922125	1	/data/data/com.termux/files/home/storage/downloads/AlpineLXQt.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	21443705	1	/data/data/com.termux/files/home/storage/downloads/AlpineTerminal-source-1.zip	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	21443705	1	/data/data/com.termux/files/home/storage/downloads/AlpineTerminal-source.zip	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	8902	1	/data/data/com.termux/files/home/storage/downloads/Alpinelogo.png	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	27322250	1	/data/data/com.termux/files/home/storage/downloads/Alpineo (rename of vectrass source code).zip	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	180705993	746	/data/data/com.termux/files/home/storage/downloads/Vectras-VM-Android-master-alpineo	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	29618695	1	/data/data/com.termux/files/home/storage/downloads/Vectras-VM-Android-master-alpineo.zip	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	33572348	343	/data/data/com.termux/files/home/storage/downloads/alpine-app-master	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	31148617	1	/data/data/com.termux/files/home/storage/downloads/alpine-app-master(termux modification).zip	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	68664459	1	/data/data/com.termux/files/home/storage/downloads/alpine-automated-final.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	68664459	1	/data/data/com.termux/files/home/storage/downloads/alpine-branded-final.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	68664459	1	/data/data/com.termux/files/home/storage/downloads/alpine-branded-v2.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	68664459	1	/data/data/com.termux/files/home/storage/downloads/alpine-branded-v6.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42916047	1	/data/data/com.termux/files/home/storage/downloads/alpine-branded-v7.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42916047	1	/data/data/com.termux/files/home/storage/downloads/alpine-branded-v8.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42917326	1	/data/data/com.termux/files/home/storage/downloads/alpine-branded-v9.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	38511397	1	/data/data/com.termux/files/home/storage/downloads/alpine-debug.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-dpkg-patched-v26.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	68664459	1	/data/data/com.termux/files/home/storage/downloads/alpine-final-full.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	68664389	1	/data/data/com.termux/files/home/storage/downloads/alpine-final-v1.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42915788	1	/data/data/com.termux/files/home/storage/downloads/alpine-final-v14.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	38766125	1	/data/data/com.termux/files/home/storage/downloads/alpine-fixed-v2.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	38766125	1	/data/data/com.termux/files/home/storage/downloads/alpine-fixed-v3.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	38522955	1	/data/data/com.termux/files/home/storage/downloads/alpine-fixed-v4.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	38574897	1	/data/data/com.termux/files/home/storage/downloads/alpine-fixed-v5.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-guaranteed-v24.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-guaranteed-v27.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-guaranteed-v28.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-guaranteed-v29.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	18469001	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-1.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	27382706	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-10.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	27382706	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-11.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	27382706	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-12.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	27382706	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-17.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	27382702	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-19.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	22225191	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-2.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	27382706	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-25.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	25909761	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-3.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	27382789	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-4.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	27382793	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-5.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	27382793	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-6.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	27382793	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-7.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	27382793	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-8.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	27382706	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt-9.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	22010398	1	/data/data/com.termux/files/home/storage/downloads/alpine-lxqt.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	4040567	1	/data/data/com.termux/files/home/storage/downloads/alpine-minirootfs-3.23.3-aarch64.tar.gz	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-pd-patched-v25.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-preinstalled-v27.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-proot-distro-v22.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-proot-distro-v23.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42917538	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v10.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42917346	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v11.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42915954	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v12.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42916628	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v13.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	43003302	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v15.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	43003302	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v16.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42953505	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v17.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42953505	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v18.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42953505	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v19.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	43002413	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v20.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	43002413	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v21.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v24.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v25.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v27.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v28.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v29.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	42954049	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v30.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47112286	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v31-final-verified.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47097435	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v31-final.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47097435	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v31.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47111668	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v32.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	43088384	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v33-verified.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47111668	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v33.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47111998	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v34.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	43088384	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v36.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47023566	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v37.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47023124	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v38.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47023124	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v39.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47023493	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v40.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47023493	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v41.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47099590	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v43.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47147553	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v44.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	47147553	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v45.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	48104998	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v46.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	48104789	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v47.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	204560880	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v48.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	204560880	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v49.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	396300349	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v50.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	204563000	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v51.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	215657972	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v52.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	215658639	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v53.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	215658660	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v54.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	215668740	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v55-x11-button.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	216906543	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v56-x11-docfix.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	218908164	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v57-embedded-x11.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	218413719	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v58-x11-cwdfix.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	218413880	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v59-x11-hostbridge.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	218414600	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v60-x11-appbridge.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	218417401	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v61-x11-layoutfix.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	218417700	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v62-x11-fontpath.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	218417708	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v63-apk-progress.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	218417706	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v64-apk-progress-cleanup.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	218417722	1	/data/data/com.termux/files/home/storage/downloads/alpine-ultimate-v65-apk-commitfix.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	30542758	1	/data/data/com.termux/files/home/storage/downloads/bootstrap-aarch64.zip	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	201173635	1	/data/data/com.termux/files/home/storage/downloads/com.alpinelinux.org_aee-signed.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	5962	1	/data/data/com.termux/files/home/storage/downloads/logcat-c&&logcat__E_grep-A20_com.alpinelinux.org_.txt	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	2776	1	/data/data/com.termux/files/home/storage/downloads/logcat__Elogcat_grepalpine.txt	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	3057	1	/data/data/com.termux/files/home/storage/downloads/logcat__Elogcat_grepcom.alpine.txt	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	21774374	1	/data/data/com.termux/files/home/storage/downloads/ooonana-alpine.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+06-download-apks	5017278	1	/data/data/com.termux/files/home/storage/downloads/termux-x11-arm64-v8a-nightly.apk	Existing Downloads Alpine-related artifact; preserve distinct versions
+07-download-sources	9139	1	/data/data/com.termux/files/home/storage/downloads/vectras_apk_analysis.md	Existing Downloads Alpine-related artifact; preserve distinct versions
+09-history	344312	1	/data/data/com.termux/files/home/codex-session-01a09b4d-15c7-7383-92af-1d60f1ac277e.md	Readable export
+09-history	10325437	1	/data/data/com.termux/files/home/.codex/sessions/2026/09/13/rollout-2026-09-13T15-05-15-01a09b4d-15c7-7383-92af-1d60f1ac277e.jsonl	Original raw Codex session
+02-support	323	1	/data/data/com.termux/files/home/etc/motd	Loose Alpine branding file
+10-optional-termux-toolchain	8236	1	/data/data/com.termux/files/home/storage/downloads/installer.sh	Historical Termux SDK installer
+10-optional-termux-toolchain	348595391	1	/data/data/com.termux/files/home/storage/downloads/android-ndk-r29-aarch64.7z	Android-hosted NDK installer; not a desktop NDK
+10-optional-termux-toolchain	4874212	1	/data/data/com.termux/files/home/storage/downloads/termux-sdk-tools-34.0.0.tar.xz	Historical Android-hosted SDK tools
+10-optional-termux-toolchain	18772736	8	/data/data/com.termux/files/home/storage/downloads/termux-sdk-tools-34.0.0	Extracted historical SDK tools
