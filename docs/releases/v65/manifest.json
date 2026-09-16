@@ -1,0 +1,31 @@
+{
+  "freeze_type": "artifact-identity",
+  "version": {
+    "name": "0.133.0",
+    "code": 133,
+    "development_label": "v65"
+  },
+  "apk": {
+    "asset": "alpine-ultimate-v65-apk-commitfix.apk",
+    "bytes": 218417722,
+    "sha256": "2f68fc373dc445f4df7196339b2652216b7d34792bbfb22945c868ac724cee3c",
+    "contains_native_libs": [
+      "lib/arm64-v8a/libXlorie.so",
+      "lib/arm64-v8a/libalpine-bootstrap.so"
+    ]
+  },
+  "bootstrap": {
+    "asset": "historical-bootstrap-aarch64-v65.zip",
+    "bytes": 204982812,
+    "sha256": "384457c8d5bb87a561e8846fa2b5f9c3ebbc03e18aab477c4fe273cea11ac1a2",
+    "markers": {
+      "etc/alpine-bootstrap-version": "v65",
+      "var/lib/proot-distro/installed-rootfs/alpine/etc/alpine-bootstrap-version": "v65"
+    }
+  },
+  "signing_certificate_sha256": "B6:DA:01:48:0E:EF:D5:FB:F2:CD:37:71:B8:D1:02:1E:C7:91:30:4B:DD:6C:4B:F4:1D:3F:AA:BA:D4:8E:E5:E1",
+  "recovery_release_tag": "termux-recovery-2026-09-14",
+  "evidence": "docs/recovery/current-artifact-checks.json",
+  "source_commit_recovered": false,
+  "note": "This freezes historical artifact identity only; the exact V65 source commit was not recovered as a normal Git commit."
+}
