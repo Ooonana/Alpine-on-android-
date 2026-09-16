@@ -10,13 +10,13 @@
         <activity
             android:name="com.termux.x11.MainActivity"
             android:configChanges="fontScale|orientation|screenSize|keyboard|keyboardHidden|layoutDirection|locale|mcc|mnc|navigation|screenLayout|touchscreen|uiMode|smallestScreenSize|density"
-            android:excludeFromRecents="false"
+            android:excludeFromRecents="true"
             android:exported="false"
             android:hardwareAccelerated="true"
-            android:launchMode="singleInstance"
+            android:launchMode="singleTop"
+            android:parentActivityName="com.alpine.app.AlpineActivity"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="true"
-            android:taskAffinity=".X11Display"
             android:theme="@style/AppTheme"
             android:windowSoftInputMode="stateHidden" />
 
@@ -24,9 +24,9 @@
             android:name="com.termux.x11.LoriePreferences"
             android:excludeFromRecents="true"
             android:exported="false"
+            android:parentActivityName="com.termux.x11.MainActivity"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="false"
-            android:taskAffinity=".X11Preferences"
             android:theme="@style/Theme.AppCompat.DayNight" />
 
         <service

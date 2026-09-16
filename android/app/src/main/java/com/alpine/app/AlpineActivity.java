@@ -195,27 +195,26 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
     private static final String ARG_TERMINAL_TOOLBAR_TEXT_INPUT = "terminal_toolbar_text_input";
     private static final String ARG_ACTIVITY_RECREATED = "activity_recreated";
 
-    private static final String X11_ACTIVITY_NAME = "com.termux.x11.MainActivity";
-    private static final String START_X11_COMMAND = "start-x11 :1 --no-open\n";
-    private static final String X11_ACTIVITY_REQUEST_FILE_PATH =
+    private static final String START_DISPLAY_COMMAND = "start-x11 :1 --no-open\n";
+    private static final String DISPLAY_ACTIVITY_REQUEST_FILE_PATH =
         AlpineConstants.ALPINE_TMP_PREFIX_DIR_PATH + "/alpine-x11-open-activity";
 
     private static final String LOG_TAG = "AlpineActivity";
-    private final Handler mX11ActivityRequestHandler = new Handler(Looper.getMainLooper());
-    private final Runnable mX11ActivityRequestRunnable = new Runnable() {
+    private final Handler mDisplayActivityRequestHandler = new Handler(Looper.getMainLooper());
+    private final Runnable mDisplayActivityRequestRunnable = new Runnable() {
         @Override
         public void run() {
             if (mIsInvalidState || !mIsVisible) return;
 
-            File requestFile = new File(X11_ACTIVITY_REQUEST_FILE_PATH);
+            File requestFile = new File(DISPLAY_ACTIVITY_REQUEST_FILE_PATH);
             if (requestFile.isFile()) {
-                // start-x11 can request the display Activity from inside Alpine/proot.
+                // start-x11 can request Alpine's embedded display from inside Alpine/proot.
                 requestFile.delete();
-                launchTermuxX11(false);
+                openAlpineDisplay(false);
                 return;
             }
 
-            mX11ActivityRequestHandler.postDelayed(this, 1000);
+            mDisplayActivityRequestHandler.postDelayed(this, 1000);
         }
     };
 
@@ -274,7 +273,7 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
 
         setNewSessionButtonView();
 
-        setX11ButtonView();
+        setDisplayButtonView();
 
         registerForContextMenu(mTerminalView);
 
@@ -340,7 +339,7 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
         if (mAlpineTerminalViewClient != null)
             mAlpineTerminalViewClient.onResume();
 
-        startX11ActivityRequestWatcher();
+        startDisplayActivityRequestWatcher();
 
         // Check if a crash happened on last run of the app or if a plugin crashed and show a
         // notification with the crash details if it did
@@ -365,7 +364,7 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
         if (mAlpineTerminalViewClient != null)
             mAlpineTerminalViewClient.onStop();
 
-        stopX11ActivityRequestWatcher();
+        stopDisplayActivityRequestWatcher();
 
         removeAlpineActivityRootViewGlobalLayoutListener();
 
@@ -392,7 +391,7 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
         } catch (Exception e) {
             // ignore.
         }
-        stopX11ActivityRequestWatcher();
+        stopDisplayActivityRequestWatcher();
     }
 
     @Override
@@ -600,41 +599,40 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
         });
     }
 
-    private void setX11ButtonView() {
+    private void setDisplayButtonView() {
         View x11Button = findViewById(R.id.toggle_keyboard_button);
-        x11Button.setOnClickListener(v -> launchTermuxX11(true));
+        x11Button.setOnClickListener(v -> openAlpineDisplay(true));
         x11Button.setOnLongClickListener(v -> {
-            launchTermuxX11(false);
+            openAlpineDisplay(false);
             return true;
         });
     }
 
-    private void launchTermuxX11(boolean startServerCommand) {
+    /** Open the embedded X11 display as another screen in this app's task. */
+    private void openAlpineDisplay(boolean startServerCommand) {
         Intent x11Intent = new Intent(this, com.termux.x11.MainActivity.class);
-        x11Intent.setComponent(new ComponentName(getPackageName(), X11_ACTIVITY_NAME));
-        x11Intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
         try {
             startActivity(x11Intent);
             if (startServerCommand) {
                 sendStartX11CommandToCurrentSession();
             } else {
-                showToast(getString(R.string.msg_x11_launched), false);
+                showToast(getString(R.string.msg_display_opened), false);
             }
         } catch (ActivityNotFoundException | IllegalArgumentException e) {
-            showToast(getString(R.string.error_x11_not_installed), true);
+            showToast(getString(R.string.error_display_open_failed), true);
         }
 
         getDrawer().closeDrawers();
     }
 
-    private void startX11ActivityRequestWatcher() {
-        mX11ActivityRequestHandler.removeCallbacks(mX11ActivityRequestRunnable);
-        mX11ActivityRequestHandler.postDelayed(mX11ActivityRequestRunnable, 1000);
+    private void startDisplayActivityRequestWatcher() {
+        mDisplayActivityRequestHandler.removeCallbacks(mDisplayActivityRequestRunnable);
+        mDisplayActivityRequestHandler.postDelayed(mDisplayActivityRequestRunnable, 1000);
     }
 
-    private void stopX11ActivityRequestWatcher() {
-        mX11ActivityRequestHandler.removeCallbacks(mX11ActivityRequestRunnable);
+    private void stopDisplayActivityRequestWatcher() {
+        mDisplayActivityRequestHandler.removeCallbacks(mDisplayActivityRequestRunnable);
     }
 
     private void sendStartX11CommandToCurrentSession() {
@@ -644,8 +642,8 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
             return;
         }
 
-        currentSession.write(START_X11_COMMAND);
-        showToast(getString(R.string.msg_x11_start_command_sent), true);
+        currentSession.write(START_DISPLAY_COMMAND);
+        showToast(getString(R.string.msg_display_start_requested), true);
     }
 
     private void setNewSessionButtonView() {

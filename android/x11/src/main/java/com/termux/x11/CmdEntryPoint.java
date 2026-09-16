@@ -59,7 +59,7 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
         String targetPackage = getenv("TERMUX_X11_OVERRIDE_PACKAGE");
         if (targetPackage == null)
             targetPackage = BuildConfig.APPLICATION_ID;
-        // We should not care about multiple instances, it should be called only by `Termux:X11` app
+        // This command entry point is embedded in Alpine and targets Alpine's application package.
         // which is single instance...
         Bundle bundle = new Bundle();
         bundle.putBinder(null, this);

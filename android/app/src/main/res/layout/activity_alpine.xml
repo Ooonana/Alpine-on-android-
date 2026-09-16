@@ -80,7 +80,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/action_launch_x11" />
+                        android:text="@string/action_open_display" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/new_session_button"
