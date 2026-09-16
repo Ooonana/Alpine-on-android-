@@ -1,6 +1,13 @@
-The `alpine/alpine-app` repository is released under [GPLv3 only](https://www.gnu.org/licenses/gpl-3.0.html) license.
+# License
 
-### Exceptions
+The recovered Alpine on Android application source is distributed under the repository's GPLv3 license except for components that carry their own license terms or documented exceptions.
 
-- [Terminal Emulator for Android](https://github.com/jackpal/Android-Terminal-Emulator) code is used which is released under [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) license. Check [`terminal-view`](terminal-view) and [`terminal-emulator`](terminal-emulator) libraries.
-- Check [`alpine-shared/LICENSE.md`](alpine-shared/LICENSE.md) for `alpine-shared` library related exceptions.
+This codebase contains substantial source derived from the Termux app project. Upstream copyright notices, source-history information, and license exceptions must be preserved.
+
+## Exceptions and third-party components
+
+- Terminal Emulator for Android-derived code in `terminal-view` and `terminal-emulator` is licensed under Apache License 2.0 where indicated by the upstream files/notices.
+- `alpine-shared` has additional license information in [`alpine-shared/LICENSE.md`](alpine-shared/LICENSE.md).
+- The embedded Termux:X11-derived module is GPLv3 and has additional provenance information in [`THIRD_PARTY.md`](THIRD_PARTY.md).
+
+See the repository root [`LICENSE`](../LICENSE) and [`THIRD_PARTY.md`](THIRD_PARTY.md) before redistributing binaries or modified source.

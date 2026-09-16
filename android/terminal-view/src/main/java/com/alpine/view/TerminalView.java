@@ -313,7 +313,7 @@ public final class TerminalView extends View {
             if (mClient.shouldEnforceCharBasedInput()) {
                 // Some keyboards seems do not reset the internal state on TYPE_NULL.
                 // Affects mostly Samsung stock keyboards.
-                // https://github.com/alpine/alpine-app/issues/686
+                // https://github.com/termux/termux-app/issues/686
                 // However, this is not a valid value as per AOSP since `InputType.TYPE_CLASS_*` is
                 // not set and it logs a warning:
                 // W/InputAttributes: Unexpected input class: inputType=0x00080090 imeOptions=0x02000000
@@ -323,10 +323,10 @@ public final class TerminalView extends View {
                 // Using InputType.NULL is the most correct input type and avoids issues with other hacks.
                 //
                 // Previous keyboard issues:
-                // https://github.com/alpine/alpine-packages/issues/25
-                // https://github.com/alpine/alpine-app/issues/87.
-                // https://github.com/alpine/alpine-app/issues/126.
-                // https://github.com/alpine/alpine-app/issues/137 (japanese chars and TYPE_NULL).
+                // https://github.com/termux/termux-packages/issues/25
+                // https://github.com/termux/termux-app/issues/87.
+                // https://github.com/termux/termux-app/issues/126.
+                // https://github.com/termux/termux-app/issues/137 (japanese chars and TYPE_NULL).
                 outAttrs.inputType = InputType.TYPE_NULL;
             }
         } else {
@@ -335,7 +335,7 @@ public final class TerminalView extends View {
         }
 
         // Note that IME_ACTION_NONE cannot be used as that makes it impossible to input newlines using the on-screen
-        // keyboard on Android TV (see https://github.com/alpine/alpine-app/issues/221).
+        // keyboard on Android TV (see https://github.com/termux/termux-app/issues/221).
         outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_FULLSCREEN;
 
         return new BaseInputConnection(this, true) {
@@ -713,7 +713,7 @@ public final class TerminalView extends View {
      * The solution to such issues is calling `getUnicodeChar()` before the call to `handleKeyCode()`
      * if user has defined a custom kcm file, like done in POC mentioned in #2237. Note that
      * Hacker's Keyboard calls `commitText()` so don't test fn/shift with it for this function.
-     * https://github.com/alpine/alpine-app/pull/2237
+     * https://github.com/termux/termux-app/pull/2237
      * https://github.com/agnostic-apollo/alpine-app/blob/terminal-code-point-custom-mapping/terminal-view/src/main/java/com/alpine/view/TerminalView.java
      *
      * Key Character Map (kcm) and Key Layout (kl) files info:
@@ -797,7 +797,7 @@ public final class TerminalView extends View {
         if (event.isAltPressed() || leftAltDown) keyMod |= KeyHandler.KEYMOD_ALT;
         if (shiftDown) keyMod |= KeyHandler.KEYMOD_SHIFT;
         if (event.isNumLockOn()) keyMod |= KeyHandler.KEYMOD_NUM_LOCK;
-        // https://github.com/alpine/alpine-app/issues/731
+        // https://github.com/termux/termux-app/issues/731
         if (!event.isFunctionPressed() && handleKeyCode(keyCode, keyMod)) {
             if (TERMINAL_VIEW_KEY_LOGGING_ENABLED) mClient.logInfo(LOG_TAG, "handleKeyCode() took key event");
             return true;

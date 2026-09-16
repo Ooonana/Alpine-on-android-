@@ -117,7 +117,7 @@ public class ScrollRegionTest extends TerminalTestCase {
 		assertLinesAre("1 ", "2 ", "3 ", "QQ", "YY");
 	}
 
-	/** See https://github.com/alpine/alpine-app/issues/1340 */
+	/** See https://github.com/termux/termux-app/issues/1340 */
 	public void testScrollRegionDoesNotLimitCursorMovement() {
 		withTerminalSized(6, 4)
 			.enterString("\033[4;7r\033[3;1Haaa\033[Axxx")
@@ -139,7 +139,7 @@ public class ScrollRegionTest extends TerminalTestCase {
 	}
 
 	/**
-	 * See <a href="https://github.com/alpine/alpine-packages/issues/12556">reported issue</a>.
+	 * See <a href="https://github.com/termux/termux-packages/issues/12556">reported issue</a>.
 	 */
 	public void testClearingWhenScrollingWithMargins() {
 		int newForeground = 2;

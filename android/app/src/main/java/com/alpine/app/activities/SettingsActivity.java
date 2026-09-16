@@ -14,8 +14,6 @@ import com.alpine.shared.activities.ReportActivity;
 import com.alpine.shared.file.FileUtils;
 import com.alpine.shared.models.ReportInfo;
 import com.alpine.app.models.UserAction;
-import com.alpine.shared.interact.ShareUtils;
-import com.alpine.shared.android.PackageUtils;
 import com.alpine.shared.alpine.settings.preferences.AlpineAPIAppSharedPreferences;
 import com.alpine.shared.alpine.settings.preferences.AlpineFloatAppSharedPreferences;
 import com.alpine.shared.alpine.settings.preferences.AlpineTaskerAppSharedPreferences;
@@ -68,7 +66,6 @@ public class SettingsActivity extends AppCompatActivity {
                     configureAlpineTaskerPreference(context);
                     configureAlpineWidgetPreference(context);
                     configureAboutPreference(context);
-                    configureDonatePreference(context);
                 }
             }.start();
         }
@@ -141,29 +138,6 @@ public class SettingsActivity extends AppCompatActivity {
             }
         }
 
-        private void configureDonatePreference(@NonNull Context context) {
-            Preference donatePreference = findPreference("donate");
-            if (donatePreference != null) {
-                String signingCertificateSHA256Digest = PackageUtils.getSigningCertificateSHA256DigestForPackage(context);
-                if (signingCertificateSHA256Digest != null) {
-                    // If APK is a Google Playstore release, then do not show the donation link
-                    // since Alpine isn't exempted from the playstore policy donation links restriction
-                    // Check Fund solicitations: https://pay.google.com/intl/en_in/about/policy/
-                    String apkRelease = AlpineUtils.getAPKRelease(signingCertificateSHA256Digest);
-                    if (apkRelease == null || apkRelease.equals(AlpineConstants.APK_RELEASE_GOOGLE_PLAYSTORE_SIGNING_CERTIFICATE_SHA256_DIGEST)) {
-                        donatePreference.setVisible(false);
-                        return;
-                    } else {
-                        donatePreference.setVisible(true);
-                    }
-                }
-
-                donatePreference.setOnPreferenceClickListener(preference -> {
-                    ShareUtils.openUrl(context, AlpineConstants.ALPINE_DONATE_URL);
-                    return true;
-                });
-            }
-        }
     }
 
 }

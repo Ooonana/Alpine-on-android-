@@ -182,7 +182,7 @@ public class KeyboardUtils {
              * keyboard is opened instead of the keyboard opening on top of the view (hiding stuff).
              * If the "Show soft keyboard" toggle was disabled, then this resizing shouldn't happen.
              * But it seems resizing does happen, but keyboard is never opened since its not supposed to.
-             * https://github.com/alpine/alpine-app/issues/1995#issuecomment-837080079
+             * https://github.com/termux/termux-app/issues/1995#issuecomment-837080079
              */
             // If soft keyboard is disabled by user only if hardware keyboard is connected
             if(isSoftKeyboardEnabledOnlyIfNoHardware) {

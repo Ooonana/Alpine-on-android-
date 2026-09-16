@@ -41,7 +41,7 @@ public final class HelpActivity extends AppCompatActivity {
         mWebView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                if (url.equals(AlpineConstants.ALPINE_WIKI_URL) || url.startsWith(AlpineConstants.ALPINE_WIKI_URL + "/")) {
+                if (url.equals(AlpineConstants.ALPINE_GITHUB_REPO_URL) || url.startsWith(AlpineConstants.ALPINE_GITHUB_REPO_URL + "/")) {
                     // Inline help.
                     setContentView(progressLayout);
                     return false;
@@ -62,7 +62,7 @@ public final class HelpActivity extends AppCompatActivity {
                 setContentView(mWebView);
             }
         });
-        mWebView.loadUrl(AlpineConstants.ALPINE_WIKI_URL);
+        mWebView.loadUrl(AlpineConstants.ALPINE_GITHUB_REPO_URL);
     }
 
     @Override

@@ -14,7 +14,7 @@ import com.alpine.shared.shell.command.runner.app.AppShell;
 /**
  * Utils for phantom processes added in android 12.
  *
- * https://github.com/alpine/alpine-app/issues/2366
+ * https://github.com/termux/termux-app/issues/2366
  * https://issuetracker.google.com/u/1/issues/205156966#comment28
  * https://cs.android.com/android/_/android/platform/frameworks/base/+/09dcdad5
  * https://github.com/agnostic-apollo/Android-Docs/tree/master/ocs/apps/processes/phantom-cached-and-empty-processes.md

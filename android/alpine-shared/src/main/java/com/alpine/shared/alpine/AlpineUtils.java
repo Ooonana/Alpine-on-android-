@@ -510,25 +510,10 @@ public class AlpineUtils {
 
         markdownString.append("## Where To Report An Issue");
 
-        markdownString.append("\n\n").append(context.getString(R.string.msg_report_issue, AlpineConstants.ALPINE_WIKI_URL)).append("\n");
+        markdownString.append("\n\n").append(context.getString(R.string.msg_report_issue)).append("\n");
 
-        markdownString.append("\n\n### Email\n");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_SUPPORT_EMAIL_URL, AlpineConstants.ALPINE_SUPPORT_EMAIL_MAILTO_URL)).append("  ");
-
-        markdownString.append("\n\n### Reddit\n");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_REDDIT_SUBREDDIT, AlpineConstants.ALPINE_REDDIT_SUBREDDIT_URL)).append("  ");
-
-        markdownString.append("\n\n### GitHub Issues for Alpine apps\n");
+        markdownString.append("\n\n### GitHub Issues\n");
         markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_APP_NAME, AlpineConstants.ALPINE_GITHUB_ISSUES_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_API_APP_NAME, AlpineConstants.ALPINE_API_GITHUB_ISSUES_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_BOOT_APP_NAME, AlpineConstants.ALPINE_BOOT_GITHUB_ISSUES_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_FLOAT_APP_NAME, AlpineConstants.ALPINE_FLOAT_GITHUB_ISSUES_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_STYLING_APP_NAME, AlpineConstants.ALPINE_STYLING_GITHUB_ISSUES_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_TASKER_APP_NAME, AlpineConstants.ALPINE_TASKER_GITHUB_ISSUES_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_WIDGET_APP_NAME, AlpineConstants.ALPINE_WIDGET_GITHUB_ISSUES_REPO_URL)).append("  ");
-
-        markdownString.append("\n\n### GitHub Issues for Alpine packages\n");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_PACKAGES_GITHUB_REPO_NAME, AlpineConstants.ALPINE_PACKAGES_GITHUB_ISSUES_REPO_URL)).append("  ");
 
         markdownString.append("\n##\n");
 
@@ -550,24 +535,6 @@ public class AlpineUtils {
 
         markdownString.append("\n\n### GitHub\n");
         markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_APP_NAME, AlpineConstants.ALPINE_GITHUB_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_API_APP_NAME, AlpineConstants.ALPINE_API_GITHUB_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_BOOT_APP_NAME, AlpineConstants.ALPINE_BOOT_GITHUB_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_FLOAT_APP_NAME, AlpineConstants.ALPINE_FLOAT_GITHUB_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_STYLING_APP_NAME, AlpineConstants.ALPINE_STYLING_GITHUB_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_TASKER_APP_NAME, AlpineConstants.ALPINE_TASKER_GITHUB_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_WIDGET_APP_NAME, AlpineConstants.ALPINE_WIDGET_GITHUB_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_PACKAGES_GITHUB_REPO_NAME, AlpineConstants.ALPINE_PACKAGES_GITHUB_REPO_URL)).append("  ");
-
-        markdownString.append("\n\n### Email\n");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_SUPPORT_EMAIL_URL, AlpineConstants.ALPINE_SUPPORT_EMAIL_MAILTO_URL)).append("  ");
-
-        markdownString.append("\n\n### Reddit\n");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_REDDIT_SUBREDDIT, AlpineConstants.ALPINE_REDDIT_SUBREDDIT_URL)).append("  ");
-
-        markdownString.append("\n\n### Wiki\n");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_WIKI, AlpineConstants.ALPINE_WIKI_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_APP_NAME, AlpineConstants.ALPINE_GITHUB_WIKI_REPO_URL)).append("  ");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_PACKAGES_GITHUB_REPO_NAME, AlpineConstants.ALPINE_PACKAGES_GITHUB_WIKI_REPO_URL)).append("  ");
 
         markdownString.append("\n##\n");
 

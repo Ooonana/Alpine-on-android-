@@ -7,9 +7,9 @@ package com.alpine.terminal;
  *
  * IMPORTANT:
  * Must be kept in sync with the following:
- * https://github.com/alpine/wcwidth
- * https://github.com/alpine/libandroid-support
- * https://github.com/alpine/alpine-packages/tree/master/packages/libandroid-support
+ * https://github.com/termux/wcwidth
+ * https://github.com/termux/libandroid-support
+ * https://github.com/termux/termux-packages/tree/master/packages/libandroid-support
  */
 public final class WcWidth {
 

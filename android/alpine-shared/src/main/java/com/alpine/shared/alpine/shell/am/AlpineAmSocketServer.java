@@ -53,8 +53,8 @@ import com.alpine.shared.alpine.shell.command.environment.AlpineAppShellEnvironm
  * {@link AlpineAppShellEnvironment#ENV_ALPINE_APP__AM_SOCKET_SERVER_ENABLED} env variable, which is exported
  * for all shell sessions and tasks.
  *
- * https://github.com/alpine/alpine-am-socket
- * https://github.com/alpine/AlpineAm
+ * https://github.com/termux/termux-am-socket
+ * https://github.com/termux/TermuxAm
  */
 public class AlpineAmSocketServer {
 

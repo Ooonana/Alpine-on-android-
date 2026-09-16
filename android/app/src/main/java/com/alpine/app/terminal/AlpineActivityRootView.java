@@ -45,7 +45,7 @@ import com.alpine.shared.view.ViewUtils;
  * where `keyboard_height = screen_height - height_for_app - header_height` (62 is a hardcoded value in Gboard source code and may be a version number)
  * So this may in fact be due to Gboard but https://stackoverflow.com/questions/57567272 suggests
  * otherwise. Another similar report https://stackoverflow.com/questions/66761661.
- * Also check https://github.com/alpine/alpine-app/issues/1539.
+ * Also check https://github.com/termux/termux-app/issues/1539.
  *
  * This overlap may happen even without `enforce-char-based-input=true` for keyboards with extended layouts
  * like number row, etc.

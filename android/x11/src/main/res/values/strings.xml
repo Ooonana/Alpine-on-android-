@@ -1,7 +1,7 @@
 <!DOCTYPE resources [
     <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
     <!ENTITY TERMUX_APP_NAME "Termux">
-    <!ENTITY TERMUX_X11_APP_NAME "Termux:X11">
+    <!ENTITY TERMUX_X11_APP_NAME "Alpine Display">
     ]>
 <resources>
     <string name="app_name">&TERMUX_X11_APP_NAME;</string>
@@ -10,7 +10,7 @@
     <string name="preferences_button_text">   PREFERENCES   </string>
     <string name="help_button_text">   HELP   </string>
     <string name="exit_button_text">   EXIT   </string>
-    <string name="extra_keys_config_desc">Here you can set value of extra-keys variable like in Termux app (read <a href="http://wiki.termux.com/wiki/Touch_Keyboard#Extra_Keys_Row">this</a>) and more \n
+    <string name="extra_keys_config_desc">Here you can configure the Termux-compatible extra-keys syntax and more \n
 E.g. <b>META</b> for <i>META key</i>, \n
 <b>KEYBOARD</b> for <i>soft keyboard toggling key</i>, \n
 <b>PREFERENCES</b> for <i>preferences opening key</i>, \n

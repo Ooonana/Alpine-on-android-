@@ -245,7 +245,7 @@ import java.util.List;
  *      - Added `APK_RELEASE_ALPINE_DEVS` and `APK_RELEASE_ALPINE_DEVS_SIGNING_CERTIFICATE_SHA256_DIGEST`.
  *
  * - 0.43.0 (2022-05-29)
- *      - Changed `ALPINE_SUPPORT_EMAIL_URL` to support@alpine.dev.
+ *      - Changed `ALPINE_SUPPORT_EMAIL_URL` to support@termux.dev.
  *
  * - 0.44.0 (2022-05-29)
  *      - Changed `ALPINE_APP.APPS_DIR_PATH` basename from `alpine-app` to `com.alpine`.
@@ -298,7 +298,7 @@ import java.util.List;
  * The {@link #ALPINE_PACKAGE_NAME} must be the same as the applicationId of alpine-app build.gradle
  * since its also used by {@link #ALPINE_FILES_DIR_PATH}.
  * If {@link #ALPINE_PACKAGE_NAME} is changed, then binaries, specially used in bootstrap need to be
- * compiled appropriately. Check https://github.com/alpine/alpine-packages/wiki/Building-packages
+ * compiled appropriately. Check https://github.com/termux/termux-packages/wiki/Building-packages
  * for more info.
  *
  * Ideally the only places where changes should be required if changing package name are the following:
@@ -331,9 +331,9 @@ public final class AlpineConstants {
      */
 
     /** Alpine GitHub organization name */
-    public static final String ALPINE_GITHUB_ORGANIZATION_NAME = "alpine"; // Default: "alpine"
+    public static final String ALPINE_GITHUB_ORGANIZATION_NAME = "Ooonana";
     /** Alpine GitHub organization url */
-    public static final String ALPINE_GITHUB_ORGANIZATION_URL = "https://github.com" + "/" + ALPINE_GITHUB_ORGANIZATION_NAME; // Default: "https://github.com/alpine"
+    public static final String ALPINE_GITHUB_ORGANIZATION_URL = "https://github.com" + "/" + ALPINE_GITHUB_ORGANIZATION_NAME;
 
     /** F-Droid packages base url */
     public static final String FDROID_PACKAGES_BASE_URL = "https://f-droid.org/en/packages"; // Default: "https://f-droid.org/en/packages"
@@ -351,13 +351,13 @@ public final class AlpineConstants {
     /** Alpine package name */
     public static final String ALPINE_PACKAGE_NAME = "com.alpine"; // Default: "com.alpine"
     /** Alpine GitHub repo name */
-    public static final String ALPINE_GITHUB_REPO_NAME = "alpine-app"; // Default: "alpine-app"
+    public static final String ALPINE_GITHUB_REPO_NAME = "Alpine-on-android-";
     /** Alpine GitHub repo url */
-    public static final String ALPINE_GITHUB_REPO_URL = ALPINE_GITHUB_ORGANIZATION_URL + "/" + ALPINE_GITHUB_REPO_NAME; // Default: "https://github.com/alpine/alpine-app"
+    public static final String ALPINE_GITHUB_REPO_URL = ALPINE_GITHUB_ORGANIZATION_URL + "/" + ALPINE_GITHUB_REPO_NAME;
     /** Alpine GitHub issues repo url */
-    public static final String ALPINE_GITHUB_ISSUES_REPO_URL = ALPINE_GITHUB_REPO_URL + "/issues"; // Default: "https://github.com/alpine/alpine-app/issues"
+    public static final String ALPINE_GITHUB_ISSUES_REPO_URL = ALPINE_GITHUB_REPO_URL + "/issues";
     /** Alpine F-Droid package url */
-    public static final String ALPINE_FDROID_PACKAGE_URL = FDROID_PACKAGES_BASE_URL + "/" + ALPINE_PACKAGE_NAME; // Default: "https://f-droid.org/en/packages/com.alpine"
+    public static final String ALPINE_FDROID_PACKAGE_URL = ALPINE_GITHUB_REPO_URL;
 
 
     /** Alpine:API app name */
@@ -367,11 +367,11 @@ public final class AlpineConstants {
     /** Alpine:API GitHub repo name */
     public static final String ALPINE_API_GITHUB_REPO_NAME = "alpine-api"; // Default: "alpine-api"
     /** Alpine:API GitHub repo url */
-    public static final String ALPINE_API_GITHUB_REPO_URL = ALPINE_GITHUB_ORGANIZATION_URL + "/" + ALPINE_API_GITHUB_REPO_NAME; // Default: "https://github.com/alpine/alpine-api"
+    public static final String ALPINE_API_GITHUB_REPO_URL = ALPINE_GITHUB_REPO_URL;
     /** Alpine:API GitHub issues repo url */
-    public static final String ALPINE_API_GITHUB_ISSUES_REPO_URL = ALPINE_API_GITHUB_REPO_URL + "/issues"; // Default: "https://github.com/alpine/alpine-api/issues"
+    public static final String ALPINE_API_GITHUB_ISSUES_REPO_URL = ALPINE_GITHUB_ISSUES_REPO_URL;
     /** Alpine:API F-Droid package url */
-    public static final String ALPINE_API_FDROID_PACKAGE_URL = FDROID_PACKAGES_BASE_URL + "/" + ALPINE_API_PACKAGE_NAME; // Default: "https://f-droid.org/en/packages/com.alpine.api"
+    public static final String ALPINE_API_FDROID_PACKAGE_URL = ALPINE_GITHUB_REPO_URL;
 
 
     /** Alpine:Boot app name */
@@ -381,11 +381,11 @@ public final class AlpineConstants {
     /** Alpine:Boot GitHub repo name */
     public static final String ALPINE_BOOT_GITHUB_REPO_NAME = "alpine-boot"; // Default: "alpine-boot"
     /** Alpine:Boot GitHub repo url */
-    public static final String ALPINE_BOOT_GITHUB_REPO_URL = ALPINE_GITHUB_ORGANIZATION_URL + "/" + ALPINE_BOOT_GITHUB_REPO_NAME; // Default: "https://github.com/alpine/alpine-boot"
+    public static final String ALPINE_BOOT_GITHUB_REPO_URL = ALPINE_GITHUB_REPO_URL;
     /** Alpine:Boot GitHub issues repo url */
-    public static final String ALPINE_BOOT_GITHUB_ISSUES_REPO_URL = ALPINE_BOOT_GITHUB_REPO_URL + "/issues"; // Default: "https://github.com/alpine/alpine-boot/issues"
+    public static final String ALPINE_BOOT_GITHUB_ISSUES_REPO_URL = ALPINE_GITHUB_ISSUES_REPO_URL;
     /** Alpine:Boot F-Droid package url */
-    public static final String ALPINE_BOOT_FDROID_PACKAGE_URL = FDROID_PACKAGES_BASE_URL + "/" + ALPINE_BOOT_PACKAGE_NAME; // Default: "https://f-droid.org/en/packages/com.alpine.boot"
+    public static final String ALPINE_BOOT_FDROID_PACKAGE_URL = ALPINE_GITHUB_REPO_URL;
 
 
     /** Alpine:Float app name */
@@ -395,11 +395,11 @@ public final class AlpineConstants {
     /** Alpine:Float GitHub repo name */
     public static final String ALPINE_FLOAT_GITHUB_REPO_NAME = "alpine-float"; // Default: "alpine-float"
     /** Alpine:Float GitHub repo url */
-    public static final String ALPINE_FLOAT_GITHUB_REPO_URL = ALPINE_GITHUB_ORGANIZATION_URL + "/" + ALPINE_FLOAT_GITHUB_REPO_NAME; // Default: "https://github.com/alpine/alpine-float"
+    public static final String ALPINE_FLOAT_GITHUB_REPO_URL = ALPINE_GITHUB_REPO_URL;
     /** Alpine:Float GitHub issues repo url */
-    public static final String ALPINE_FLOAT_GITHUB_ISSUES_REPO_URL = ALPINE_FLOAT_GITHUB_REPO_URL + "/issues"; // Default: "https://github.com/alpine/alpine-float/issues"
+    public static final String ALPINE_FLOAT_GITHUB_ISSUES_REPO_URL = ALPINE_GITHUB_ISSUES_REPO_URL;
     /** Alpine:Float F-Droid package url */
-    public static final String ALPINE_FLOAT_FDROID_PACKAGE_URL = FDROID_PACKAGES_BASE_URL + "/" + ALPINE_FLOAT_PACKAGE_NAME; // Default: "https://f-droid.org/en/packages/com.alpine.window"
+    public static final String ALPINE_FLOAT_FDROID_PACKAGE_URL = ALPINE_GITHUB_REPO_URL;
 
 
     /** Alpine:Styling app name */
@@ -409,11 +409,11 @@ public final class AlpineConstants {
     /** Alpine:Styling GitHub repo name */
     public static final String ALPINE_STYLING_GITHUB_REPO_NAME = "alpine-styling"; // Default: "alpine-styling"
     /** Alpine:Styling GitHub repo url */
-    public static final String ALPINE_STYLING_GITHUB_REPO_URL = ALPINE_GITHUB_ORGANIZATION_URL + "/" + ALPINE_STYLING_GITHUB_REPO_NAME; // Default: "https://github.com/alpine/alpine-styling"
+    public static final String ALPINE_STYLING_GITHUB_REPO_URL = ALPINE_GITHUB_REPO_URL;
     /** Alpine:Styling GitHub issues repo url */
-    public static final String ALPINE_STYLING_GITHUB_ISSUES_REPO_URL = ALPINE_STYLING_GITHUB_REPO_URL + "/issues"; // Default: "https://github.com/alpine/alpine-styling/issues"
+    public static final String ALPINE_STYLING_GITHUB_ISSUES_REPO_URL = ALPINE_GITHUB_ISSUES_REPO_URL;
     /** Alpine:Styling F-Droid package url */
-    public static final String ALPINE_STYLING_FDROID_PACKAGE_URL = FDROID_PACKAGES_BASE_URL + "/" + ALPINE_STYLING_PACKAGE_NAME; // Default: "https://f-droid.org/en/packages/com.alpine.styling"
+    public static final String ALPINE_STYLING_FDROID_PACKAGE_URL = ALPINE_GITHUB_REPO_URL;
 
 
     /** Alpine:Tasker app name */
@@ -423,11 +423,11 @@ public final class AlpineConstants {
     /** Alpine:Tasker GitHub repo name */
     public static final String ALPINE_TASKER_GITHUB_REPO_NAME = "alpine-tasker"; // Default: "alpine-tasker"
     /** Alpine:Tasker GitHub repo url */
-    public static final String ALPINE_TASKER_GITHUB_REPO_URL = ALPINE_GITHUB_ORGANIZATION_URL + "/" + ALPINE_TASKER_GITHUB_REPO_NAME; // Default: "https://github.com/alpine/alpine-tasker"
+    public static final String ALPINE_TASKER_GITHUB_REPO_URL = ALPINE_GITHUB_REPO_URL;
     /** Alpine:Tasker GitHub issues repo url */
-    public static final String ALPINE_TASKER_GITHUB_ISSUES_REPO_URL = ALPINE_TASKER_GITHUB_REPO_URL + "/issues"; // Default: "https://github.com/alpine/alpine-tasker/issues"
+    public static final String ALPINE_TASKER_GITHUB_ISSUES_REPO_URL = ALPINE_GITHUB_ISSUES_REPO_URL;
     /** Alpine:Tasker F-Droid package url */
-    public static final String ALPINE_TASKER_FDROID_PACKAGE_URL = FDROID_PACKAGES_BASE_URL + "/" + ALPINE_TASKER_PACKAGE_NAME; // Default: "https://f-droid.org/en/packages/com.alpine.tasker"
+    public static final String ALPINE_TASKER_FDROID_PACKAGE_URL = ALPINE_GITHUB_REPO_URL;
 
 
     /** Alpine:Widget app name */
@@ -437,11 +437,11 @@ public final class AlpineConstants {
     /** Alpine:Widget GitHub repo name */
     public static final String ALPINE_WIDGET_GITHUB_REPO_NAME = "alpine-widget"; // Default: "alpine-widget"
     /** Alpine:Widget GitHub repo url */
-    public static final String ALPINE_WIDGET_GITHUB_REPO_URL = ALPINE_GITHUB_ORGANIZATION_URL + "/" + ALPINE_WIDGET_GITHUB_REPO_NAME; // Default: "https://github.com/alpine/alpine-widget"
+    public static final String ALPINE_WIDGET_GITHUB_REPO_URL = ALPINE_GITHUB_REPO_URL;
     /** Alpine:Widget GitHub issues repo url */
-    public static final String ALPINE_WIDGET_GITHUB_ISSUES_REPO_URL = ALPINE_WIDGET_GITHUB_REPO_URL + "/issues"; // Default: "https://github.com/alpine/alpine-widget/issues"
+    public static final String ALPINE_WIDGET_GITHUB_ISSUES_REPO_URL = ALPINE_GITHUB_ISSUES_REPO_URL;
     /** Alpine:Widget F-Droid package url */
-    public static final String ALPINE_WIDGET_FDROID_PACKAGE_URL = FDROID_PACKAGES_BASE_URL + "/" + ALPINE_WIDGET_PACKAGE_NAME; // Default: "https://f-droid.org/en/packages/com.alpine.widget"
+    public static final String ALPINE_WIDGET_FDROID_PACKAGE_URL = ALPINE_GITHUB_REPO_URL;
 
 
 
@@ -482,7 +482,7 @@ public final class AlpineConstants {
     public static final String APK_RELEASE_FDROID_SIGNING_CERTIFICATE_SHA256_DIGEST = "228FB2CFE90831C1499EC3CCAF61E96E8E1CE70766B9474672CE427334D41C42"; // Default: "228FB2CFE90831C1499EC3CCAF61E96E8E1CE70766B9474672CE427334D41C42"
 
     /** GitHub APK release */
-    public static final String APK_RELEASE_GITHUB = "Github"; // Default: "Github"
+    public static final String APK_RELEASE_GITHUB = "Recovery debug";
 
     /** GitHub APK release signing certificate SHA-256 digest */
     public static final String APK_RELEASE_GITHUB_SIGNING_CERTIFICATE_SHA256_DIGEST = "B6DA01480EEFD5FBF2CD3771B8D1021EC791304BDD6C4BF41D3FAABAD48EE5E1"; // Default: "B6DA01480EEFD5FBF2CD3771B8D1021EC791304BDD6C4BF41D3FAABAD48EE5E1"
@@ -510,9 +510,9 @@ public final class AlpineConstants {
     /** Alpine Packages GitHub repo name */
     public static final String ALPINE_PACKAGES_GITHUB_REPO_NAME = "alpine-packages"; // Default: "alpine-packages"
     /** Alpine Packages GitHub repo url */
-    public static final String ALPINE_PACKAGES_GITHUB_REPO_URL = ALPINE_GITHUB_ORGANIZATION_URL + "/" + ALPINE_PACKAGES_GITHUB_REPO_NAME; // Default: "https://github.com/alpine/alpine-packages"
+    public static final String ALPINE_PACKAGES_GITHUB_REPO_URL = ALPINE_GITHUB_REPO_URL;
     /** Alpine Packages GitHub issues repo url */
-    public static final String ALPINE_PACKAGES_GITHUB_ISSUES_REPO_URL = ALPINE_PACKAGES_GITHUB_REPO_URL + "/issues"; // Default: "https://github.com/alpine/alpine-packages/issues"
+    public static final String ALPINE_PACKAGES_GITHUB_ISSUES_REPO_URL = ALPINE_GITHUB_ISSUES_REPO_URL;
 
 
     /** Alpine API apt package name */
@@ -520,9 +520,9 @@ public final class AlpineConstants {
     /** Alpine API apt GitHub repo name */
     public static final String ALPINE_API_APT_GITHUB_REPO_NAME = "alpine-api-package"; // Default: "alpine-api-package"
     /** Alpine API apt GitHub repo url */
-    public static final String ALPINE_API_APT_GITHUB_REPO_URL = ALPINE_GITHUB_ORGANIZATION_URL + "/" + ALPINE_API_APT_GITHUB_REPO_NAME; // Default: "https://github.com/alpine/alpine-api-package"
+    public static final String ALPINE_API_APT_GITHUB_REPO_URL = ALPINE_GITHUB_REPO_URL;
     /** Alpine API apt GitHub issues repo url */
-    public static final String ALPINE_API_APT_GITHUB_ISSUES_REPO_URL = ALPINE_API_APT_GITHUB_REPO_URL + "/issues"; // Default: "https://github.com/alpine/alpine-api-package/issues"
+    public static final String ALPINE_API_APT_GITHUB_ISSUES_REPO_URL = ALPINE_GITHUB_ISSUES_REPO_URL;
 
 
 
@@ -536,37 +536,37 @@ public final class AlpineConstants {
     public static final String ALPINE_SITE = ALPINE_APP_NAME + " Site"; // Default: "Alpine Site"
 
     /** Alpine Site url */
-    public static final String ALPINE_SITE_URL = "https://alpine.dev"; // Default: "https://alpine.dev"
+    public static final String ALPINE_SITE_URL = ALPINE_GITHUB_REPO_URL;
 
     /** Alpine Wiki */
     public static final String ALPINE_WIKI = ALPINE_APP_NAME + " Wiki"; // Default: "Alpine Wiki"
 
     /** Alpine Wiki url */
-    public static final String ALPINE_WIKI_URL = "https://wiki.alpine.com"; // Default: "https://wiki.alpine.com"
+    public static final String ALPINE_WIKI_URL = ALPINE_GITHUB_REPO_URL;
 
     /** Alpine GitHub wiki repo url */
-    public static final String ALPINE_GITHUB_WIKI_REPO_URL = ALPINE_GITHUB_REPO_URL + "/wiki"; // Default: "https://github.com/alpine/alpine-app/wiki"
+    public static final String ALPINE_GITHUB_WIKI_REPO_URL = ALPINE_GITHUB_REPO_URL;
 
     /** Alpine Packages wiki repo url */
-    public static final String ALPINE_PACKAGES_GITHUB_WIKI_REPO_URL = ALPINE_PACKAGES_GITHUB_REPO_URL + "/wiki"; // Default: "https://github.com/alpine/alpine-packages/wiki"
+    public static final String ALPINE_PACKAGES_GITHUB_WIKI_REPO_URL = ALPINE_GITHUB_REPO_URL;
 
 
     /** Alpine support email url */
-    public static final String ALPINE_SUPPORT_EMAIL_URL = "support@alpine.dev"; // Default: "support@alpine.dev"
+    public static final String ALPINE_SUPPORT_EMAIL_URL = "";
 
     /** Alpine support email mailto url */
-    public static final String ALPINE_SUPPORT_EMAIL_MAILTO_URL = "mailto:" + ALPINE_SUPPORT_EMAIL_URL; // Default: "mailto:support@alpine.dev"
+    public static final String ALPINE_SUPPORT_EMAIL_MAILTO_URL = "";
 
 
     /** Alpine Reddit subreddit */
-    public static final String ALPINE_REDDIT_SUBREDDIT = "r/alpine"; // Default: "r/alpine"
+    public static final String ALPINE_REDDIT_SUBREDDIT = "";
 
     /** Alpine Reddit subreddit url */
-    public static final String ALPINE_REDDIT_SUBREDDIT_URL = "https://www.reddit.com/r/alpine"; // Default: "https://www.reddit.com/r/alpine"
+    public static final String ALPINE_REDDIT_SUBREDDIT_URL = "";
 
 
     /** Alpine donate url */
-    public static final String ALPINE_DONATE_URL = ALPINE_SITE_URL + "/donate"; // Default: "https://alpine.dev/donate"
+    public static final String ALPINE_DONATE_URL = "";
 
 
 
@@ -1128,7 +1128,7 @@ public final class AlpineConstants {
         public static final class RUN_COMMAND_SERVICE {
 
             /** Alpine RUN_COMMAND Intent help url */
-            public static final String RUN_COMMAND_API_HELP_URL = ALPINE_GITHUB_WIKI_REPO_URL + "/RUN_COMMAND-Intent"; // Default: "https://github.com/alpine/alpine-app/wiki/RUN_COMMAND-Intent"
+            public static final String RUN_COMMAND_API_HELP_URL = ALPINE_GITHUB_REPO_URL;
 
 
             /** Intent action to execute command with RUN_COMMAND_SERVICE */

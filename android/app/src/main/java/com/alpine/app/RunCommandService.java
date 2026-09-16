@@ -31,7 +31,7 @@ import com.alpine.shared.shell.command.ExecutionCommand.Runner;
  * plugins that contains info on command execution and forwards the extras to {@link AlpineService}
  * for the actual execution.
  *
- * Check https://github.com/alpine/alpine-app/wiki/RUN_COMMAND-Intent for more info.
+ * Check https://github.com/termux/termux-app/wiki/RUN_COMMAND-Intent for more info.
  */
 public class RunCommandService extends Service {
 
