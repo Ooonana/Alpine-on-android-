@@ -13,3 +13,6 @@ android/app/src/main/cpp/bootstrap-*.zip
 # Python test caches
 __pycache__/
 *.pyc
+
+# Local verified build artifacts
+/dist/
