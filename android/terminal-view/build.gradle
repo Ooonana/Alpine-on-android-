@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'maven-publish'
 
 android {
-    namespace "com.alpine.view"
+    namespace = "com.alpine.view"
     compileSdkVersion project.properties.compileSdkVersion.toInteger()
 
     dependencies {

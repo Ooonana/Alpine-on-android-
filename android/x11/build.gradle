@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace "com.termux.x11"
+    namespace = "com.termux.x11"
     compileSdkVersion project.properties.compileSdkVersion.toInteger()
 
     defaultConfig {
@@ -16,7 +16,7 @@ android {
     }
 
     buildFeatures {
-        buildConfig true
+        buildConfig = true
     }
 
     compileOptions {

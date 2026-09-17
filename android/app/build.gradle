@@ -13,14 +13,12 @@ ext {
 }
 
 android {
-    namespace "com.alpine"
+    namespace = "com.alpine"
 
     compileSdkVersion project.properties.compileSdkVersion.toInteger()
     ndkVersion = System.getenv("JITPACK_NDK_VERSION") ?: project.properties.ndkVersion
     def appVersionName = System.getenv("ALPINE_APP_VERSION_NAME") ?: ""
     def apkVersionTag = System.getenv("ALPINE_APK_VERSION_TAG") ?: ""
-    def splitAPKsForDebugBuilds = System.getenv("ALPINE_SPLIT_APKS_FOR_DEBUG_BUILDS") ?: "1"
-    def splitAPKsForReleaseBuilds = System.getenv("ALPINE_SPLIT_APKS_FOR_RELEASE_BUILDS") ?: "0" // F-Droid does not support split APKs #1904
 
     dependencies {
         implementation "androidx.annotation:annotation:1.9.0"
@@ -67,16 +65,6 @@ android {
                 cFlags "-std=c11", "-Wall", "-Wextra", "-Werror", "-Os", "-fno-stack-protector", "-Wl,--gc-sections"
             }
         }
-
-        splits {
-            abi {
-                enable ((gradle.startParameter.taskNames.any { it.contains("Debug") } && splitAPKsForDebugBuilds == "1") ||
-                    (gradle.startParameter.taskNames.any { it.contains("Release") } && splitAPKsForReleaseBuilds == "1"))
-                reset ()
-                include 'arm64-v8a'
-                universalApk true
-            }
-        }
     }
 
     signingConfigs {
@@ -91,18 +79,18 @@ android {
     buildTypes {
         release {
             minifyEnabled true
-            shrinkResources false // Reproducible builds
+            shrinkResources = false // Reproducible builds
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
 
         debug {
-            signingConfig signingConfigs.debug
+            signingConfig = signingConfigs.debug
         }
     }
 
     compileOptions {
         // Flag to enable support for the new language APIs
-        coreLibraryDesugaringEnabled true
+        coreLibraryDesugaringEnabled = true
 
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -126,24 +114,22 @@ android {
 
     packagingOptions {
         jniLibs {
-            useLegacyPackaging true
+            useLegacyPackaging = true
         }
     }
 
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            if (variant.buildType.name == "debug") {
-                def abi = output.getFilter(com.android.build.OutputFile.ABI)
-                outputFileName = new File("alpine-app_" + (apkVersionTag ? apkVersionTag : project.ext.packageVariant + "-" + "debug") + "_" + (abi ? abi : "universal") + ".apk")
-            } else if (variant.buildType.name == "release") {
-                def abi = output.getFilter(com.android.build.OutputFile.ABI)
-                outputFileName = new File("alpine-app_" + (apkVersionTag ? apkVersionTag : project.ext.packageVariant + "-" + "release") + "_" + (abi ? abi : "universal") + ".apk")
+            if (variant.buildType.name == "debug" || variant.buildType.name == "release") {
+                def abi = output.getFilter(com.android.build.OutputFile.ABI) ?: "arm64-v8a"
+                def versionTag = apkVersionTag ? apkVersionTag : variant.versionName
+                outputFileName = new File("alpine-app_" + versionTag + "_" + abi + ".apk")
             }
         }
     }
 
     buildFeatures {
-        buildConfig true
+        buildConfig = true
     }
 }
 
@@ -173,14 +159,18 @@ clean {
     }
 }
 
-task downloadBootstraps() {
+task verifyBootstrap() {
     doLast {
-        logger.lifecycle("Automatic bootstrap download is disabled for this recovery fork. Restore the checksummed bootstrap with scripts/fetch-assets.py --bootstrap before building.")
+        def bootstrap = file("src/main/cpp/bootstrap-aarch64.zip")
+        if (!bootstrap.isFile() || bootstrap.length() == 0) {
+            throw new GradleException("Prepared arm64 bootstrap is missing. From the repository root run: python scripts/fetch-assets.py --bootstrap && python scripts/prepare-v66-bootstrap.py")
+        }
+        logger.lifecycle("Using prepared bootstrap: ${bootstrap.name} (${bootstrap.length()} bytes)")
     }
 }
 
 afterEvaluate {
     android.applicationVariants.all { variant ->
-        variant.javaCompileProvider.get().dependsOn(downloadBootstraps)
+        variant.javaCompileProvider.get().dependsOn(verifyBootstrap)
     }
 }

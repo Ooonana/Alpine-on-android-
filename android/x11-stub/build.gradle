@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace "com.termux.x11.stub"
+    namespace = "com.termux.x11.stub"
     compileSdkVersion project.properties.compileSdkVersion.toInteger()
 
     defaultConfig {
