@@ -143,15 +143,25 @@ start_x11_bridge() {
 }
 
 run_alpine_proot_distro() {
-    "$PREFIX/bin/proot-distro" login alpine \
+    # Keep proot-distro's Android defaults for hard-link and SysV IPC
+    # emulation. The opt-out variables below are diagnostic escape hatches
+    # for device-specific kernel/SELinux failures, not normal launch flags.
+    set -- \
         --shared-tmp \
-        --no-link2symlink \
-        --no-sysvipc \
         --work-dir /root \
         --env DISPLAY="${DISPLAY:-:1}" \
         --env TMPDIR=/tmp \
         --env XDG_RUNTIME_DIR=/tmp \
         "$@"
+
+    if [ "${ALPINE_DISABLE_SYSVIPC:-0}" = "1" ]; then
+        set -- --no-sysvipc "$@"
+    fi
+    if [ "${ALPINE_DISABLE_LINK2SYMLINK:-0}" = "1" ]; then
+        set -- --no-link2symlink "$@"
+    fi
+
+    "$PREFIX/bin/proot-distro" login alpine "$@"
 }
 
 run_alpine_direct_proot() {

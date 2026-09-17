@@ -29,7 +29,7 @@ class PrepareV66BootstrapTest(unittest.TestCase):
         (self.overlay / "etc/bash.bashrc").write_bytes(b"#!/bin/sh\r\necho v66\r\n")
         for name in ("libtalloc.so", "libtalloc.so.2", "libtalloc.so.2.4.3"):
             (self.overlay / "lib" / name).write_bytes(b"ELF/data/data/com.alpine/files/usr/lib")
-        (self.overlay / "bin/proot").write_bytes(b"ELF/data/data/com.alpine/files/usr/lib")
+        (self.overlay / "bin/proot").write_bytes(b"ELF/data/data/com.alpine/files/usr/lib:/data/data/com.alpine/files/usr/tmp/")
         (root_overlay / "nsswitch.conf").write_bytes(b"hosts: files dns\r\n")
 
         self.static_apk = b"fake-current-static-apk"
@@ -103,6 +103,8 @@ class PrepareV66BootstrapTest(unittest.TestCase):
             self.assertIn(f"../run←./{prefix}var/run", lines)
             self.assertEqual(z.read("keep"), b"unchanged")
             self.assertNotIn(b"com.termux", z.read("lib/libtalloc.so"))
+            self.assertNotIn(b"/data/data/com.termux", z.read("bin/proot"))
+            self.assertIn(b"/data/data/com.alpine/files/usr/tmp/", z.read("bin/proot"))
 
     def test_second_run_is_idempotent(self):
         prepare.prepare(self.zip_path)

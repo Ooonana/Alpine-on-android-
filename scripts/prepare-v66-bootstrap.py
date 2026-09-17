@@ -201,8 +201,13 @@ def verify_prepared(path: Path) -> None:
                 raise RuntimeError(f"Legacy Termux RUNPATH remains in {name}")
             if b"/data/data/com.alpine/files/usr/lib" not in data:
                 raise RuntimeError(f"Alpine RUNPATH not found in {name}")
-        if b"/data/data/com.alpine/files/usr/lib" not in archive.read("bin/proot"):
+        proot = archive.read("bin/proot")
+        if b"/data/data/com.alpine/files/usr/lib" not in proot:
             raise RuntimeError("Alpine RUNPATH not found in bin/proot")
+        if b"/data/data/com.termux" in proot:
+            raise RuntimeError("Legacy Termux application prefix remains in bin/proot")
+        if b"/data/data/com.alpine/files/usr/tmp/" not in proot:
+            raise RuntimeError("Alpine link2symlink temp prefix not found in bin/proot")
 
         for name, expected in overlays.items():
             if (name.endswith(".sh") or Path(name).name in TEXT_OVERLAY_NAMES) and b"\r\n" in expected:
