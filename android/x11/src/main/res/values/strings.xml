@@ -5,12 +5,16 @@
     ]>
 <resources>
     <string name="app_name">&TERMUX_X11_APP_NAME;</string>
+    <string name="project_url" translatable="false">https://github.com/Ooonana/Alpine-on-android-</string>
+    <string name="display_logo_description">Alpine Display logo</string>
+    <string name="mouse_helper_move_description">Move mouse helper</string>
+    <string name="accessibility_service_label">Alpine Display keyboard shortcuts</string>
 
-    <string name="not_connected">Not connected</string>
-    <string name="preferences_button_text">   PREFERENCES   </string>
-    <string name="help_button_text">   HELP   </string>
-    <string name="exit_button_text">   EXIT   </string>
-    <string name="extra_keys_config_desc">Here you can configure the Termux-compatible extra-keys syntax and more \n
+    <string name="not_connected">Waiting for Alpine display...</string>
+    <string name="preferences_button_text">Display settings</string>
+    <string name="help_button_text">Project help</string>
+    <string name="exit_button_text">Close display</string>
+    <string name="extra_keys_config_desc">Configure the additional key bar using the supported key names \n
 E.g. <b>META</b> for <i>META key</i>, \n
 <b>KEYBOARD</b> for <i>soft keyboard toggling key</i>, \n
 <b>PREFERENCES</b> for <i>preferences opening key</i>, \n
@@ -42,15 +46,15 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="lorie_pref_displayFilteringMode">Display filtering mode</string>
     <string name="lorie_pref_adjustResolution">Adjust the set resolution to fit screen orientation</string>
     <string name="lorie_pref_displayStretch">Stretch to fit display</string>
-    <string name="lorie_pref_Reseed">Reseed screen while soft keyboard is open</string>
-    <string name="lorie_pref_Reseed_summary">The screen size will be adjusted while Soft Keyboard is open.</string>
+    <string name="lorie_pref_Reseed">Resize display for the soft keyboard</string>
+    <string name="lorie_pref_Reseed_summary">Adjust the display size while the software keyboard is open.</string>
     <string name="lorie_pref_PIP">PIP mode</string>
     <string name="lorie_pref_PIP_summary">Show app in picture-in-picture mode when home button or recents button is pressed</string>
     <string name="lorie_pref_fullscreen">Fullscreen</string>
     <string name="lorie_pref_fullscreen_summary">Toggle immersive mode in your device display</string>
     <string name="lorie_pref_forceOrientation">Screen orientation</string>
     <string name="lorie_pref_hideCutout">Hide display cutout (if any)</string>
-    <string name="lorie_pref_keepScreenOn">Keep Screen On</string>
+    <string name="lorie_pref_keepScreenOn">Keep screen on</string>
 
     <string name="lorie_pref_touchMode">Touchscreen input mode</string>
     <string name="lorie_pref_scaleTouchpad">Apply display scale factor to touchpad</string>
@@ -97,8 +101,8 @@ E.g. <b>META</b> for <i>META key</i>, \n
 
     <string name="lorie_pref_adjustHeightForEK">Adjust display height for extra keys bar</string>
     <string name="lorie_pref_adjustHeightForEK_summary">May cause screen flickering during toggling EK bar.</string>
-    <string name="lorie_pref_useTermuxEKBarBehaviour">Deactivate special keys on additional key bar after each keypress</string>
-    <string name="lorie_pref_useTermuxEKBarBehaviour_summary">Use long-tap to lock special keys</string>
+    <string name="lorie_pref_useTermuxEKBarBehaviour">Release modifier keys after each extra-key press</string>
+    <string name="lorie_pref_useTermuxEKBarBehaviour_summary">Long-press a modifier key to keep it active.</string>
     <string name="lorie_pref_opacityEKBar">Opacity of extra keys bar, %</string>
     <string name="lorie_pref_extra_keys_config">Extra keys config</string>
 

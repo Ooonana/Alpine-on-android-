@@ -21,34 +21,6 @@ export LD_LIBRARY_PATH="$PREFIX/lib"
 export PATH="$PREFIX/bin:$PATH"
 export MAGIC="$PREFIX/share/file/magic.mgc"
 
-ensure_group_entry() {
-    name="$1"
-    gid="$2"
-    file="$ROOTFS/etc/group"
-
-    grep -q "^${name}:" "$file" 2>/dev/null && return 0
-    echo "${name}:x:${gid}:" >> "$file" 2>/dev/null || true
-}
-
-ensure_passwd_entry() {
-    name="$1"
-    uid="$2"
-    gid="$3"
-    gecos="$4"
-    home="$5"
-    shell="$6"
-    passwd_file="$ROOTFS/etc/passwd"
-    shadow_file="$ROOTFS/etc/shadow"
-
-    grep -q "^${name}:" "$passwd_file" 2>/dev/null ||
-        echo "${name}:x:${uid}:${gid}:${gecos}:${home}:${shell}" >> "$passwd_file" 2>/dev/null || true
-
-    if [ -f "$shadow_file" ]; then
-        grep -q "^${name}:" "$shadow_file" 2>/dev/null ||
-            echo "${name}:*:19000:0:99999:7:::" >> "$shadow_file" 2>/dev/null || true
-    fi
-}
-
 ensure_alpine_runtime() {
     mkdir -p "$TMPDIR" "$PROOT_WORK_DIR" "$ROOTFS/etc" "$ROOTFS/etc/apk" \
         "$ROOTFS/run/dbus" "$ROOTFS/var/empty" "$ROOTFS/var/run/pulse" \
@@ -58,10 +30,10 @@ ensure_alpine_runtime() {
     chmod 700 "$PROOT_WORK_DIR" 2>/dev/null || true
     chmod 1777 "$TMPDIR" "$ROOTFS/tmp" 2>/dev/null || true
     chmod 755 "$ROOTFS/run" "$ROOTFS/run/dbus" "$ROOTFS/var/run" 2>/dev/null || true
-    touch "$ROOTFS/etc/environment" "$ROOTFS/etc/passwd" "$ROOTFS/etc/group" 2>/dev/null || true
+    touch "$ROOTFS/etc/environment" 2>/dev/null || true
     chmod 600 "$ROOTFS/etc/environment" 2>/dev/null || true
     chmod 700 "$ROOTFS/sbin/apk.static" "$ROOTFS/usr/local/sbin/apk" 2>/dev/null || true
-    rm -f "$ROOTFS/run/dbus/pid" "$ROOTFS/var/run/dbus/pid" 2>/dev/null || true
+    rm -f "$ROOTFS/run/dbus/pid" 2>/dev/null || true
 
     if [ ! -s "$RESOLV_CONF" ]; then
         {
@@ -72,8 +44,8 @@ ensure_alpine_runtime() {
 
     if [ ! -s "$REMOTE_REPOSITORIES" ]; then
         {
-            echo "http://dl-cdn.alpinelinux.org/alpine/v3.23/main"
-            echo "http://dl-cdn.alpinelinux.org/alpine/v3.23/community"
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.24/main"
+            echo "https://dl-cdn.alpinelinux.org/alpine/v3.24/community"
         } > "$REMOTE_REPOSITORIES" 2>/dev/null || true
     fi
 
@@ -83,20 +55,6 @@ ensure_alpine_runtime() {
             echo "/var/cache/apk-mirror/community"
         } > "$REPOSITORIES" 2>/dev/null || true
     fi
-
-    {
-        echo "passwd: files"
-        echo "group: files"
-        echo "shadow: files"
-        echo "hosts: files dns"
-    } > "$ROOTFS/etc/nsswitch.conf" 2>/dev/null || true
-
-    ensure_group_entry messagebus 81
-    ensure_group_entry polkitd 102
-    ensure_group_entry pulse 103
-    ensure_passwd_entry messagebus 81 81 messagebus /run/dbus /sbin/nologin
-    ensure_passwd_entry polkitd 102 102 polkitd /var/empty /sbin/nologin
-    ensure_passwd_entry pulse 103 103 pulse /var/run/pulse /sbin/nologin
 }
 
 start_x11_bridge() {
@@ -184,26 +142,7 @@ start_x11_bridge() {
     echo "$!" > "$bridge_pid_file" 2>/dev/null || true
 }
 
-if [ -z "$IN_ALPINE" ] && [ "$ALPINE_FAILSAFE" != "1" ]; then
-    export DISPLAY="${DISPLAY:-:1}"
-    ensure_alpine_runtime
-    start_x11_bridge
-    echo "--- Alpine v66 launcher ---"
-    echo "RootFS: $ROOTFS"
-
-    if [ ! -x "$PREFIX/bin/proot-distro" ]; then
-        echo "Error: proot-distro missing at $PREFIX/bin/proot-distro"
-        export ALPINE_FAILSAFE=1
-        return 0
-    fi
-
-    if [ ! -x "$ROOTFS/bin/sh" ]; then
-        echo "Error: Alpine shell missing or not executable at $ROOTFS/bin/sh"
-        export ALPINE_FAILSAFE=1
-        return 0
-    fi
-
-    echo "Launching Alpine via proot-distro..."
+run_alpine_proot_distro() {
     "$PREFIX/bin/proot-distro" login alpine \
         --shared-tmp \
         --no-link2symlink \
@@ -211,38 +150,85 @@ if [ -z "$IN_ALPINE" ] && [ "$ALPINE_FAILSAFE" != "1" ]; then
         --work-dir /root \
         --env DISPLAY="${DISPLAY:-:1}" \
         --env TMPDIR=/tmp \
-        --env XDG_RUNTIME_DIR=/tmp
-    status=$?
+        --env XDG_RUNTIME_DIR=/tmp \
+        "$@"
+}
 
-    if [ "$status" -ne 0 ]; then
-        echo "proot-distro failed with status $status. Attempting direct proot fallback..."
-        "$PREFIX/bin/proot" \
-            --kill-on-exit \
-            -0 \
-            -r "$ROOTFS" \
-            -b /dev \
-            -b /proc \
-            -b /sys \
-            -b /dev/urandom:/dev/random \
-            -b /proc/self/fd:/dev/fd \
-            -b "$TMPDIR:/tmp" \
-            -b "$HOME:/root" \
-            -b /sdcard \
-            -w /root \
-            /usr/bin/env -i \
-            HOME=/root \
-            TERM="${TERM:-xterm-256color}" \
-            DISPLAY="${DISPLAY:-:1}" \
-            TMPDIR=/tmp \
-            XDG_RUNTIME_DIR=/tmp \
-            PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
-            IN_ALPINE=1 \
-            /bin/sh -l
-        status=$?
+run_alpine_direct_proot() {
+    "$PREFIX/bin/proot" \
+        --kill-on-exit \
+        -0 \
+        -r "$ROOTFS" \
+        -b /dev \
+        -b /proc \
+        -b /sys \
+        -b /dev/urandom:/dev/random \
+        -b /proc/self/fd:/dev/fd \
+        -b "$TMPDIR:/tmp" \
+        -b "$HOME:/root" \
+        -b /sdcard \
+        -w /root \
+        /usr/bin/env -i \
+        HOME=/root \
+        TERM="${TERM:-xterm-256color}" \
+        DISPLAY="${DISPLAY:-:1}" \
+        TMPDIR=/tmp \
+        XDG_RUNTIME_DIR=/tmp \
+        PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+        IN_ALPINE=1 \
+        "$@"
+}
+
+if [ -z "$IN_ALPINE" ] && [ "$ALPINE_FAILSAFE" != "1" ]; then
+    export DISPLAY="${DISPLAY:-:1}"
+    ensure_alpine_runtime
+    start_x11_bridge
+
+    if [ ! -x "$PREFIX/bin/proot-distro" ]; then
+        echo "Alpine could not start: proot-distro is missing."
+        echo "Recovery shell is active."
+        export ALPINE_FAILSAFE=1
+        return 0
     fi
 
-    if [ "$status" -ne 0 ]; then
-        echo "CRITICAL: Alpine launch failed with status $status. Dropping to recovery shell."
+    if [ ! -x "$PREFIX/bin/proot" ]; then
+        echo "Alpine could not start: proot is missing."
+        echo "Recovery shell is active."
         export ALPINE_FAILSAFE=1
+        return 0
+    fi
+
+    if [ ! -x "$ROOTFS/bin/sh" ]; then
+        echo "Alpine could not start: the root filesystem is incomplete."
+        echo "Recovery shell is active."
+        export ALPINE_FAILSAFE=1
+        return 0
+    fi
+
+    launch_log="$TMPDIR/alpine-launch.log"
+    : > "$launch_log" 2>/dev/null || true
+
+    # Probe startup separately from the interactive shell. A user's later
+    # non-zero `exit` must not be mistaken for a launch failure and trigger a
+    # second fallback shell.
+    if run_alpine_proot_distro -- /bin/sh -c 'exit 0' >>"$launch_log" 2>&1; then
+        run_alpine_proot_distro
+        status=$?
+        if [ "${ALPINE_LAUNCH_DEBUG:-0}" = "1" ] && [ "$status" -ne 0 ]; then
+            echo "Alpine session ended with status $status."
+        fi
+    else
+        echo "Standard Alpine launch is unavailable; using compatibility mode."
+        if run_alpine_direct_proot /bin/sh -c 'exit 0' >>"$launch_log" 2>&1; then
+            run_alpine_direct_proot /bin/sh -l
+            status=$?
+            if [ "${ALPINE_LAUNCH_DEBUG:-0}" = "1" ] && [ "$status" -ne 0 ]; then
+                echo "Compatibility session ended with status $status."
+            fi
+        else
+            echo "Alpine could not start. Recovery shell is active."
+            echo "Diagnostics: $launch_log"
+            export ALPINE_FAILSAFE=1
+        fi
     fi
 fi

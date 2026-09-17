@@ -40,8 +40,7 @@
                 android:layout_height="130dp"
                 android:scaleType="fitCenter"
                 app:srcCompat="@drawable/ic_x11_icon"
-                android:contentDescription="X Logo"
-                tools:ignore="HardcodedText" />
+                android:contentDescription="@string/display_logo_description" />
 
             <Space
                 android:layout_width="match_parent"
@@ -261,7 +260,7 @@
             android:padding="2dp"
             android:scaleType="fitCenter"
             android:src="@android:drawable/ic_menu_mylocation"
-            android:contentDescription="MOVE"
+            android:contentDescription="@string/mouse_helper_move_description"
             android:layout_gravity="center"
             android:background="@drawable/mouse_buttons"
             tools:ignore="HardcodedText,PxUsage,SmallSp" />

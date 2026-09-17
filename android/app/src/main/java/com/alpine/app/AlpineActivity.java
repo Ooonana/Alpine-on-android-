@@ -600,9 +600,9 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
     }
 
     private void setDisplayButtonView() {
-        View x11Button = findViewById(R.id.toggle_keyboard_button);
-        x11Button.setOnClickListener(v -> openAlpineDisplay(true));
-        x11Button.setOnLongClickListener(v -> {
+        View displayButton = findViewById(R.id.display_button);
+        displayButton.setOnClickListener(v -> openAlpineDisplay(true));
+        displayButton.setOnLongClickListener(v -> {
             openAlpineDisplay(false);
             return true;
         });
@@ -610,15 +610,11 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
 
     /** Open the embedded X11 display as another screen in this app's task. */
     private void openAlpineDisplay(boolean startServerCommand) {
-        Intent x11Intent = new Intent(this, com.termux.x11.MainActivity.class);
+        if (startServerCommand && !sendStartX11CommandToCurrentSession()) return;
 
+        Intent x11Intent = new Intent(this, com.termux.x11.MainActivity.class);
         try {
             startActivity(x11Intent);
-            if (startServerCommand) {
-                sendStartX11CommandToCurrentSession();
-            } else {
-                showToast(getString(R.string.msg_display_opened), false);
-            }
         } catch (ActivityNotFoundException | IllegalArgumentException e) {
             showToast(getString(R.string.error_display_open_failed), true);
         }
@@ -635,15 +631,15 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
         mDisplayActivityRequestHandler.removeCallbacks(mDisplayActivityRequestRunnable);
     }
 
-    private void sendStartX11CommandToCurrentSession() {
+    private boolean sendStartX11CommandToCurrentSession() {
         TerminalSession currentSession = getCurrentSession();
         if (currentSession == null || !currentSession.isRunning()) {
             showToast(getString(R.string.error_no_running_session), true);
-            return;
+            return false;
         }
 
         currentSession.write(START_DISPLAY_COMMAND);
-        showToast(getString(R.string.msg_display_start_requested), true);
+        return true;
     }
 
     private void setNewSessionButtonView() {

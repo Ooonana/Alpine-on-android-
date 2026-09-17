@@ -85,7 +85,13 @@ final class AlpineInstaller {
                     writeBootstrapVersionMarker();
                     activity.runOnUiThread(whenDone);
                 } catch (Exception e) {
-                    activity.runOnUiThread(() -> MessageDialogUtils.exitAppWithErrorMessage(activity, "Error", e.getMessage()));
+                    activity.runOnUiThread(() -> {
+                        String message = e.getMessage();
+                        if (message == null || message.trim().isEmpty())
+                            message = activity.getString(R.string.bootstrap_error_body);
+                        MessageDialogUtils.exitAppWithErrorMessage(
+                            activity, activity.getString(R.string.bootstrap_error_title), message);
+                    });
                 } finally {
                     activity.runOnUiThread(() -> { try { progress.dismiss(); } catch (Exception ignored) {} });
                 }

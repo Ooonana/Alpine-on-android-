@@ -531,11 +531,10 @@ public class AlpineUtils {
 
         StringBuilder markdownString = new StringBuilder();
 
-        markdownString.append("## Important Links");
-
-        markdownString.append("\n\n### GitHub\n");
-        markdownString.append("\n").append(MarkdownUtils.getLinkMarkdownString(AlpineConstants.ALPINE_APP_NAME, AlpineConstants.ALPINE_GITHUB_REPO_URL)).append("  ");
-
+        markdownString.append("## Project");
+        markdownString.append("\n\n**Developer:** ").append(AlpineConstants.ALPINE_DEVELOPER_NAME).append("  ");
+        markdownString.append("\n**Website:** ").append(MarkdownUtils.getLinkMarkdownString("GitHub repository", AlpineConstants.ALPINE_GITHUB_REPO_URL)).append("  ");
+        markdownString.append("\n**Issues:** ").append(MarkdownUtils.getLinkMarkdownString("GitHub Issues", AlpineConstants.ALPINE_GITHUB_ISSUES_REPO_URL)).append("  ");
         markdownString.append("\n##\n");
 
         return markdownString.toString();

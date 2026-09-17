@@ -32,7 +32,7 @@
         <service
             android:name="com.termux.x11.utils.KeyInterceptor"
             android:exported="true"
-            android:label="Alpine X11 KeyInterceptor"
+            android:label="@string/accessibility_service_label"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />

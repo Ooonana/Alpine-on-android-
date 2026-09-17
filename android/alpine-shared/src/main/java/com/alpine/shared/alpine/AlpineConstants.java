@@ -330,8 +330,10 @@ public final class AlpineConstants {
      * Alpine organization variables.
      */
 
+    /** Project developer name */
+    public static final String ALPINE_DEVELOPER_NAME = "Ooonana";
     /** Alpine GitHub organization name */
-    public static final String ALPINE_GITHUB_ORGANIZATION_NAME = "Ooonana";
+    public static final String ALPINE_GITHUB_ORGANIZATION_NAME = ALPINE_DEVELOPER_NAME;
     /** Alpine GitHub organization url */
     public static final String ALPINE_GITHUB_ORGANIZATION_URL = "https://github.com" + "/" + ALPINE_GITHUB_ORGANIZATION_NAME;
 
