@@ -5,3 +5,4 @@
 bootstrap/v66-overlay/etc/bash.bashrc text eol=lf
 bootstrap/v66-overlay/var/lib/proot-distro/installed-rootfs/alpine/usr/local/sbin/apk text eol=lf
 bootstrap/v66-overlay/var/lib/proot-distro/installed-rootfs/alpine/usr/local/bin/start-x11 text eol=lf
+bootstrap/v66-overlay/var/lib/proot-distro/installed-rootfs/alpine/etc/nsswitch.conf text eol=lf

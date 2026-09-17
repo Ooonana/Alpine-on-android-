@@ -198,6 +198,7 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
     private static final String START_DISPLAY_COMMAND = "start-x11 :1 --no-open\n";
     private static final String DISPLAY_ACTIVITY_REQUEST_FILE_PATH =
         AlpineConstants.ALPINE_TMP_PREFIX_DIR_PATH + "/alpine-x11-open-activity";
+    private static final long DISPLAY_ACTIVITY_REQUEST_MAX_AGE_MS = 60_000L;
 
     private static final String LOG_TAG = "AlpineActivity";
     private final Handler mDisplayActivityRequestHandler = new Handler(Looper.getMainLooper());
@@ -209,9 +210,12 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
             File requestFile = new File(DISPLAY_ACTIVITY_REQUEST_FILE_PATH);
             if (requestFile.isFile()) {
                 // start-x11 can request Alpine's embedded display from inside Alpine/proot.
+                long requestAgeMs = Math.max(0L, System.currentTimeMillis() - requestFile.lastModified());
                 requestFile.delete();
-                openAlpineDisplay(false);
-                return;
+                if (requestAgeMs <= DISPLAY_ACTIVITY_REQUEST_MAX_AGE_MS) {
+                    openAlpineDisplay(false);
+                    return;
+                }
             }
 
             mDisplayActivityRequestHandler.postDelayed(this, 1000);

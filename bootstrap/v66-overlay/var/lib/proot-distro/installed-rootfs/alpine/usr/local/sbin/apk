@@ -132,7 +132,7 @@ download_prefetch_list() {
             echo "cached [$current/$total] ${path##*/}"
             continue
         fi
-        rel="${path#$MIRROR/}"
+        rel="${path#"$MIRROR"/}"
         repo_name="${rel%%/*}"
         file="${path##*/}"
         remote="$(remote_for_repo "$repo_name")" || exit 1
@@ -209,10 +209,11 @@ run_package_script() {
     echo "Executing ${pkgfile##*/}.${script}"
     (
         prepare_root_cwd_links
-        export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-        export APK_SCRIPT="$script"
-        export APK_PACKAGE="$package_name"
-        /bin/sh "$tmp" "$@"
+        env -i \
+            PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+            APK_SCRIPT="$script" \
+            APK_PACKAGE="$package_name" \
+            /bin/sh "$tmp" "$@"
         script_status=$?
         cleanup_root_cwd_links
         exit "$script_status"
@@ -322,6 +323,142 @@ run_post_scripts() {
     done
 }
 
+run_commit_hooks() {
+    stage="$1"
+
+    if [ "${APK_SKIP_COMMIT_HOOKS:-0}" = "1" ]; then
+        echo "WARNING: APK_SKIP_COMMIT_HOOKS=1; skipping apk $stage hooks" >&2
+        return 0
+    fi
+
+    for hook in /etc/apk/commit_hooks.d/* /lib/apk/commit_hooks.d/*; do
+        [ -x "$hook" ] || continue
+        echo "Executing ${hook}.${stage}"
+        (
+            prepare_root_cwd_links
+            env -i \
+                PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+                APK_SCRIPT="$stage" \
+                "$hook" "$stage"
+            hook_status=$?
+            cleanup_root_cwd_links
+            exit "$hook_status"
+        ) || {
+            status=$?
+            echo "ERROR: apk commit hook $hook failed during $stage with status $status" >&2
+            return "$status"
+        }
+    done
+    return 0
+}
+
+apk_checksum_hex() {
+    checksum="$1"
+    case "$checksum" in
+        Q1*) encoded="${checksum#Q1}" ;;
+        *) return 1 ;;
+    esac
+
+    printf '%s' "$encoded" | base64 -d 2>/dev/null | od -An -tx1 2>/dev/null | tr -d ' \n'
+}
+
+installed_package_for_checksum() {
+    checksum="$1"
+    awk -v wanted="$checksum" '
+        $0 == "C:" wanted { found = 1; next }
+        found && /^P:/ { print substr($0, 3); exit }
+        found && $0 == "" { exit }
+    ' /lib/apk/db/installed 2>/dev/null
+}
+
+run_registered_triggers() {
+    trigger_db="/lib/apk/db/triggers"
+    script_db="/lib/apk/db/scripts.tar.gz"
+
+    [ -s "$trigger_db" ] || return 0
+    [ -s "$script_db" ] || {
+        echo "ERROR: apk trigger database exists but scripts.tar.gz is missing" >&2
+        return 1
+    }
+
+    if [ "${APK_SKIP_TRIGGERS:-0}" = "1" ]; then
+        echo "WARNING: APK_SKIP_TRIGGERS=1; package caches may be incomplete" >&2
+        return 0
+    fi
+
+    while read -r checksum watches; do
+        [ -n "$checksum" ] || continue
+        [ -n "$watches" ] || continue
+
+        script_hex="$(apk_checksum_hex "$checksum")" || {
+            echo "ERROR: unsupported apk trigger checksum: $checksum" >&2
+            return 1
+        }
+        [ -n "$script_hex" ] || {
+            echo "ERROR: could not decode apk trigger checksum: $checksum" >&2
+            return 1
+        }
+
+        member="$(tar -tzf "$script_db" 2>/dev/null | grep -E "\\.X1${script_hex}\\.trigger$" | head -n 1)"
+        [ -n "$member" ] || {
+            echo "ERROR: trigger script for checksum $checksum was not found" >&2
+            return 1
+        }
+
+        package_name="$(installed_package_for_checksum "$checksum")"
+        [ -n "$package_name" ] || package_name="unknown"
+
+        set --
+        for watch in $watches; do
+            watch="${watch#+}"
+            matched=0
+            for candidate in $watch; do
+                [ -e "$candidate" ] || [ -L "$candidate" ] || continue
+                set -- "$@" "$candidate"
+                matched=1
+            done
+            if [ "$matched" -eq 0 ] && { [ -e "$watch" ] || [ -L "$watch" ]; }; then
+                set -- "$@" "$watch"
+            fi
+        done
+
+        # Native apk only invokes a trigger when a watched path is relevant.
+        # In compatibility mode we conservatively replay registered triggers
+        # against their existing watched paths. Trigger programs are designed
+        # to be idempotent; this favors a correct desktop/font/cache state over
+        # silently skipping required post-transaction maintenance.
+        [ "$#" -gt 0 ] || continue
+
+        tmp="/tmp/apk-trigger-$$"
+        if ! tar -xOzf "$script_db" "$member" > "$tmp" 2>/dev/null; then
+            rm -f "$tmp"
+            echo "ERROR: failed to extract trigger $member" >&2
+            return 1
+        fi
+        chmod 700 "$tmp" 2>/dev/null || true
+        echo "Executing ${package_name}.trigger"
+        (
+            prepare_root_cwd_links
+            env -i \
+                PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+                APK_SCRIPT=trigger \
+                APK_PACKAGE="$package_name" \
+                /bin/sh "$tmp" "$@"
+            trigger_status=$?
+            cleanup_root_cwd_links
+            exit "$trigger_status"
+        )
+        status=$?
+        rm -f "$tmp"
+        if [ "$status" -ne 0 ]; then
+            echo "ERROR: ${package_name}.trigger failed with status $status" >&2
+            return "$status"
+        fi
+    done < "$trigger_db"
+
+    return 0
+}
+
 validate_critical_configuration() {
     plan_file="$1"
     failed=0
@@ -408,6 +545,12 @@ commit_with_manual_scripts() {
     plan_count="$(wc -l < "$plan_file" 2>/dev/null | tr -d ' ')"
     echo "Transaction packages: ${plan_count:-0}"
 
+    echo "Running apk pre-commit hooks under Android/proot..."
+    run_commit_hooks pre-commit || {
+        rm -f "$plan_file"
+        return 1
+    }
+
     echo "Running package pre-install scripts under Android/proot..."
     run_pre_scripts < "$plan_file" || {
         rm -f "$plan_file"
@@ -425,6 +568,16 @@ commit_with_manual_scripts() {
     echo "Running package post-install scripts under Android/proot..."
     run_post_scripts < "$plan_file"
     status=$?
+    if [ "$status" -eq 0 ]; then
+        echo "Running registered package triggers under Android/proot..."
+        run_registered_triggers
+        status=$?
+    fi
+    if [ "$status" -eq 0 ]; then
+        echo "Running apk post-commit hooks under Android/proot..."
+        run_commit_hooks post-commit
+        status=$?
+    fi
     if [ "$status" -eq 0 ]; then
         echo "Validating critical package configuration..."
         validate_critical_configuration "$plan_file"

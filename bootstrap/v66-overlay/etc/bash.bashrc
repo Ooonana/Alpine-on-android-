@@ -35,11 +35,39 @@ ensure_alpine_runtime() {
     chmod 700 "$ROOTFS/sbin/apk.static" "$ROOTFS/usr/local/sbin/apk" 2>/dev/null || true
     rm -f "$ROOTFS/run/dbus/pid" 2>/dev/null || true
 
-    if [ ! -s "$RESOLV_CONF" ]; then
-        {
-            echo "nameserver 8.8.8.8"
-            echo "nameserver 8.8.4.4"
-        } > "$RESOLV_CONF" 2>/dev/null || true
+    resolver_tmp="$TMPDIR/alpine-resolv.conf.$$"
+    : > "$resolver_tmp" 2>/dev/null || resolver_tmp=""
+    if [ -n "$resolver_tmp" ]; then
+        if [ -n "${ALPINE_DNS_SERVERS:-}" ]; then
+            dns_candidates="$ALPINE_DNS_SERVERS"
+        elif [ -x /system/bin/getprop ]; then
+            dns_candidates="$(
+                /system/bin/getprop 2>/dev/null |
+                    sed -n 's/^\[[^]]*\.dns[1-4]\]: \[\([^]]*\)\]$/\1/p' |
+                    tr '\n' ' '
+            )"
+        else
+            dns_candidates=""
+        fi
+
+        for dns in $dns_candidates; do
+            case "$dns" in
+                ""|*[!0-9A-Fa-f:.]*) continue ;;
+            esac
+            if ! grep -qxF "nameserver $dns" "$resolver_tmp" 2>/dev/null; then
+                echo "nameserver $dns" >> "$resolver_tmp"
+            fi
+        done
+
+        if [ -s "$resolver_tmp" ]; then
+            cat "$resolver_tmp" > "$RESOLV_CONF" 2>/dev/null || true
+        elif [ ! -s "$RESOLV_CONF" ]; then
+            {
+                echo "nameserver 8.8.8.8"
+                echo "nameserver 8.8.4.4"
+            } > "$RESOLV_CONF" 2>/dev/null || true
+        fi
+        rm -f "$resolver_tmp" 2>/dev/null || true
     fi
 
     if [ ! -s "$REMOTE_REPOSITORIES" ]; then

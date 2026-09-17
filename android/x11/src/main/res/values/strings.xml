@@ -1,10 +1,8 @@
 <!DOCTYPE resources [
-    <!ENTITY TERMUX_PACKAGE_NAME "com.termux">
-    <!ENTITY TERMUX_APP_NAME "Termux">
-    <!ENTITY TERMUX_X11_APP_NAME "Alpine Display">
+    <!ENTITY ALPINE_DISPLAY_APP_NAME "Alpine Display">
     ]>
 <resources>
-    <string name="app_name">&TERMUX_X11_APP_NAME;</string>
+    <string name="app_name">&ALPINE_DISPLAY_APP_NAME;</string>
     <string name="project_url" translatable="false">https://github.com/Ooonana/Alpine-on-android-</string>
     <string name="display_logo_description">Alpine Display logo</string>
     <string name="mouse_helper_move_description">Move mouse helper</string>
@@ -20,17 +18,17 @@ E.g. <b>META</b> for <i>META key</i>, \n
 <b>PREFERENCES</b> for <i>preferences opening key</i>, \n
 <b>MOUSE_HELPER</b> for <i>mouse helper toggling key</i>, \n
 <b>STYLUS_HELPER</b> for <i>stylus click override overlay toggling key</i>, \n
-<b>EXIT</b> for <i>application exit key</i>.</string>
+<b>EXIT</b> for <i>display close key</i>.</string>
     <string name="lorie_notification_content_text">Pull down to show options</string>
-    <string name="lorie_notification_open_preferences">Preferences</string>
-    <string name="lorie_notification_exit">Exit</string>
-    <string name="lorie_notification_restart_activity">Restart</string>
+    <string name="lorie_notification_open_preferences">Display settings</string>
+    <string name="lorie_notification_exit">Close display</string>
+    <string name="lorie_notification_restart_activity">Restart display</string>
     <string name="lorie_notification_toggle_soft_keyboard">Toggle IME</string>
     <string name="lorie_notification_toggle_additional_key_bar">Toggle additional keyboard</string>
     <string name="lorie_notification_release_pointer_and_keyboard_capture">Release captures</string>
     <string name="lorie_notification_toggle_fullscreen">Toggle fullscreen</string>
 
-    <string name="lorie_pref_main">Preferences</string>
+    <string name="lorie_pref_main">Display settings</string>
     <string name="lorie_pref_output">Output</string>
     <string name="lorie_pref_pointer">Pointer</string>
     <string name="lorie_pref_kbd">Keyboard</string>

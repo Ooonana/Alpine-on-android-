@@ -1,13 +1,13 @@
 # Alpine on Android
 
-An Android terminal app that automatically starts Alpine Linux through proot, with Termux:X11 integrated into the same APK. This repository now includes the recovered Termux development source and handoff documentation.
+An Android terminal app that automatically starts Alpine Linux through proot, with a Termux:X11-derived display integrated into the same APK. This repository includes the recovered development source, reproducible V66 bootstrap tooling, and historical handoff documentation.
 
-**Recovery snapshot: v65 was the last successfully built APK. v66 is unfinished work, not a tested release.** The installer and patched launcher say v66, but the embedded bootstrap's two marker files still say v65. Existing build-output APKs match the saved v65 APK. GUI/DBus/font problems remain under investigation.
+**V65 remains the frozen known artifact baseline. V66 is active development and is not yet a runtime-tested release.** V66 now uses a reproducibly prepared Alpine 3.24.1 rootfs, integrated Alpine Display, and hardened Android/proot launch and package-management paths. Desktop builds have succeeded, but terminal/package/DBus/X11 behavior still requires validation on a real Android device before a release is declared stable.
 
 ## Source and history
 
 - [`android/`](android/): the recovered app, terminal, shared-library and embedded X11 modules. Original licenses and the existing debug test key are retained.
-- [`bootstrap/v66-overlay/`](bootstrap/v66-overlay/): the small unfinished v66 patch overlay. It is not a complete rootfs.
+- [`bootstrap/v66-overlay/`](bootstrap/v66-overlay/): tracked V66 Android/proot compatibility overrides. It is not a complete rootfs.
 - [Development handoff](docs/recovery/HANDOFF.md): architecture, version history, reported failures and desktop setup considerations.
 - [Recovery asset manifest](docs/recovery/release-assets.json): original-path mappings, sizes and SHA-256 checksums for large files.
 - [Upload layout](docs/recovery/GITHUB-TRANSFER.md): what is in Git versus release assets, and the history-preservation limits.
@@ -22,17 +22,18 @@ Clone the repository and download the exact bootstrap from the recovery release:
 git clone https://github.com/Ooonana/Alpine-on-android-.git
 cd Alpine-on-android-
 python3 scripts/fetch-assets.py --bootstrap
+python3 scripts/prepare-v66-bootstrap.py
 ```
 
-The downloader verifies size and SHA-256 and restores the bootstrap to `android/app/src/main/cpp/bootstrap-aarch64.zip`. It refuses to overwrite a different local file. The large bootstrap is a release asset because it exceeds GitHub's regular Git file limit.
+The downloader verifies size and SHA-256 and restores the recovered host-prefix bootstrap to `android/app/src/main/cpp/bootstrap-aarch64.zip`. The preparation step then deterministically rebuilds the nested Alpine rootfs from pinned Alpine 3.24.1 inputs, applies the tracked V66 compatibility overlay, repairs rootfs symlinks, and verifies the result before replacing the build input.
 
-Before building, follow the [handoff](docs/recovery/HANDOFF.md). Configure a desktop SDK/NDK in `android/local.properties`, and remove or replace the Termux-specific `android.aapt2FromMavenOverride` in your working copy. Check the recorded JDK/Gradle/AGP compatibility and resolve the v65/v66 marker mismatch. The transferred source has not been validated with a desktop build.
+The current Windows development checkout has been validated with JDK 17, Android Gradle Plugin 8.13.2, compileSdk 36, Gradle 9.3.1, and NDK 27.1.12297006. The project still targets Android 28 and arm64-v8a for compatibility with the recovered app/runtime architecture. Local SDK/NDK paths remain machine-specific and should not be committed.
 
-The recorded project uses arm64-v8a, Gradle 9.2.1, Android Gradle Plugin 8.13.2, compileSdk 34, targetSdk 28, minSdk 21, and NDK setting 29.0.14206865. Android-hosted Termux toolchain archives are historical references, not desktop SDK replacements.
+Historical toolchain pins and Android-hosted Termux build paths remain documented under `docs/recovery/`; they are recovery evidence, not requirements for the current desktop build.
 
 ## APKs and historical assets
 
-Existing releases are retained. The `termux-recovery-2026-09-14` recovery release is an archive snapshot, not a new stable application version. Its v65 APK still has the recorded desktop/DBus issues; v66 has no completed APK.
+Existing releases are retained. The `termux-recovery-2026-09-14` recovery release is an archive snapshot, not a new stable application version. V65 artifact identities are frozen under `docs/releases/v65/`. A V66 APK should not be published as stable until the Android runtime checks in `docs/DEVELOPMENT.md` pass on-device.
 
 List the recovery assets without downloading:
 
