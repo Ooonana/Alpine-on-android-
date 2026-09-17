@@ -64,6 +64,7 @@ import com.alpine.view.TerminalViewClient;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.viewpager.widget.ViewPager;
 
@@ -211,7 +212,11 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
             if (requestFile.isFile()) {
                 // start-x11 can request Alpine's embedded display from inside Alpine/proot.
                 long requestAgeMs = Math.max(0L, System.currentTimeMillis() - requestFile.lastModified());
-                requestFile.delete();
+                if (!requestFile.delete()) {
+                    Logger.logError(LOG_TAG, "Could not consume embedded display request file: " + DISPLAY_ACTIVITY_REQUEST_FILE_PATH);
+                    mDisplayActivityRequestHandler.postDelayed(this, 5000);
+                    return;
+                }
                 if (requestAgeMs <= DISPLAY_ACTIVITY_REQUEST_MAX_AGE_MS) {
                     openAlpineDisplay(false);
                     return;
@@ -664,7 +669,7 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
         if (getDrawer().isDrawerOpen(Gravity.LEFT)) {
             getDrawer().closeDrawers();
         } else {
-            finishActivityIfNotFinishing();
+            super.onBackPressed();
         }
     }
 
@@ -826,27 +831,22 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
      * if targeting targetSdkVersion 30 (android 11) and running on sdk 30 (android 11) and higher.
      */
     public void requestStoragePermission(boolean isPermissionCallback) {
-        new Thread() {
-            @Override
-            public void run() {
-                // Do not ask for permission again
-                int requestCode = isPermissionCallback ? -1 : PermissionUtils.REQUEST_GRANT_STORAGE_PERMISSION;
+        // Permission dialogs and Settings activities are UI operations. Keep this
+        // check/request on the Activity thread; setupStorageSymlinks() performs the
+        // filesystem work on its own background thread after permission exists.
+        int requestCode = isPermissionCallback ? -1 : PermissionUtils.REQUEST_GRANT_STORAGE_PERMISSION;
 
-                // If permission is granted, then also setup storage symlinks.
-                if(PermissionUtils.checkAndRequestLegacyOrManageExternalStoragePermission(
-                    AlpineActivity.this, requestCode, !isPermissionCallback)) {
-                    if (isPermissionCallback)
-                        Logger.logInfoAndShowToast(AlpineActivity.this, LOG_TAG,
-                            getString(com.alpine.shared.R.string.msg_storage_permission_granted_on_request));
+        if (PermissionUtils.checkAndRequestLegacyOrManageExternalStoragePermission(
+            AlpineActivity.this, requestCode, !isPermissionCallback)) {
+            if (isPermissionCallback)
+                Logger.logInfoAndShowToast(AlpineActivity.this, LOG_TAG,
+                    getString(com.alpine.shared.R.string.msg_storage_permission_granted_on_request));
 
-                    AlpineInstaller.setupStorageSymlinks(AlpineActivity.this);
-                } else {
-                    if (isPermissionCallback)
-                        Logger.logInfoAndShowToast(AlpineActivity.this, LOG_TAG,
-                            getString(com.alpine.shared.R.string.msg_storage_permission_not_granted_on_request));
-                }
-            }
-        }.start();
+            AlpineInstaller.setupStorageSymlinks(AlpineActivity.this);
+        } else if (isPermissionCallback) {
+            Logger.logInfoAndShowToast(AlpineActivity.this, LOG_TAG,
+                getString(com.alpine.shared.R.string.msg_storage_permission_not_granted_on_request));
+        }
     }
 
     @Override
@@ -971,6 +971,7 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
     public static void updateAlpineActivityStyling(Context context, boolean recreateActivity) {
         // Make sure that terminal styling is always applied.
         Intent stylingIntent = new Intent(ALPINE_ACTIVITY.ACTION_RELOAD_STYLE);
+        stylingIntent.setPackage(context.getPackageName());
         stylingIntent.putExtra(ALPINE_ACTIVITY.EXTRA_RECREATE_ACTIVITY, recreateActivity);
         context.sendBroadcast(stylingIntent);
     }
@@ -981,7 +982,8 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
         intentFilter.addAction(ALPINE_ACTIVITY.ACTION_RELOAD_STYLE);
         intentFilter.addAction(ALPINE_ACTIVITY.ACTION_REQUEST_PERMISSIONS);
 
-        registerReceiver(mAlpineActivityBroadcastReceiver, intentFilter);
+        ContextCompat.registerReceiver(this, mAlpineActivityBroadcastReceiver, intentFilter,
+            ContextCompat.RECEIVER_NOT_EXPORTED);
     }
 
     private void unregisterAlpineActivityBroadcastReceiver() {

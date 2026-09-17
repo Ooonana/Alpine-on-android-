@@ -33,7 +33,6 @@ import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
 import android.os.SystemClock;
-import android.service.notification.StatusBarNotification;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
@@ -69,7 +68,6 @@ import com.termux.x11.utils.SamsungDexUtils;
 import com.termux.x11.utils.TermuxX11ExtraKeys;
 import com.termux.x11.utils.X11ToolbarViewPager;
 
-import java.util.Map;
 
 @SuppressLint("ApplySharedPref")
 @SuppressWarnings({"deprecation", "unused"})
@@ -84,11 +82,13 @@ public class MainActivity extends AppCompatActivity {
     public TermuxX11ExtraKeys mExtraKeys;
     private Notification mNotification;
     private final int mNotificationId = 7892;
+    private boolean mNotificationVisible = false;
     NotificationManager mNotificationManager;
     static InputMethodManager inputMethodManager;
     private static boolean showIMEWhileExternalConnected = true;
     private static boolean externalKeyboardConnected = false;
     private View.OnKeyListener mLorieKeyListener;
+    private final Runnable mConnectionRetry = this::tryConnect;
     private boolean filterOutWinKey = false;
     boolean useTermuxEKBarBehaviour = false;
     private boolean isInPictureInPictureMode = false;
@@ -195,8 +195,10 @@ public class MainActivity extends AppCompatActivity {
         });
         lorieParent.setOnHoverListener((v, e) -> mInputHandler.handleTouchEvent(lorieParent, lorieView, e));
         lorieParent.setOnGenericMotionListener((v, e) -> mInputHandler.handleTouchEvent(lorieParent, lorieView, e));
-        lorieView.setOnCapturedPointerListener((v, e) -> mInputHandler.handleTouchEvent(lorieView, lorieView, e));
-        lorieParent.setOnCapturedPointerListener((v, e) -> mInputHandler.handleTouchEvent(lorieView, lorieView, e));
+        if (SDK_INT >= VERSION_CODES.O) {
+            lorieView.setOnCapturedPointerListener((v, e) -> mInputHandler.handleTouchEvent(lorieView, lorieView, e));
+            lorieParent.setOnCapturedPointerListener((v, e) -> mInputHandler.handleTouchEvent(lorieView, lorieView, e));
+        }
         lorieView.setOnKeyListener(mLorieKeyListener);
 
         lorieView.setCallback((surfaceWidth, surfaceHeight, screenWidth, screenHeight) -> {
@@ -227,6 +229,7 @@ public class MainActivity extends AppCompatActivity {
         mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotification = buildNotification();
         mNotificationManager.notify(mNotificationId, mNotification);
+        mNotificationVisible = true;
 
         if (tryConnect()) {
             final View content = findViewById(android.R.id.content);
@@ -252,8 +255,17 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        handler.removeCallbacks(mConnectionRetry);
+        if (prefs != null)
+            prefs.get().unregisterOnSharedPreferenceChangeListener(preferencesChangedListener);
         unregisterReceiver(receiver);
+        if (instance == this)
+            instance = null;
         super.onDestroy();
+    }
+
+    private float clampToVisibleBounds(float value, float min, float max) {
+        return MathUtils.clamp(value, min, Math.max(min, max));
     }
 
     //Register the needed events to handle stylus as left, middle and right click
@@ -272,7 +284,8 @@ public class MainActivity extends AppCompatActivity {
         overlay.setOnTouchListener((v, e) -> true);
         overlay.setOnHoverListener((v, e) -> true);
         overlay.setOnGenericMotionListener((v, e) -> true);
-        overlay.setOnCapturedPointerListener((v, e) -> true);
+        if (SDK_INT >= VERSION_CODES.O)
+            overlay.setOnCapturedPointerListener((v, e) -> true);
         overlay.setVisibility(stylusMenuEnabled ? View.VISIBLE : View.GONE);
         View.OnClickListener listener = view -> {
             TouchInputHandler.STYLUS_INPUT_HELPER_MODE = (view.equals(left) ? 1 : (view.equals(middle) ? 2 : (view.equals(right) ? 4 : 0)));
@@ -291,7 +304,7 @@ public class MainActivity extends AppCompatActivity {
                 buttons.setVisibility(View.GONE);
                 visibility.setAlpha(menuUnselectedTrasparency);
                 int m = TouchInputHandler.STYLUS_INPUT_HELPER_MODE;
-                visibility.setText(m == 1 ? "L" : (m == 2 ? "M" : (m == 3 ? "R" : "U")));
+                visibility.setText(m == 1 ? "L" : (m == 2 ? "M" : (m == 4 ? "R" : "U")));
             } else {
                 buttons.setVisibility(View.VISIBLE);
                 visibility.setAlpha(menuUnselectedTrasparency);
@@ -304,11 +317,11 @@ public class MainActivity extends AppCompatActivity {
                     maxY -= pager.getHeight();
 
                 //Make sure the Stylus menu is fully inside the screen
-                overlay.setX(MathUtils.clamp(overlay.getX(), 0, maxX));
-                overlay.setY(MathUtils.clamp(overlay.getY(), 0, maxY));
+                overlay.setX(clampToVisibleBounds(overlay.getX(), 0, maxX));
+                overlay.setY(clampToVisibleBounds(overlay.getY(), 0, maxY));
 
                 int m = TouchInputHandler.STYLUS_INPUT_HELPER_MODE;
-                listener.onClick(m == 1 ? left : (m == 2 ? middle : (m == 3 ? right : left)));
+                listener.onClick(m == 1 ? left : (m == 2 ? middle : (m == 4 ? right : left)));
             }
         });
         //Simulated mouse click 1 = left , 2 = middle , 3 = right
@@ -316,9 +329,14 @@ public class MainActivity extends AppCompatActivity {
         listener.onClick(left);
 
         visibility.setOnLongClickListener(v -> {
-            v.startDragAndDrop(ClipData.newPlainText("", ""), new View.DragShadowBuilder(visibility) {
+            View.DragShadowBuilder dragShadow = new View.DragShadowBuilder(visibility) {
                 public void onDrawShadow(@NonNull Canvas canvas) {}
-            }, null, View.DRAG_FLAG_GLOBAL);
+            };
+            if (SDK_INT >= VERSION_CODES.N)
+                v.startDragAndDrop(ClipData.newPlainText("", ""), dragShadow, null, View.DRAG_FLAG_GLOBAL);
+            else
+                //noinspection deprecation
+                v.startDrag(ClipData.newPlainText("", ""), dragShadow, null, 0);
 
             frm.setOnDragListener((v2, event) -> {
                 //Calculate screen border making sure btn is fully inside the view
@@ -334,13 +352,13 @@ public class MainActivity extends AppCompatActivity {
                         float dY = event.getY() - visibility.getHeight() / 2.0f;
 
                         //Make sure the dragged btn is inside the view with clamp
-                        overlay.setX(MathUtils.clamp(dX, 0, maxX));
-                        overlay.setY(MathUtils.clamp(dY, 0, maxY));
+                        overlay.setX(clampToVisibleBounds(dX, 0, maxX));
+                        overlay.setY(clampToVisibleBounds(dY, 0, maxY));
                         break;
                     case DragEvent.ACTION_DRAG_ENDED:
                         //Make sure the dragged btn is inside the view
-                        overlay.setX(MathUtils.clamp(overlay.getX(), 0, maxX));
-                        overlay.setY(MathUtils.clamp(overlay.getY(), 0, maxY));
+                        overlay.setX(clampToVisibleBounds(overlay.getX(), 0, maxX));
+                        overlay.setY(clampToVisibleBounds(overlay.getY(), 0, maxY));
                         break;
                 }
                 return true;
@@ -374,11 +392,11 @@ public class MainActivity extends AppCompatActivity {
         View stylusAuxButtons = findViewById(R.id.mouse_helper_visibility);
         int maxYDecrement = (pager.getVisibility() == View.VISIBLE) ? pager.getHeight() : 0;
 
-        mouseAuxButtons.setX(MathUtils.clamp(mouseAuxButtons.getX(), frm.getX(), frm.getX() + frm.getWidth() - mouseAuxButtons.getWidth()));
-        mouseAuxButtons.setY(MathUtils.clamp(mouseAuxButtons.getY(), frm.getY(), frm.getY() + frm.getHeight() - mouseAuxButtons.getHeight() - maxYDecrement));
+        mouseAuxButtons.setX(clampToVisibleBounds(mouseAuxButtons.getX(), frm.getX(), frm.getX() + frm.getWidth() - mouseAuxButtons.getWidth()));
+        mouseAuxButtons.setY(clampToVisibleBounds(mouseAuxButtons.getY(), frm.getY(), frm.getY() + frm.getHeight() - mouseAuxButtons.getHeight() - maxYDecrement));
 
-        stylusAuxButtons.setX(MathUtils.clamp(stylusAuxButtons.getX(), frm.getX(), frm.getX() + frm.getWidth() - stylusAuxButtons.getWidth()));
-        stylusAuxButtons.setY(MathUtils.clamp(stylusAuxButtons.getY(), frm.getY(), frm.getY() + frm.getHeight() - stylusAuxButtons.getHeight() - maxYDecrement));
+        stylusAuxButtons.setX(clampToVisibleBounds(stylusAuxButtons.getX(), frm.getX(), frm.getX() + frm.getWidth() - stylusAuxButtons.getWidth()));
+        stylusAuxButtons.setY(clampToVisibleBounds(stylusAuxButtons.getY(), frm.getY(), frm.getY() + frm.getHeight() - stylusAuxButtons.getHeight() - maxYDecrement));
     }
 
     public void toggleStylusAuxButtons() {
@@ -434,27 +452,14 @@ public class MainActivity extends AppCompatActivity {
                 float maxY = frm.getY() + frm.getHeight() - primaryLayer.getHeight();
                 if (pager.getVisibility() == View.VISIBLE)
                     maxY -= pager.getHeight();
-                primaryLayer.setX(MathUtils.clamp(primaryLayer.getX(), frm.getX(), maxX));
-                primaryLayer.setY(MathUtils.clamp(primaryLayer.getY(), frm.getY(), maxY));
+                primaryLayer.setX(clampToVisibleBounds(primaryLayer.getX(), frm.getX(), maxX));
+                primaryLayer.setY(clampToVisibleBounds(primaryLayer.getY(), frm.getY(), maxY));
             }, 10);
         });
 
-        Map.of(left, InputStub.BUTTON_LEFT, middle, InputStub.BUTTON_MIDDLE, right, InputStub.BUTTON_RIGHT)
-                .forEach((v, b) -> v.setOnTouchListener((__, e) -> {
-            switch(e.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                case MotionEvent.ACTION_POINTER_DOWN:
-                    getLorieView().sendMouseEvent(0, 0, b, true, true);
-                    v.setPressed(true);
-                    break;
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_POINTER_UP:
-                    getLorieView().sendMouseEvent(0, 0, b, false, true);
-                    v.setPressed(false);
-                    break;
-            }
-            return true;
-        }));
+        setMouseButtonListener(left, InputStub.BUTTON_LEFT);
+        setMouseButtonListener(middle, InputStub.BUTTON_MIDDLE);
+        setMouseButtonListener(right, InputStub.BUTTON_RIGHT);
 
         pos.setOnTouchListener(new View.OnTouchListener() {
             final int touchSlop = (int) Math.pow(ViewConfiguration.get(MainActivity.this).getScaledTouchSlop(), 2);
@@ -481,8 +486,8 @@ public class MainActivity extends AppCompatActivity {
                         if (pager.getVisibility() == View.VISIBLE)
                             maxY -= pager.getHeight();
 
-                        primaryLayer.setX(MathUtils.clamp(offset[0] - startOffset[0] + e.getX(), frm.getX(), maxX));
-                        primaryLayer.setY(MathUtils.clamp(offset[1] - startOffset[1] + e.getY(), frm.getY(), maxY));
+                        primaryLayer.setX(clampToVisibleBounds(offset[0] - startOffset[0] + e.getX(), frm.getX(), maxX));
+                        primaryLayer.setY(clampToVisibleBounds(offset[1] - startOffset[1] + e.getY(), frm.getY(), maxY));
                         break;
                     }
                     case MotionEvent.ACTION_UP: {
@@ -501,6 +506,24 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return true;
             }
+        });
+    }
+
+    private void setMouseButtonListener(Button button, int mouseButton) {
+        button.setOnTouchListener((__, e) -> {
+            switch(e.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_POINTER_DOWN:
+                    getLorieView().sendMouseEvent(0, 0, mouseButton, true, true);
+                    button.setPressed(true);
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_POINTER_UP:
+                    getLorieView().sendMouseEvent(0, 0, mouseButton, false, true);
+                    button.setPressed(false);
+                    break;
+            }
+            return true;
         });
     }
 
@@ -538,12 +561,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     boolean tryConnect() {
-        if (LorieView.connected())
+        if (LorieView.connected()) {
+            handler.removeCallbacks(mConnectionRetry);
             return false;
+        }
 
         if (service == null) {
             boolean sent = LorieView.requestConnection();
-            handler.postDelayed(this::tryConnect, 250);
+            scheduleConnectionRetry();
             return true;
         }
 
@@ -556,14 +581,21 @@ public class MainActivity extends AppCompatActivity {
                 clientConnectedStateChanged();
                 getLorieView().reloadPreferences(prefs);
             } else
-                handler.postDelayed(this::tryConnect, 250);
+                scheduleConnectionRetry();
         } catch (Exception e) {
             Log.e("MainActivity", "Something went wrong while we were establishing connection", e);
             service = null;
 
-            handler.postDelayed(this::tryConnect, 250);
+            scheduleConnectionRetry();
         }
         return false;
+    }
+
+    private void scheduleConnectionRetry() {
+        handler.removeCallbacks(mConnectionRetry);
+        if (isFinishing() || isDestroyed())
+            return;
+        handler.postDelayed(mConnectionRetry, 250);
     }
 
     void onPreferencesChanged(String key) {
@@ -606,11 +638,10 @@ public class MainActivity extends AppCompatActivity {
         lorieView.requestLayout();
         lorieView.invalidate();
 
-        for (StatusBarNotification notification: mNotificationManager.getActiveNotifications())
-            if (notification.getId() == mNotificationId) {
-                mNotification = buildNotification();
-                mNotificationManager.notify(mNotificationId, mNotification);
-            }
+        if (mNotificationVisible) {
+            mNotification = buildNotification();
+            mNotificationManager.notify(mNotificationId, mNotification);
+        }
     }
 
     @Override
@@ -619,6 +650,7 @@ public class MainActivity extends AppCompatActivity {
 
         mNotification = buildNotification();
         mNotificationManager.notify(mNotificationId, mNotification);
+        mNotificationVisible = true;
 
         setTerminalToolbarView();
         getLorieView().requestFocus();
@@ -628,9 +660,8 @@ public class MainActivity extends AppCompatActivity {
     public void onPause() {
         inputMethodManager.hideSoftInputFromWindow(getWindow().getDecorView().getRootView().getWindowToken(), 0);
 
-        for (StatusBarNotification notification: mNotificationManager.getActiveNotifications())
-            if (notification.getId() == mNotificationId)
-                mNotificationManager.cancel(mNotificationId);
+        mNotificationManager.cancel(mNotificationId);
+        mNotificationVisible = false;
 
         super.onPause();
     }
@@ -708,13 +739,15 @@ public class MainActivity extends AppCompatActivity {
 
     private String getNotificationChannel(NotificationManager notificationManager){
         String channelId = getResources().getString(R.string.app_name);
-        String channelName = getResources().getString(R.string.app_name);
-        NotificationChannel channel = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH);
-        channel.setImportance(NotificationManager.IMPORTANCE_HIGH);
-        channel.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
-        if (SDK_INT >= VERSION_CODES.Q)
-            channel.setAllowBubbles(false);
-        notificationManager.createNotificationChannel(channel);
+        if (SDK_INT >= VERSION_CODES.O) {
+            String channelName = getResources().getString(R.string.app_name);
+            NotificationChannel channel = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH);
+            channel.setImportance(NotificationManager.IMPORTANCE_HIGH);
+            channel.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
+            if (SDK_INT >= VERSION_CODES.Q)
+                channel.setAllowBubbles(false);
+            notificationManager.createNotificationChannel(channel);
+        }
         return channelId;
     }
 
@@ -807,9 +840,12 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
+        finish();
     }
 
     public static boolean hasPipPermission(@NonNull Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+            return false;
         AppOpsManager appOpsManager = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
         if (appOpsManager == null)
             return false;
@@ -821,7 +857,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onUserLeaveHint() {
-        if (prefs.PIP.get() && hasPipPermission(this)) {
+        if (SDK_INT >= VERSION_CODES.O && prefs.PIP.get() && hasPipPermission(this)) {
             enterPictureInPictureMode();
         }
     }
@@ -866,7 +902,7 @@ public class MainActivity extends AppCompatActivity {
             // We should recover connection in the case if file descriptor for some reason was broken...
             if (!connected)
                 tryConnect();
-            else
+            else if (SDK_INT >= VERSION_CODES.N)
                 getLorieView().setPointerIcon(PointerIcon.getSystemIcon(this, PointerIcon.TYPE_NULL));
 
             onWindowFocusChanged(hasWindowFocus());

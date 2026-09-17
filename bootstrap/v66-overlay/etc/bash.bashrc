@@ -85,17 +85,47 @@ ensure_alpine_runtime() {
     fi
 }
 
+proc_start_time() {
+    pid="$1"
+    case "$pid" in
+        ""|*[!0-9]*) return 1 ;;
+    esac
+    [ -r "/proc/$pid/stat" ] || return 1
+    stat_line="$(cat "/proc/$pid/stat" 2>/dev/null)" || return 1
+    stat_fields="${stat_line#*) }"
+    [ "$stat_fields" != "$stat_line" ] || return 1
+    stat_start="$(printf '%s\n' "$stat_fields" | awk 'NF >= 20 { print $20; found=1 } END { if (!found) exit 1 }')" || return 1
+    [ -n "$stat_start" ] || return 1
+    printf '%s\n' "$stat_start"
+}
+
+pid_identity_file_alive() {
+    identity_file="$1"
+    [ -r "$identity_file" ] || return 1
+    read -r identity_pid identity_start < "$identity_file" || return 1
+    [ -n "$identity_start" ] || return 1
+    kill -0 "$identity_pid" 2>/dev/null || return 1
+    current_start="$(proc_start_time "$identity_pid")" || return 1
+    [ "$current_start" = "$identity_start" ]
+}
+
+write_pid_identity() {
+    identity_file="$1"
+    identity_pid="$2"
+    identity_start="$(proc_start_time "$identity_pid")" || return 1
+    printf '%s %s\n' "$identity_pid" "$identity_start" > "$identity_file"
+}
+
 start_x11_bridge() {
     bridge_pid_file="$TMPDIR/alpine-x11-bridge.pid"
+    server_pid_file="$TMPDIR/alpine-x11-server.pid"
     request_file="$TMPDIR/alpine-x11-request"
     log_file="$TMPDIR/termux-x11.log"
 
-    if [ -r "$bridge_pid_file" ]; then
-        bridge_pid="$(cat "$bridge_pid_file" 2>/dev/null)"
-        if [ -n "$bridge_pid" ] && kill -0 "$bridge_pid" 2>/dev/null; then
-            return 0
-        fi
+    if pid_identity_file_alive "$bridge_pid_file"; then
+        return 0
     fi
+    rm -f "$bridge_pid_file" 2>/dev/null || true
 
     (
         export PREFIX HOME TMPDIR
@@ -115,11 +145,22 @@ start_x11_bridge() {
 
                 display_number="${display#:}"
                 display_number="${display_number%%.*}"
+                case "$display_number" in
+                    ""|*[!0-9]*)
+                        echo "Ignoring invalid X11 display request: $display" >> "$log_file"
+                        continue
+                        ;;
+                esac
                 socket_path="$TMPDIR/.X11-unix/X$display_number"
 
                 : > "$log_file"
                 echo "Host X11 bridge starting DISPLAY=$display" >> "$log_file"
                 echo "Host cwd: $(pwd 2>/dev/null || echo unknown)" >> "$log_file"
+
+                if [ -S "$socket_path" ] && ! pid_identity_file_alive "$server_pid_file"; then
+                    echo "Removing stale X11 socket at $socket_path" >> "$log_file"
+                    rm -f "$socket_path" "$server_pid_file" 2>/dev/null || true
+                fi
 
                 if [ -S "$socket_path" ]; then
                     echo "X11 socket already exists at $socket_path" >> "$log_file"
@@ -160,14 +201,22 @@ start_x11_bridge() {
 	                    else
 	                        "$PREFIX/bin/termux-x11" "$display" >>"$log_file" 2>&1 &
 	                    fi
-	                    echo "$!" > "$TMPDIR/alpine-x11-server.pid" 2>/dev/null || true
+	                    server_pid="$!"
+	                    if ! write_pid_identity "$server_pid_file" "$server_pid"; then
+	                        echo "WARNING: could not record X11 server identity" >> "$log_file"
+	                    fi
 	                fi
             fi
             sleep 1
         done
     ) >/dev/null 2>&1 &
 
-    echo "$!" > "$bridge_pid_file" 2>/dev/null || true
+    bridge_pid="$!"
+    if ! write_pid_identity "$bridge_pid_file" "$bridge_pid"; then
+        kill "$bridge_pid" 2>/dev/null || true
+        echo "WARNING: could not record Alpine X11 bridge identity" >&2
+        return 1
+    fi
 }
 
 run_alpine_proot_distro() {
@@ -193,6 +242,22 @@ run_alpine_proot_distro() {
 }
 
 run_alpine_direct_proot() {
+    local -a optional_binds=()
+    if [ -d /sdcard ] && [ -r /sdcard ]; then
+        optional_binds+=(-b /sdcard)
+    fi
+    local fd fd_name
+    local -a fd_names=(stdin stdout stderr)
+    for fd in 0 1 2; do
+        if [ -e "/proc/self/fd/$fd" ]; then
+            fd_name="${fd_names[$fd]}"
+            optional_binds+=(-b "/proc/self/fd/$fd:/dev/$fd_name")
+        fi
+    done
+    if [ -d "$TMPDIR" ]; then
+        optional_binds+=(-b "$TMPDIR:/dev/shm")
+    fi
+
     "$PREFIX/bin/proot" \
         --kill-on-exit \
         -0 \
@@ -204,7 +269,7 @@ run_alpine_direct_proot() {
         -b /proc/self/fd:/dev/fd \
         -b "$TMPDIR:/tmp" \
         -b "$HOME:/root" \
-        -b /sdcard \
+        "${optional_binds[@]}" \
         -w /root \
         /usr/bin/env -i \
         HOME=/root \
@@ -220,7 +285,9 @@ run_alpine_direct_proot() {
 if [ -z "$IN_ALPINE" ] && [ "$ALPINE_FAILSAFE" != "1" ]; then
     export DISPLAY="${DISPLAY:-:1}"
     ensure_alpine_runtime
-    start_x11_bridge
+    if ! start_x11_bridge; then
+        echo "WARNING: Alpine display bridge could not start; terminal mode is still available."
+    fi
 
     if [ ! -x "$PREFIX/bin/proot-distro" ]; then
         echo "Alpine could not start: proot-distro is missing."

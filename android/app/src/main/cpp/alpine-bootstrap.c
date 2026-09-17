@@ -3,9 +3,7 @@
 extern jbyte blob[];
 extern int blob_size;
 
-JNIEXPORT jbyteArray JNICALL Java_com_alpine_app_AlpineInstaller_getZip(JNIEnv *env, __attribute__((__unused__)) jobject This)
+JNIEXPORT jobject JNICALL Java_com_alpine_app_AlpineInstaller_getZipBuffer(JNIEnv *env, __attribute__((__unused__)) jclass clazz)
 {
-    jbyteArray ret = (*env)->NewByteArray(env, blob_size);
-    (*env)->SetByteArrayRegion(env, ret, 0, blob_size, blob);
-    return ret;
+    return (*env)->NewDirectByteBuffer(env, blob, (jlong) blob_size);
 }

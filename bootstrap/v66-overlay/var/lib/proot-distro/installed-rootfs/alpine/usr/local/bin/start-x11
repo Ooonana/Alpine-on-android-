@@ -20,6 +20,12 @@ esac
 
 display_number="${display#:}"
 display_number="${display_number%%.*}"
+case "$display_number" in
+    ""|*[!0-9]*)
+        echo "ERROR: invalid X11 display: $display" >&2
+        exit 2
+        ;;
+esac
 socket_dir="${TMPDIR:-/tmp}/.X11-unix"
 socket_path="$socket_dir/X$display_number"
 log_file="/tmp/termux-x11.log"
@@ -32,6 +38,30 @@ server_pid_file="/tmp/alpine-x11-server.pid"
 export DISPLAY="$display"
 export TMPDIR="${TMPDIR:-/tmp}"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-$TMPDIR}"
+
+proc_start_time() {
+    pid="$1"
+    case "$pid" in
+        ""|*[!0-9]*) return 1 ;;
+    esac
+    [ -r "/proc/$pid/stat" ] || return 1
+    stat_line="$(cat "/proc/$pid/stat" 2>/dev/null)" || return 1
+    stat_fields="${stat_line#*) }"
+    [ "$stat_fields" != "$stat_line" ] || return 1
+    stat_start="$(printf '%s\n' "$stat_fields" | awk 'NF >= 20 { print $20; found=1 } END { if (!found) exit 1 }')" || return 1
+    [ -n "$stat_start" ] || return 1
+    printf '%s\n' "$stat_start"
+}
+
+pid_identity_file_alive() {
+    identity_file="$1"
+    [ -r "$identity_file" ] || return 1
+    read -r identity_pid identity_start < "$identity_file" || return 1
+    [ -n "$identity_start" ] || return 1
+    kill -0 "$identity_pid" 2>/dev/null || return 1
+    current_start="$(proc_start_time "$identity_pid")" || return 1
+    [ "$current_start" = "$identity_start" ]
+}
 
 if [ -d /usr/share/X11/xkb ]; then
     export XKB_CONFIG_ROOT="${XKB_CONFIG_ROOT:-/usr/share/X11/xkb}"
@@ -57,21 +87,9 @@ ensure_x11_font_indexes() {
 
 ensure_x11_font_indexes
 
-if [ -S "$socket_path" ]; then
-    server_alive=unknown
-    if [ -r "$server_pid_file" ]; then
-        server_pid="$(cat "$server_pid_file" 2>/dev/null)"
-        if [ -n "$server_pid" ] && kill -0 "$server_pid" 2>/dev/null; then
-            server_alive=1
-        else
-            server_alive=0
-        fi
-    fi
-
-    if [ "$server_alive" = "0" ]; then
-        echo "Removing stale Alpine display socket at $socket_path"
-        rm -f "$socket_path"
-    fi
+if [ -S "$socket_path" ] && ! pid_identity_file_alive "$server_pid_file"; then
+    echo "Removing stale Alpine display socket at $socket_path"
+    rm -f "$socket_path" "$server_pid_file"
 fi
 
 if [ -S "$socket_path" ]; then

@@ -35,8 +35,8 @@ class TerminalViewPreferencesDataStore extends PreferenceDataStore {
     private static TerminalViewPreferencesDataStore mInstance;
 
     private TerminalViewPreferencesDataStore(Context context) {
-        mContext = context;
-        mPreferences = AlpineAppSharedPreferences.build(context, true);
+        mContext = context.getApplicationContext();
+        mPreferences = AlpineAppSharedPreferences.build(mContext, true);
     }
 
     public static synchronized TerminalViewPreferencesDataStore getInstance(Context context) {

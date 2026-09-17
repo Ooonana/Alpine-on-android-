@@ -72,8 +72,8 @@ class DebuggingPreferencesDataStore extends PreferenceDataStore {
     private static DebuggingPreferencesDataStore mInstance;
 
     private DebuggingPreferencesDataStore(Context context) {
-        mContext = context;
-        mPreferences = AlpineAppSharedPreferences.build(context, true);
+        mContext = context.getApplicationContext();
+        mPreferences = AlpineAppSharedPreferences.build(mContext, true);
     }
 
     public static synchronized DebuggingPreferencesDataStore getInstance(Context context) {

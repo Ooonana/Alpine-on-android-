@@ -41,16 +41,16 @@ ENVIRONMENT = (
     b"HOME=/root\nTERM=xterm-256color\nLANG=C.UTF-8\n"
 )
 
-# These official Alpine links cannot safely be flattened to file bytes. They
-# must be recreated by AlpineInstaller through SYMLINKS.txt after extraction.
-EXPECTED_RUNTIME_SYMLINKS = {
+# These links are required for the minimal rootfs to function. The pinned
+# minirootfs contains many more symlinks (primarily BusyBox applets); all of
+# them are preserved through SYMLINKS.txt instead of being flattened into
+# duplicate file payloads.
+REQUIRED_RUNTIME_SYMLINKS = {
     "etc/mtab": "../proc/mounts",
-    "etc/ssl1.1/certs": "/etc/ssl/certs",
     "var/run": "../run",
     "var/lock": "../run/lock",
     "var/spool/mail": "../mail",
     "var/spool/cron/crontabs": "../../../etc/crontabs",
-    "usr/share/xkeyboard-config-2": "X11/xkb",
 }
 
 
@@ -105,34 +105,17 @@ def _normalized_name(name: str) -> str:
     return name.lstrip("./").rstrip("/")
 
 
-def _resolve_tar_symlink(members: dict[str, tarfile.TarInfo], name: str, seen: set[str] | None = None) -> tarfile.TarInfo | None:
-    seen = set() if seen is None else seen
-    if name in seen:
-        raise RuntimeError(f"Symlink cycle in Alpine minirootfs: {name}")
-    seen.add(name)
-    member = members[name]
-    if not member.issym():
-        return member
-    target = member.linkname
-    if target.startswith("/"):
-        target = target.lstrip("/")
-    else:
-        target = posixpath.normpath(posixpath.join(posixpath.dirname(name), target))
-    if target not in members:
-        return None
-    return _resolve_tar_symlink(members, target, seen)
-
-
-def build_rootfs() -> tuple[dict[str, tuple[bytes | None, bool]], dict[str, str]]:
+def build_rootfs() -> tuple[dict[str, tuple[bytes | None, bool, int]], dict[str, str]]:
     """Return ZIP entries and post-extraction symlinks for the V66 Alpine rootfs.
 
-    Resolvable file symlinks are deliberately flattened to file contents to
-    preserve the historical Alpine-on-Android bootstrap behavior. Directory or
-    runtime/dangling symlinks are omitted from the ZIP and returned separately
-    so AlpineInstaller can recreate them with Os.symlink().
+    Official Alpine symlinks are deliberately preserved instead of flattened
+    to file contents. Alpine's minirootfs uses hundreds of BusyBox applet links;
+    flattening them would duplicate the same binary hundreds of times and make
+    installation slower and much larger. AlpineInstaller recreates every link
+    from SYMLINKS.txt after regular files/directories have been extracted.
     """
     minirootfs, xkb_apk, apk_static_apk = ensure_inputs()
-    entries: dict[str, tuple[bytes | None, bool]] = {}
+    entries: dict[str, tuple[bytes | None, bool, int]] = {}
     symlinks: dict[str, str] = {}
 
     with tarfile.open(minirootfs, "r:gz") as archive:
@@ -140,23 +123,25 @@ def build_rootfs() -> tuple[dict[str, tuple[bytes | None, bool]], dict[str, str]
         for name, member in members.items():
             full = ROOTFS_PREFIX + name
             if member.isdir():
-                entries[full + "/"] = (None, True)
+                entries[full + "/"] = (None, True, member.mode & 0o7777)
                 continue
             if member.isfile():
                 stream = archive.extractfile(member)
                 if stream is None:
                     raise RuntimeError(f"Cannot read minirootfs file: {name}")
-                entries[full] = (stream.read(), False)
+                entries[full] = (stream.read(), False, member.mode & 0o7777)
                 continue
             if member.issym():
-                resolved = _resolve_tar_symlink(members, name)
-                if resolved is not None and resolved.isfile():
-                    stream = archive.extractfile(resolved)
-                    if stream is None:
-                        raise RuntimeError(f"Cannot resolve minirootfs symlink: {name}")
-                    entries[full] = (stream.read(), False)
-                else:
-                    symlinks[name] = member.linkname
+                if not member.linkname or "\0" in member.linkname or "\n" in member.linkname or "\r" in member.linkname:
+                    raise RuntimeError(f"Unsafe Alpine symlink target: {name} -> {member.linkname!r}")
+                target = member.linkname
+                # Alpine uses many absolute links such as /bin/busybox. Convert
+                # them to equivalent relative links so they are valid both in
+                # the Android app's physical rootfs directory and after proot
+                # makes that directory appear as '/'.
+                if target.startswith("/"):
+                    target = posixpath.relpath(target.lstrip("/"), posixpath.dirname(name) or ".")
+                symlinks[name] = target
                 continue
             raise RuntimeError(f"Unsupported minirootfs tar member type: {name} {member.type!r}")
 
@@ -169,37 +154,44 @@ def build_rootfs() -> tuple[dict[str, tuple[bytes | None, bool]], dict[str, str]
                 continue
             full = ROOTFS_PREFIX + name
             if member.isdir():
-                entries[full + "/"] = (None, True)
+                entries[full + "/"] = (None, True, member.mode & 0o7777)
             elif member.isfile():
                 stream = archive.extractfile(member)
                 if stream is None:
                     raise RuntimeError(f"Cannot read XKB payload: {name}")
-                entries[full] = (stream.read(), False)
+                entries[full] = (stream.read(), False, member.mode & 0o7777)
         symlinks["usr/share/xkeyboard-config-2"] = "X11/xkb"
 
     # Current apk-tools static binary is used only against downloaded local
     # payloads. This avoids pairing Alpine 3.24 repositories with the old V52
     # static apk binary.
     with tarfile.open(apk_static_apk, "r:gz") as archive:
-        stream = archive.extractfile("sbin/apk.static")
+        apk_static_member = archive.getmember("sbin/apk.static")
+        stream = archive.extractfile(apk_static_member)
         if stream is None:
             raise RuntimeError("apk-tools-static package is missing sbin/apk.static")
         static_apk = stream.read()
     if digest_bytes(static_apk) != APK_STATIC_PAYLOAD_SHA256:
         raise RuntimeError("Unexpected sbin/apk.static payload hash")
-    entries[ROOTFS_PREFIX + "sbin/apk.static"] = (static_apk, False)
+    entries[ROOTFS_PREFIX + "sbin/apk.static"] = (static_apk, False, apk_static_member.mode & 0o7777)
 
     # Bootstrap-owned runtime configuration. Package/user-specific files are
     # intentionally not preseeded here; package maintainer scripts should
     # create their own users/groups and machine-id when the packages install.
-    entries[ROOTFS_PREFIX + "etc/apk/repositories"] = (LOCAL_REPOSITORIES, False)
-    entries[ROOTFS_PREFIX + "etc/apk/remote-repositories"] = (REMOTE_REPOSITORIES, False)
-    entries[ROOTFS_PREFIX + "etc/resolv.conf"] = (RESOLV_CONF, False)
-    entries[ROOTFS_PREFIX + "etc/environment"] = (ENVIRONMENT, False)
-    entries[ROOTFS_PREFIX + "etc/alpine-bootstrap-version"] = (b"v66\n", False)
+    entries[ROOTFS_PREFIX + "etc/apk/repositories"] = (LOCAL_REPOSITORIES, False, 0o644)
+    entries[ROOTFS_PREFIX + "etc/apk/remote-repositories"] = (REMOTE_REPOSITORIES, False, 0o644)
+    entries[ROOTFS_PREFIX + "etc/resolv.conf"] = (RESOLV_CONF, False, 0o644)
+    entries[ROOTFS_PREFIX + "etc/environment"] = (ENVIRONMENT, False, 0o600)
+    entries[ROOTFS_PREFIX + "etc/alpine-bootstrap-version"] = (b"v66\n", False, 0o644)
 
-    if symlinks != EXPECTED_RUNTIME_SYMLINKS:
-        raise RuntimeError(f"Unexpected Alpine runtime symlink set: {symlinks!r}")
+    for name, expected_target in REQUIRED_RUNTIME_SYMLINKS.items():
+        if symlinks.get(name) != expected_target:
+            raise RuntimeError(
+                f"Required Alpine runtime symlink changed: {name} -> {symlinks.get(name)!r}; "
+                f"expected {expected_target!r}"
+            )
+    if symlinks.get("usr/share/xkeyboard-config-2") != "X11/xkb":
+        raise RuntimeError("XKB compatibility symlink is missing or incorrect")
     return entries, symlinks
 
 

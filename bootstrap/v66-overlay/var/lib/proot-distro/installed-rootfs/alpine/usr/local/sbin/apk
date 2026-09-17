@@ -5,6 +5,74 @@ LOCAL_REPOS="/etc/apk/repositories"
 REMOTE_REPOS="/etc/apk/remote-repositories"
 MIRROR="/var/cache/apk-mirror"
 ARCH="$("$REAL_APK" --print-arch 2>/dev/null || echo aarch64)"
+TRANSACTION_LOCK_DIR="/tmp/alpine-apk-transaction.lock"
+PENDING_CONFIGURATION_DIR="/var/lib/apk/android-compat-pending"
+PENDING_PLAN_FILE="$PENDING_CONFIGURATION_DIR/plan"
+PENDING_PHASE_FILE="$PENDING_CONFIGURATION_DIR/phase"
+PENDING_DEINSTALL_DIR="$PENDING_CONFIGURATION_DIR/deinstall-scripts"
+APK_INSTALLED_DB="${APK_INSTALLED_DB:-/lib/apk/db/installed}"
+
+proc_start_time() {
+    pid="$1"
+    case "$pid" in
+        ""|*[!0-9]*) return 1 ;;
+    esac
+    [ -r "/proc/$pid/stat" ] || return 1
+    stat_line="$(cat "/proc/$pid/stat" 2>/dev/null)" || return 1
+    stat_fields="${stat_line#*) }"
+    [ "$stat_fields" != "$stat_line" ] || return 1
+    stat_start="$(printf '%s\n' "$stat_fields" | awk 'NF >= 20 { print $20; found=1 } END { if (!found) exit 1 }')" || return 1
+    [ -n "$stat_start" ] || return 1
+    printf '%s\n' "$stat_start"
+}
+
+transaction_lock_identity_alive() {
+    [ -r "$TRANSACTION_LOCK_DIR/pid" ] || return 1
+    read -r lock_pid lock_start < "$TRANSACTION_LOCK_DIR/pid" || return 1
+    [ -n "$lock_start" ] || return 1
+    kill -0 "$lock_pid" 2>/dev/null || return 1
+    current_start="$(proc_start_time "$lock_pid")" || return 1
+    [ "$current_start" = "$lock_start" ]
+}
+
+release_transaction_lock() {
+    if [ -d "$TRANSACTION_LOCK_DIR" ] && [ -r "$TRANSACTION_LOCK_DIR/pid" ]; then
+        read -r lock_pid lock_start < "$TRANSACTION_LOCK_DIR/pid" || return 0
+        current_start="$(proc_start_time "$$")" || return 0
+        [ "$lock_pid" = "$$" ] && [ "$lock_start" = "$current_start" ] || return 0
+    fi
+    rm -rf "$TRANSACTION_LOCK_DIR" 2>/dev/null || true
+}
+
+acquire_transaction_lock() {
+    attempts=0
+    while ! mkdir "$TRANSACTION_LOCK_DIR" 2>/dev/null; do
+        if transaction_lock_identity_alive; then
+            read -r lock_pid _ < "$TRANSACTION_LOCK_DIR/pid"
+            echo "ERROR: another apk transaction is already running (pid $lock_pid)" >&2
+            return 1
+        fi
+        rm -rf "$TRANSACTION_LOCK_DIR" 2>/dev/null || true
+        attempts=$((attempts + 1))
+        if [ "$attempts" -ge 2 ]; then
+            echo "ERROR: could not acquire apk transaction lock" >&2
+            return 1
+        fi
+    done
+    lock_start="$(proc_start_time "$$")" || {
+        rm -rf "$TRANSACTION_LOCK_DIR" 2>/dev/null || true
+        return 1
+    }
+    printf '%s %s\n' "$$" "$lock_start" > "$TRANSACTION_LOCK_DIR/pid" || {
+        rm -rf "$TRANSACTION_LOCK_DIR" 2>/dev/null || true
+        return 1
+    }
+    trap 'release_transaction_lock' EXIT
+    trap 'release_transaction_lock; exit 129' HUP
+    trap 'release_transaction_lock; exit 130' INT
+    trap 'release_transaction_lock; exit 143' TERM
+    return 0
+}
 
 download_file() {
     url="$1"
@@ -211,6 +279,11 @@ run_package_script() {
         prepare_root_cwd_links
         env -i \
             PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+            HOME=/root \
+            TMPDIR=/tmp \
+            SHELL=/bin/sh \
+            USER=root \
+            LOGNAME=root \
             APK_SCRIPT="$script" \
             APK_PACKAGE="$package_name" \
             /bin/sh "$tmp" "$@"
@@ -257,15 +330,130 @@ package_file_for_or_warn() {
 
 transaction_plan() {
     action="$1"
-    shift
-    "$REAL_APK" --repositories-file "$LOCAL_REPOS" --simulate "$action" "$@" 2>/dev/null |
-        sed -n \
-            -e 's/^([^)]*) Installing \([^ ]*\) (\([^)]*\)).*/I \1 \2/p' \
-            -e 's/^([^)]*) Upgrading \([^ ]*\) (\([^ ]*\) -> \([^)]*\)).*/U \1 \2 \3/p' \
-            -e 's/^([^)]*) Reinstalling \([^ ]*\) (\([^)]*\)).*/R \1 \2/p'
+    plan_file="$2"
+    shift 2
+    raw_file="${plan_file}.raw"
+
+    rm -f "$raw_file" "$plan_file"
+    "$REAL_APK" --repositories-file "$LOCAL_REPOS" --simulate "$action" "$@" > "$raw_file" 2>&1
+    status=$?
+    if [ "$status" -ne 0 ]; then
+        cat "$raw_file" >&2
+        rm -f "$raw_file" "$plan_file"
+        return "$status"
+    fi
+
+    sed -n \
+        -e 's/^([^)]*) Installing \([^ ]*\) (\([^)]*\)).*/I \1 \2/p' \
+        -e 's/^([^)]*) Upgrading \([^ ]*\) (\([^ ]*\) -> \([^)]*\)).*/U \1 \2 \3/p' \
+        -e 's/^([^)]*) Downgrading \([^ ]*\) (\([^ ]*\) -> \([^)]*\)).*/U \1 \2 \3/p' \
+        -e 's/^([^)]*) Reinstalling \([^ ]*\) (\([^)]*\)).*/R \1 \2/p' \
+        -e 's/^([^)]*) Purging \([^ ]*\) (\([^)]*\)).*/D \1 \2/p' \
+        -e 's/^([^)]*) Removing \([^ ]*\) (\([^)]*\)).*/D \1 \2/p' \
+        "$raw_file" > "$plan_file"
+
+    unknown_lines="$(sed -n '/^([^)]*) /p' "$raw_file" | grep -Ev '^\([^)]*\) (Installing|Upgrading|Downgrading|Reinstalling|Purging|Removing) ' || true)"
+    if [ -n "$unknown_lines" ]; then
+        echo "ERROR: apk simulation returned an unsupported transaction format:" >&2
+        printf '%s\n' "$unknown_lines" >&2
+        rm -f "$raw_file" "$plan_file"
+        return 1
+    fi
+
+    rm -f "$raw_file"
+    return 0
+}
+
+installed_checksum_for_package() {
+    package_name="$1"
+    awk -v wanted="$package_name" '
+        /^C:/ { checksum = substr($0, 3); next }
+        /^P:/ && substr($0, 3) == wanted { print checksum; exit }
+        $0 == "" { checksum = "" }
+    ' /lib/apk/db/installed 2>/dev/null
+}
+
+installed_script_member() {
+    package_name="$1"
+    action="$2"
+    script_db="/lib/apk/db/scripts.tar.gz"
+    checksum="$(installed_checksum_for_package "$package_name")"
+    [ -n "$checksum" ] || return 1
+    script_hex="$(apk_checksum_hex "$checksum")" || return 1
+    [ -n "$script_hex" ] || return 1
+
+    tar -tzf "$script_db" 2>/dev/null | while IFS= read -r candidate; do
+        case "$candidate" in
+            "$package_name"-*.X1"$script_hex"."$action")
+                printf '%s\n' "$candidate"
+                break
+                ;;
+        esac
+    done
+}
+
+cache_deinstall_scripts() {
+    plan_file="$1"
+    cache_dir="$2"
+    script_db="/lib/apk/db/scripts.tar.gz"
+
+    mkdir -p "$cache_dir" || return 1
+    while read -r op name oldver newver; do
+        [ "$op" = "D" ] || continue
+        for action in pre-deinstall post-deinstall; do
+            member="$(installed_script_member "$name" "$action")"
+            [ -n "$member" ] || continue
+            target="$cache_dir/$name.$action"
+            if ! tar -xOzf "$script_db" "$member" > "$target" 2>/dev/null; then
+                rm -f "$target"
+                echo "ERROR: failed to cache ${name}.${action} before removal" >&2
+                return 1
+            fi
+            chmod 700 "$target" 2>/dev/null || true
+        done
+    done < "$plan_file"
+    return 0
+}
+
+run_cached_deinstall_script_checked() {
+    cache_dir="$1"
+    package_name="$2"
+    action="$3"
+    version="$4"
+    script_file="$cache_dir/$package_name.$action"
+
+    [ -f "$script_file" ] || return 0
+    echo "Executing ${package_name}.${action}"
+    (
+        prepare_root_cwd_links
+        env -i \
+            PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+            HOME=/root \
+            TMPDIR=/tmp \
+            SHELL=/bin/sh \
+            USER=root \
+            LOGNAME=root \
+            APK_SCRIPT="$action" \
+            APK_PACKAGE="$package_name" \
+            /bin/sh "$script_file" "$version"
+        script_status=$?
+        cleanup_root_cwd_links
+        exit "$script_status"
+    )
+    status=$?
+    if [ "$status" -ne 0 ]; then
+        echo "ERROR: ${package_name}.${action} failed with status $status" >&2
+        if [ "${APK_ALLOW_BROKEN_SCRIPTS:-0}" = "1" ]; then
+            echo "WARNING: APK_ALLOW_BROKEN_SCRIPTS=1; continuing with incomplete package configuration" >&2
+            return 0
+        fi
+        return "$status"
+    fi
+    return 0
 }
 
 run_pre_scripts() {
+    deinstall_cache_dir="${1:-}"
     while read -r op name oldver newver; do
         [ -n "$op" ] || continue
         case "$op" in
@@ -290,11 +478,15 @@ run_pre_scripts() {
                 }
                 run_package_script_checked "$pkgfile" pre-upgrade "$oldver" "$oldver" || return 1
                 ;;
+            D)
+                run_cached_deinstall_script_checked "$deinstall_cache_dir" "$name" pre-deinstall "$oldver" || return 1
+                ;;
         esac
     done
 }
 
 run_post_scripts() {
+    deinstall_cache_dir="${1:-}"
     while read -r op name oldver newver; do
         [ -n "$op" ] || continue
         case "$op" in
@@ -319,6 +511,9 @@ run_post_scripts() {
                 }
                 run_package_script_checked "$pkgfile" post-upgrade "$oldver" "$oldver" || return 1
                 ;;
+            D)
+                run_cached_deinstall_script_checked "$deinstall_cache_dir" "$name" post-deinstall "$oldver" || return 1
+                ;;
         esac
     done
 }
@@ -338,6 +533,11 @@ run_commit_hooks() {
             prepare_root_cwd_links
             env -i \
                 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+                HOME=/root \
+                TMPDIR=/tmp \
+                SHELL=/bin/sh \
+                USER=root \
+                LOGNAME=root \
                 APK_SCRIPT="$stage" \
                 "$hook" "$stage"
             hook_status=$?
@@ -441,6 +641,11 @@ run_registered_triggers() {
             prepare_root_cwd_links
             env -i \
                 PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+                HOME=/root \
+                TMPDIR=/tmp \
+                SHELL=/bin/sh \
+                USER=root \
+                LOGNAME=root \
                 APK_SCRIPT=trigger \
                 APK_PACKAGE="$package_name" \
                 /bin/sh "$tmp" "$@"
@@ -535,24 +740,200 @@ cleanup_package_files() {
     done
 }
 
+installed_version_for_package() {
+    wanted_name="$1"
+    awk -v wanted="$wanted_name" '
+        /^P:/ { package_name = substr($0, 3); next }
+        /^V:/ { package_version = substr($0, 3); next }
+        $0 == "" {
+            if (package_name == wanted) {
+                print package_version
+                exit
+            }
+            package_name = ""
+            package_version = ""
+        }
+        END {
+            if (package_name == wanted)
+                print package_version
+        }
+    ' "$APK_INSTALLED_DB" 2>/dev/null | head -n 1
+}
+
+pending_plan_application_state() {
+    plan_file="$1"
+    total=0
+    applied=0
+
+    while read -r op name oldver newver; do
+        [ -n "$op" ] || continue
+        total=$((total + 1))
+        installed_ver="$(installed_version_for_package "$name")"
+        case "$op" in
+            I|R)
+                [ "$installed_ver" = "$oldver" ] && applied=$((applied + 1))
+                ;;
+            U)
+                [ "$installed_ver" = "$newver" ] && applied=$((applied + 1))
+                ;;
+            D)
+                [ -z "$installed_ver" ] && applied=$((applied + 1))
+                ;;
+            *)
+                return 2
+                ;;
+        esac
+    done < "$plan_file"
+
+    [ "$total" -gt 0 ] || return 2
+    [ "$applied" -eq "$total" ] && return 0
+    [ "$applied" -eq 0 ] && return 1
+    return 2
+}
+
+clear_pending_configuration() {
+    rm -rf "$PENDING_CONFIGURATION_DIR" 2>/dev/null || true
+}
+
+persist_pending_configuration() {
+    plan_file="$1"
+    deinstall_cache_dir="$2"
+
+    clear_pending_configuration
+    mkdir -p "$PENDING_DEINSTALL_DIR" || return 1
+    chmod 700 "$PENDING_CONFIGURATION_DIR" "$PENDING_DEINSTALL_DIR" 2>/dev/null || true
+    cp "$plan_file" "$PENDING_PLAN_FILE" || {
+        clear_pending_configuration
+        return 1
+    }
+    chmod 600 "$PENDING_PLAN_FILE" 2>/dev/null || true
+
+    if [ -d "$deinstall_cache_dir" ]; then
+        for cached_script in "$deinstall_cache_dir"/*; do
+            [ -f "$cached_script" ] || continue
+            cp -p "$cached_script" "$PENDING_DEINSTALL_DIR/" || {
+                clear_pending_configuration
+                return 1
+            }
+        done
+    fi
+
+    printf '%s\n' prepared > "$PENDING_PHASE_FILE" || {
+        clear_pending_configuration
+        return 1
+    }
+    chmod 600 "$PENDING_PHASE_FILE" 2>/dev/null || true
+    return 0
+}
+
+mark_pending_configuration_post_phase() {
+    printf '%s\n' post > "$PENDING_PHASE_FILE"
+}
+
+finish_pending_configuration() {
+    plan_file="$1"
+    deinstall_cache_dir="$2"
+
+    echo "Running package post-install scripts under Android/proot..."
+    run_post_scripts "$deinstall_cache_dir" < "$plan_file" || return $?
+    echo "Running registered package triggers under Android/proot..."
+    run_registered_triggers || return $?
+    echo "Running apk post-commit hooks under Android/proot..."
+    run_commit_hooks post-commit || return $?
+    echo "Validating critical package configuration..."
+    validate_critical_configuration "$plan_file" || return $?
+    echo "Cleaning downloaded package payloads..."
+    cleanup_package_files < "$plan_file"
+    return 0
+}
+
+recover_pending_configuration() {
+    [ -d "$PENDING_CONFIGURATION_DIR" ] || return 0
+    if [ ! -s "$PENDING_PLAN_FILE" ] || [ ! -s "$PENDING_PHASE_FILE" ]; then
+        echo "ERROR: incomplete apk recovery metadata exists at $PENDING_CONFIGURATION_DIR" >&2
+        return 1
+    fi
+
+    phase="$(cat "$PENDING_PHASE_FILE" 2>/dev/null)"
+    case "$phase" in
+        prepared)
+            pending_plan_application_state "$PENDING_PLAN_FILE"
+            state=$?
+            if [ "$state" -eq 1 ]; then
+                echo "Discarding an interrupted pre-commit recovery record; package files were not applied."
+                clear_pending_configuration
+                return 0
+            fi
+            if [ "$state" -ne 0 ]; then
+                echo "ERROR: previous apk transaction appears only partially applied; refusing a new mutation." >&2
+                echo "Inspect $PENDING_PLAN_FILE and /lib/apk/db/installed before retrying." >&2
+                return 1
+            fi
+            ;;
+        post)
+            ;;
+        *)
+            echo "ERROR: unknown apk recovery phase: $phase" >&2
+            return 1
+            ;;
+    esac
+
+    echo "Recovering incomplete package configuration from the previous apk transaction..."
+    if finish_pending_configuration "$PENDING_PLAN_FILE" "$PENDING_DEINSTALL_DIR"; then
+        clear_pending_configuration
+        echo "Previous package configuration recovered successfully."
+        return 0
+    fi
+
+    echo "ERROR: previous package configuration is still incomplete; refusing a new package mutation." >&2
+    return 1
+}
+
 commit_with_manual_scripts() {
     action="$1"
     shift
     plan_file="/tmp/apk-plan-${action}-$$"
 
     echo "Resolving apk transaction..."
-    transaction_plan "$action" "$@" > "$plan_file"
+    transaction_plan "$action" "$plan_file" "$@" || return $?
     plan_count="$(wc -l < "$plan_file" 2>/dev/null | tr -d ' ')"
     echo "Transaction packages: ${plan_count:-0}"
 
+    if [ "${plan_count:-0}" -eq 0 ]; then
+        rm -f "$plan_file"
+        echo "Nothing to do."
+        return 0
+    fi
+
+    deinstall_cache_dir="/tmp/apk-deinstall-scripts-$$"
+    rm -rf "$deinstall_cache_dir"
+    if grep -q '^D ' "$plan_file" 2>/dev/null; then
+        cache_deinstall_scripts "$plan_file" "$deinstall_cache_dir" || {
+            rm -rf "$deinstall_cache_dir"
+            rm -f "$plan_file"
+            return 1
+        }
+    fi
+
     echo "Running apk pre-commit hooks under Android/proot..."
     run_commit_hooks pre-commit || {
+        rm -rf "$deinstall_cache_dir"
         rm -f "$plan_file"
         return 1
     }
 
     echo "Running package pre-install scripts under Android/proot..."
-    run_pre_scripts < "$plan_file" || {
+    run_pre_scripts "$deinstall_cache_dir" < "$plan_file" || {
+        rm -rf "$deinstall_cache_dir"
+        rm -f "$plan_file"
+        return 1
+    }
+
+    # Persist enough information to replay post-install configuration if the
+    # app, shell, or Android process dies after apk has committed package files.
+    persist_pending_configuration "$plan_file" "$deinstall_cache_dir" || {
+        echo "ERROR: could not persist apk recovery metadata; package files were not modified." >&2
+        rm -rf "$deinstall_cache_dir"
         rm -f "$plan_file"
         return 1
     }
@@ -561,34 +942,25 @@ commit_with_manual_scripts() {
     "$REAL_APK" --repositories-file "$LOCAL_REPOS" "$action" --no-scripts "$@"
     status=$?
     if [ "$status" -ne 0 ]; then
+        clear_pending_configuration
+        rm -rf "$deinstall_cache_dir"
         rm -f "$plan_file"
         return "$status"
     fi
 
-    echo "Running package post-install scripts under Android/proot..."
-    run_post_scripts < "$plan_file"
+    if ! mark_pending_configuration_post_phase; then
+        echo "WARNING: could not mark apk recovery phase; recovery can still infer whether package files were applied." >&2
+    fi
+
+    finish_pending_configuration "$plan_file" "$deinstall_cache_dir"
     status=$?
     if [ "$status" -eq 0 ]; then
-        echo "Running registered package triggers under Android/proot..."
-        run_registered_triggers
-        status=$?
-    fi
-    if [ "$status" -eq 0 ]; then
-        echo "Running apk post-commit hooks under Android/proot..."
-        run_commit_hooks post-commit
-        status=$?
-    fi
-    if [ "$status" -eq 0 ]; then
-        echo "Validating critical package configuration..."
-        validate_critical_configuration "$plan_file"
-        status=$?
-    fi
-    if [ "$status" -eq 0 ]; then
-        echo "Cleaning downloaded package payloads..."
-        cleanup_package_files < "$plan_file"
+        clear_pending_configuration
     else
-        echo "ERROR: package payloads were installed, but configuration is incomplete; cached payloads are retained for diagnosis." >&2
+        echo "ERROR: package payloads were installed, but configuration is incomplete." >&2
+        echo "Recovery metadata and cached payloads were retained; the next package mutation will retry configuration first." >&2
     fi
+    rm -rf "$deinstall_cache_dir"
     rm -f "$plan_file"
     return "$status"
 }
@@ -610,6 +982,8 @@ case "$cmd" in
         exit 0
         ;;
     add)
+        acquire_transaction_lock || exit 1
+        recover_pending_configuration || exit 1
         refresh_indexes || exit 1
         echo "Downloading package payloads. Large desktop installs can take a long time on Android/proot."
         download_packages_for "$@" || exit 1
@@ -618,12 +992,26 @@ case "$cmd" in
         exit $?
         ;;
     upgrade)
+        acquire_transaction_lock || exit 1
+        recover_pending_configuration || exit 1
         refresh_indexes || exit 1
         echo "Downloading package payloads. Large upgrades can take a long time on Android/proot."
         download_upgrade_targets "$@" || exit 1
         echo "Package payload download complete. Starting apk upgrade."
         commit_with_manual_scripts upgrade --no-self-upgrade "$@"
         exit $?
+        ;;
+    del)
+        acquire_transaction_lock || exit 1
+        recover_pending_configuration || exit 1
+        ensure_repo_files
+        commit_with_manual_scripts del "$@"
+        exit $?
+        ;;
+    fix)
+        echo "ERROR: apk fix is disabled in Android compatibility mode because native fix may execute maintainer scripts through the syscall path that is unreliable under proot." >&2
+        echo "Use apk add --upgrade <package> for a configured reinstall, or /sbin/apk.static fix only for deliberate diagnosis." >&2
+        exit 2
         ;;
     search|info|list|policy|version)
         ensure_repo_files

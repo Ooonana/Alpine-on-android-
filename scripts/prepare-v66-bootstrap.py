@@ -37,6 +37,7 @@ RECOVERED_HOST_LINEAGE_SHA256 = "b6f43d4fe206c3feb8387e9f927f3d9c1b3e5f73798d032
 TOP_VERSION_MARKER = "etc/alpine-bootstrap-version"
 ROOTFS_VERSION_MARKER = ROOTFS_PREFIX + "etc/alpine-bootstrap-version"
 SYMLINKS_NAME = "SYMLINKS.txt"
+MODES_NAME = "MODES.txt"
 SYMLINK_DELIMITER = "←"
 
 TEXT_OVERLAY_SUFFIXES = {".sh", ".conf", ".rc"}
@@ -69,7 +70,7 @@ def overlay_entries() -> dict[str, bytes]:
 
 
 def _host_mutable_names() -> set[str]:
-    return {name for name in overlay_entries() if not name.startswith(ROOTFS_PREFIX)} | {SYMLINKS_NAME}
+    return {name for name in overlay_entries() if not name.startswith(ROOTFS_PREFIX)} | {SYMLINKS_NAME, MODES_NAME}
 
 
 def host_lineage_digest(path: Path) -> str:
@@ -90,29 +91,79 @@ def host_lineage_digest(path: Path) -> str:
     return h.hexdigest()
 
 
-def _rootfs_zip_info(name: str, is_dir: bool) -> zipfile.ZipInfo:
+def _unix_zip_info(name: str, is_dir: bool, mode: int) -> zipfile.ZipInfo:
     actual_name = name if not is_dir or name.endswith("/") else name + "/"
     info = zipfile.ZipInfo(actual_name, FIXED_ZIP_TIME)
     info.create_system = 3
     info.compress_type = zipfile.ZIP_DEFLATED
+    permissions = mode & 0o7777
     if is_dir:
-        info.external_attr = (0o040700 << 16) | 0x10
+        info.external_attr = ((0o040000 | permissions) << 16) | 0x10
     else:
-        lower = "/" + actual_name.lower()
-        executable = any(part in lower for part in ("/bin/", "/sbin/", "/lib/", "/libexec/"))
-        info.external_attr = ((0o100700 if executable else 0o100600) << 16)
+        info.external_attr = ((0o100000 | permissions) << 16)
     return info
 
 
-def _prepared_payload() -> tuple[dict[str, tuple[bytes | None, bool]], dict[str, bytes], list[str]]:
+def _zip_permissions(info: zipfile.ZipInfo) -> int:
+    raw_mode = (info.external_attr >> 16) & 0xFFFF
+    if raw_mode == 0:
+        return 0o700 if info.is_dir() else 0o600
+    return raw_mode & 0o7777
+
+
+def _validate_manifest_field(value: str, label: str, *, forbid_tab: bool = False, forbid_delimiter: bool = False) -> None:
+    if not value or any(char in value for char in ("\0", "\n", "\r")):
+        raise RuntimeError(f"Unsafe {label}: {value!r}")
+    if forbid_tab and "\t" in value:
+        raise RuntimeError(f"Unsafe {label}: {value!r}")
+    if forbid_delimiter and SYMLINK_DELIMITER in value:
+        raise RuntimeError(f"Unsafe {label}: {value!r}")
+
+
+def _mode_manifest_bytes(modes: dict[str, int]) -> bytes:
+    for name in modes:
+        _validate_manifest_field(name, f"{MODES_NAME} path", forbid_tab=True)
+    return "".join(f"{mode & 0o7777:04o}\t{name}\n" for name, mode in sorted(modes.items())).encode("utf-8")
+
+
+def _parse_mode_manifest(data: bytes) -> dict[str, int]:
+    result: dict[str, int] = {}
+    for line in data.decode("utf-8").splitlines():
+        if not line:
+            continue
+        parts = line.split("\t", 1)
+        if len(parts) != 2 or not parts[0] or not parts[1]:
+            raise RuntimeError(f"Malformed {MODES_NAME} line: {line!r}")
+        mode_text, name = parts
+        _validate_manifest_field(name, f"{MODES_NAME} path", forbid_tab=True)
+        if name in result:
+            raise RuntimeError(f"Duplicate {MODES_NAME} path: {name}")
+        try:
+            mode = int(mode_text, 8)
+        except ValueError as exc:
+            raise RuntimeError(f"Invalid mode in {MODES_NAME}: {mode_text!r}") from exc
+        if mode < 0 or mode > 0o7777:
+            raise RuntimeError(f"Out-of-range mode in {MODES_NAME}: {mode_text!r}")
+        result[name] = mode
+    return result
+
+
+def _prepared_payload() -> tuple[dict[str, tuple[bytes | None, bool, int]], dict[str, bytes], list[str]]:
     rootfs, rootfs_symlinks = v66_rootfs.build_rootfs()
     overlays = overlay_entries()
 
     # Rootfs overlay wins over the pristine Alpine/XKB/static-apk generated data.
     for name, data in overlays.items():
         if name.startswith(ROOTFS_PREFIX):
-            rootfs[name] = (data, False)
-    rootfs[ROOTFS_VERSION_MARKER] = (b"v66\n", False)
+            existing = rootfs.get(name)
+            if existing is not None:
+                mode = existing[2]
+            elif name.endswith("/usr/local/bin/start-x11") or name.endswith("/usr/local/sbin/apk"):
+                mode = 0o755
+            else:
+                mode = 0o644
+            rootfs[name] = (data, False, mode)
+    rootfs[ROOTFS_VERSION_MARKER] = (b"v66\n", False, 0o644)
     return rootfs, overlays, v66_rootfs.rootfs_symlink_lines(rootfs_symlinks)
 
 
@@ -123,13 +174,21 @@ def _updated_symlinks(existing: bytes, rootfs_lines: list[str]) -> bytes:
     for line in text.splitlines():
         if not line:
             continue
-        parts = line.split(SYMLINK_DELIMITER, 1)
-        if len(parts) != 2:
+        if line.count(SYMLINK_DELIMITER) != 1:
             raise RuntimeError(f"Malformed SYMLINKS.txt line: {line!r}")
+        parts = line.split(SYMLINK_DELIMITER, 1)
+        _validate_manifest_field(parts[0], "symlink target", forbid_delimiter=True)
+        _validate_manifest_field(parts[1], "symlink destination", forbid_delimiter=True)
         if parts[1].startswith(root_dest_prefix):
             continue
         kept.append(line)
-    kept.extend(rootfs_lines)
+    for line in rootfs_lines:
+        if line.count(SYMLINK_DELIMITER) != 1:
+            raise RuntimeError(f"Malformed generated SYMLINKS.txt line: {line!r}")
+        target, destination = line.split(SYMLINK_DELIMITER, 1)
+        _validate_manifest_field(target, "generated symlink target", forbid_delimiter=True)
+        _validate_manifest_field(destination, "generated symlink destination", forbid_delimiter=True)
+        kept.append(line)
     return ("\n".join(kept) + "\n").encode("utf-8")
 
 
@@ -141,7 +200,22 @@ def verify_prepared(path: Path) -> None:
             raise RuntimeError("Bootstrap contains duplicate ZIP entry names")
         name_set = set(names)
 
-        for name, (expected, is_dir) in rootfs.items():
+        mode_manifest = _parse_mode_manifest(archive.read(MODES_NAME))
+        expected_mode_names = {name for name in names if name not in {SYMLINKS_NAME, MODES_NAME}}
+        if set(mode_manifest) != expected_mode_names:
+            missing = sorted(expected_mode_names - set(mode_manifest))
+            extra = sorted(set(mode_manifest) - expected_mode_names)
+            raise RuntimeError(
+                f"{MODES_NAME} does not cover archive entries; missing={missing[:10]!r} extra={extra[:10]!r}"
+            )
+
+        for info in archive.infolist():
+            if info.filename in {SYMLINKS_NAME, MODES_NAME}:
+                continue
+            if mode_manifest[info.filename] != _zip_permissions(info):
+                raise RuntimeError(f"{MODES_NAME} disagrees with ZIP metadata: {info.filename}")
+
+        for name, (expected, is_dir, expected_mode) in rootfs.items():
             if is_dir:
                 if name not in name_set:
                     raise RuntimeError(f"Prepared bootstrap is missing rootfs directory: {name}")
@@ -152,6 +226,8 @@ def verify_prepared(path: Path) -> None:
                     raise RuntimeError(f"Prepared bootstrap is missing rootfs file: {name}") from exc
                 if actual != expected:
                     raise RuntimeError(f"Prepared rootfs content mismatch: {name}")
+            if mode_manifest[name] != (expected_mode & 0o7777):
+                raise RuntimeError(f"Prepared rootfs mode mismatch: {name}")
 
         generated_names = set(rootfs)
         unexpected_rootfs = [
@@ -168,6 +244,14 @@ def verify_prepared(path: Path) -> None:
                 raise RuntimeError(f"Prepared host overlay mismatch: {name}")
 
         symlinks = archive.read(SYMLINKS_NAME).decode("utf-8").splitlines()
+        for line in symlinks:
+            if not line:
+                continue
+            if line.count(SYMLINK_DELIMITER) != 1:
+                raise RuntimeError(f"Malformed final SYMLINKS.txt line: {line!r}")
+            target, destination = line.split(SYMLINK_DELIMITER, 1)
+            _validate_manifest_field(target, "final symlink target", forbid_delimiter=True)
+            _validate_manifest_field(destination, "final symlink destination", forbid_delimiter=True)
         root_lines = [line for line in symlinks if line.split(SYMLINK_DELIMITER, 1)[-1].startswith("./" + ROOTFS_PREFIX)]
         if root_lines != rootfs_symlink_lines:
             raise RuntimeError(f"Incorrect rootfs symlink manifest: {root_lines!r}")
@@ -178,7 +262,11 @@ def verify_prepared(path: Path) -> None:
 
         if archive.read(ROOTFS_PREFIX + "etc/alpine-release") != b"3.24.1\n":
             raise RuntimeError("Prepared rootfs is not Alpine 3.24.1")
-        os_release = archive.read(ROOTFS_PREFIX + "etc/os-release")
+        # Alpine 3.24 keeps /etc/os-release as a symlink to /usr/lib/os-release.
+        # The symlink itself is already verified above through SYMLINKS.txt, so
+        # validate the canonical payload rather than assuming the old flattened
+        # bootstrap representation.
+        os_release = archive.read(ROOTFS_PREFIX + "usr/lib/os-release")
         if b"VERSION_ID=3.24.1" not in os_release:
             raise RuntimeError("Prepared rootfs os-release is not Alpine 3.24.1")
         remote = archive.read(ROOTFS_PREFIX + "etc/apk/remote-repositories")
@@ -255,10 +343,13 @@ def prepare(source: Path = BOOTSTRAP) -> None:
                 raise RuntimeError("Source bootstrap contains duplicate ZIP entry names")
             existing_symlinks = src.read(SYMLINKS_NAME)
             new_symlinks = _updated_symlinks(existing_symlinks, rootfs_symlink_lines)
+            modes: dict[str, int] = {}
 
             for info in src.infolist():
                 name = info.filename
                 if name.startswith(ROOTFS_PREFIX):
+                    continue
+                if name == MODES_NAME:
                     continue
                 new_info = copy.copy(info)
                 if name == SYMLINKS_NAME:
@@ -267,11 +358,17 @@ def prepare(source: Path = BOOTSTRAP) -> None:
                     dst.writestr(new_info, overlays[name])
                 else:
                     dst.writestr(new_info, src.read(name))
+                if name != SYMLINKS_NAME:
+                    modes[name] = _zip_permissions(new_info)
 
             for name in sorted(rootfs):
-                data, is_dir = rootfs[name]
-                info = _rootfs_zip_info(name, is_dir)
+                data, is_dir, mode = rootfs[name]
+                info = _unix_zip_info(name, is_dir, mode)
                 dst.writestr(info, b"" if data is None else data)
+                modes[info.filename] = mode & 0o7777
+
+            modes_info = _unix_zip_info(MODES_NAME, False, 0o600)
+            dst.writestr(modes_info, _mode_manifest_bytes(modes))
 
         verify_prepared(temporary)
         os.replace(temporary, source)

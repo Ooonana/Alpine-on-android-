@@ -35,8 +35,8 @@ class AlpineFloatPreferencesDataStore extends PreferenceDataStore {
     private static AlpineFloatPreferencesDataStore mInstance;
 
     private AlpineFloatPreferencesDataStore(Context context) {
-        mContext = context;
-        mPreferences = AlpineFloatAppSharedPreferences.build(context, true);
+        mContext = context.getApplicationContext();
+        mPreferences = AlpineFloatAppSharedPreferences.build(mContext, true);
     }
 
     public static synchronized AlpineFloatPreferencesDataStore getInstance(Context context) {

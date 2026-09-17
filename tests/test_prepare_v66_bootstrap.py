@@ -35,15 +35,18 @@ class PrepareV66BootstrapTest(unittest.TestCase):
         self.static_apk = b"fake-current-static-apk"
         prefix = prepare.ROOTFS_PREFIX
         self.fake_rootfs = {
-            prefix + "etc/": (None, True),
-            prefix + "etc/alpine-release": (b"3.24.1\n", False),
-            prefix + "etc/os-release": (b"VERSION_ID=3.24.1\n", False),
-            prefix + "etc/apk/remote-repositories": (b"https://example.invalid/alpine/v3.24/main\n", False),
-            prefix + "etc/alpine-bootstrap-version": (b"v66\n", False),
-            prefix + "sbin/apk.static": (self.static_apk, False),
-            prefix + "usr/share/X11/xkb/rules/base": (b"xkb", False),
+            prefix + "etc/": (None, True, 0o755),
+            prefix + "etc/alpine-release": (b"3.24.1\n", False, 0o644),
+            prefix + "usr/lib/os-release": (b"VERSION_ID=3.24.1\n", False, 0o644),
+            prefix + "etc/apk/remote-repositories": (b"https://example.invalid/alpine/v3.24/main\n", False, 0o644),
+            prefix + "etc/alpine-bootstrap-version": (b"v66\n", False, 0o644),
+            prefix + "sbin/apk.static": (self.static_apk, False, 0o755),
+            prefix + "usr/share/X11/xkb/rules/base": (b"xkb", False, 0o644),
         }
-        self.fake_symlinks = {"var/run": "../run"}
+        self.fake_symlinks = {
+            "var/run": "../run",
+            "etc/os-release": "../usr/lib/os-release",
+        }
 
         self.zip_path = self.root / "bootstrap.zip"
         with zipfile.ZipFile(self.zip_path, "w") as z:
@@ -98,13 +101,20 @@ class PrepareV66BootstrapTest(unittest.TestCase):
             self.assertEqual(z.read(prefix + "etc/nsswitch.conf"), b"hosts: files dns\n")
             self.assertNotIn(prefix + "old-stale-file", z.namelist())
             self.assertNotIn(prefix + "var/run", z.namelist())
+            self.assertNotIn(prefix + "etc/os-release", z.namelist())
             lines = z.read("SYMLINKS.txt").decode().splitlines()
             self.assertIn("host-target←./host-link", lines)
             self.assertIn(f"../run←./{prefix}var/run", lines)
+            self.assertIn(f"../usr/lib/os-release←./{prefix}etc/os-release", lines)
             self.assertEqual(z.read("keep"), b"unchanged")
             self.assertNotIn(b"com.termux", z.read("lib/libtalloc.so"))
             self.assertNotIn(b"/data/data/com.termux", z.read("bin/proot"))
             self.assertIn(b"/data/data/com.alpine/files/usr/tmp/", z.read("bin/proot"))
+            modes = prepare._parse_mode_manifest(z.read(prepare.MODES_NAME))
+            self.assertEqual(modes[prefix + "etc/"], 0o755)
+            self.assertEqual(modes[prefix + "etc/alpine-release"], 0o644)
+            self.assertEqual(modes[prefix + "sbin/apk.static"], 0o755)
+            self.assertEqual(modes["keep"], 0o700)
 
     def test_second_run_is_idempotent(self):
         prepare.prepare(self.zip_path)
@@ -112,6 +122,23 @@ class PrepareV66BootstrapTest(unittest.TestCase):
         prepare.prepare(self.zip_path)
         second = hashlib.sha256(self.zip_path.read_bytes()).hexdigest()
         self.assertEqual(first, second)
+
+    def test_mode_manifest_rejects_ambiguous_paths(self):
+        for bad_name in ("bad\tname", "bad\nname", "bad\rname", "bad\0name"):
+            with self.subTest(bad_name=repr(bad_name)):
+                with self.assertRaises(RuntimeError):
+                    prepare._mode_manifest_bytes({bad_name: 0o644})
+
+    def test_symlink_manifest_rejects_ambiguous_fields(self):
+        delimiter = prepare.SYMLINK_DELIMITER
+        for bad_line in (
+            f"target{delimiter}./dest{delimiter}extra\n",
+            f"{delimiter}./dest\n",
+            f"target{delimiter}\n",
+        ):
+            with self.subTest(bad_line=repr(bad_line)):
+                with self.assertRaises(RuntimeError):
+                    prepare._updated_symlinks(bad_line.encode("utf-8"), [])
 
     def test_can_update_prepared_archive_after_overlay_change(self):
         prepare.prepare(self.zip_path)

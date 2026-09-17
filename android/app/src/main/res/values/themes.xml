@@ -4,11 +4,6 @@
      https://material.io/develop/android/theming/dark
     -->
 
-    <!-- AlpineApp Light DarkActionBar theme. -->
-    <style name="Theme.AlpineApp.Light.DarkActionBar" parent="Theme.BaseActivity.Light.DarkActionBar"/>
-    <!-- AlpineApp Light NoActionBar theme. -->
-    <style name="Theme.AlpineApp.Light.NoActionBar" parent="Theme.BaseActivity.Light.NoActionBar"/>
-
     <!-- AlpineApp DayNight DarkActionBar theme. -->
     <style name="Theme.AlpineApp.DayNight.DarkActionBar" parent="Theme.BaseActivity.DayNight.DarkActionBar"/>
     <!-- AlpineApp DayNight NoActionBar theme. -->

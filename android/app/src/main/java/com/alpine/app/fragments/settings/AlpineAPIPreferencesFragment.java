@@ -35,8 +35,8 @@ class AlpineAPIPreferencesDataStore extends PreferenceDataStore {
     private static AlpineAPIPreferencesDataStore mInstance;
 
     private AlpineAPIPreferencesDataStore(Context context) {
-        mContext = context;
-        mPreferences = AlpineAPIAppSharedPreferences.build(context, true);
+        mContext = context.getApplicationContext();
+        mPreferences = AlpineAPIAppSharedPreferences.build(mContext, true);
     }
 
     public static synchronized AlpineAPIPreferencesDataStore getInstance(Context context) {

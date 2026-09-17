@@ -3,7 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:installLocation="internalOnly"
     android:sharedUserId="${ALPINE_PACKAGE_NAME}"
-    android:sharedUserLabel="@string/shared_user_label">
+    android:sharedUserMaxSdkVersion="32"
+    android:sharedUserLabel="@string/shared_user_label"
+    tools:ignore="UnusedAttribute">
 
     <uses-feature
         android:name="android.hardware.touchscreen"
@@ -53,7 +55,6 @@
             android:name=".app.AlpineActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|smallestScreenSize|density|screenLayout|keyboard|keyboardHidden|navigation"
-            android:label="@string/application_name"
             android:launchMode="singleTask"
             android:resizeableActivity="true"
             android:theme="@style/Theme.AlpineActivity.DayNight.NoActionBar"
@@ -91,7 +92,6 @@
         <activity
             android:name=".app.activities.HelpActivity"
             android:exported="false"
-            android:label="@string/application_name"
             android:parentActivityName=".app.AlpineActivity"
             android:resizeableActivity="true"
             tools:targetApi="n" />

@@ -51,6 +51,7 @@ import com.alpine.terminal.TerminalSessionClient;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * A service holding a list of {@link AlpineSession} in {@link AlpineShellManager#mAlpineSessions} and background {@link AppShell}
@@ -311,12 +312,12 @@ public final class AlpineService extends Service implements AppShell.AppShellCli
         Logger.logDebug(LOG_TAG, "Acquiring WakeLocks");
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, AlpineConstants.ALPINE_APP_NAME.toLowerCase() + ":service-wakelock");
+        mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, AlpineConstants.ALPINE_APP_NAME.toLowerCase(Locale.ROOT) + ":service-wakelock");
         mWakeLock.acquire();
 
         // http://tools.android.com/tech-docs/lint-in-studio-2-3#TOC-WifiManager-Leak
         WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        mWifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, AlpineConstants.ALPINE_APP_NAME.toLowerCase());
+        mWifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, AlpineConstants.ALPINE_APP_NAME.toLowerCase(Locale.ROOT));
         mWifiLock.acquire();
 
         if (!PermissionUtils.checkIfBatteryOptimizationsDisabled(this)) {
