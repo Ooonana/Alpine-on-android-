@@ -4,7 +4,7 @@ This replaces the earlier local ZIP-transfer proposal. The original packing plan
 
 ## Git-tracked files
 
-`android/` is a source snapshot of `~/alpine-build`, excluding generated `build`, `.gradle` and `.cxx` directories, local SDK path settings and the large embedded bootstrap. `android/local.properties.termux-reference` preserves the original SDK/NDK paths as a reference. No app behavior was changed during transfer preparation. The original source README is in `android/README.md`; it contains inherited/rebranded upstream text and should not be treated as authoritative release documentation.
+`android/` is a source snapshot of `~/alpine-build`, excluding generated `build`, `.gradle` and `.cxx` directories, local SDK path settings and the large embedded bootstrap. `docs/recovery/local.properties.termux-reference` preserves the original SDK/NDK paths as a reference. No app behavior was changed during transfer preparation. The original source README is in `android/README.md`; it contains inherited/rebranded upstream text and should not be treated as authoritative release documentation.
 
 The repository's original README is preserved in `original-repository-README.md`. Original source licenses remain in place. `bootstrap/v66-overlay/` preserves the partial v66 work separately.
 
