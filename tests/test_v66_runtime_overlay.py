@@ -13,6 +13,14 @@ START_X11 = (
     OVERLAY
     / "var/lib/proot-distro/installed-rootfs/alpine/usr/local/bin/start-x11"
 )
+INSTALL_DESKTOP = (
+    OVERLAY
+    / "var/lib/proot-distro/installed-rootfs/alpine/usr/local/bin/install-desktop"
+)
+START_DESKTOP = (
+    OVERLAY
+    / "var/lib/proot-distro/installed-rootfs/alpine/usr/local/bin/start-desktop"
+)
 NSSWITCH = (
     OVERLAY
     / "var/lib/proot-distro/installed-rootfs/alpine/etc/nsswitch.conf"
@@ -29,7 +37,7 @@ X11_STRINGS = ROOT / "android/x11/src/main/res/values/strings.xml"
 
 class V66RuntimeOverlayTest(unittest.TestCase):
     def test_shell_sources_are_lf_only(self):
-        for path in (BASHRC, APK_WRAPPER, START_X11, NSSWITCH):
+        for path in (BASHRC, APK_WRAPPER, START_X11, INSTALL_DESKTOP, START_DESKTOP, NSSWITCH):
             data = path.read_bytes()
             self.assertNotIn(b"\r", data, path)
             self.assertTrue(data.endswith(b"\n"), path)
@@ -62,6 +70,28 @@ class V66RuntimeOverlayTest(unittest.TestCase):
         self.assertIn("pid_identity_file_alive", text)
         self.assertIn('/proc/$pid/stat', text)
         self.assertIn('rm -f "$socket_path" "$server_pid_file"', text)
+
+    def test_desktop_installer_and_launcher_cover_supported_choices(self):
+        installer = INSTALL_DESKTOP.read_text(encoding="utf-8")
+        launcher = START_DESKTOP.read_text(encoding="utf-8")
+
+        for desktop in ("xfce", "lxqt", "lxde", "openbox", "mate", "plasma"):
+            self.assertIn(desktop, installer)
+            self.assertIn(desktop, launcher)
+
+        self.assertIn("xfce4 xfce4-terminal", installer)
+        self.assertIn("lxqt-desktop qterminal qt6-qtbase-x11", installer)
+        self.assertIn("lxsession openbox pcmanfm lxpanel lxterminal lxappearance", installer)
+        self.assertIn("openbox pcmanfm lxterminal tint2", installer)
+        self.assertIn("mate-desktop-environment mate-terminal", installer)
+        self.assertIn("plasma-desktop plasma-workspace kwin konsole", installer)
+        self.assertIn('printf \'%s\\n\' "$desktop" > "$CONFIG_FILE"', installer)
+        self.assertIn("startplasma-x11", launcher)
+        self.assertIn("kwin_x11", launcher)
+        self.assertIn("plasmashell", launcher)
+        self.assertIn("LIBGL_ALWAYS_SOFTWARE", launcher)
+        self.assertIn("dbus-run-session", launcher)
+        self.assertIn('start-x11 "$DISPLAY"', launcher)
 
     def test_embedded_display_connection_retry_is_single_and_cancellable(self):
         text = X11_MAIN_ACTIVITY.read_text(encoding="utf-8")

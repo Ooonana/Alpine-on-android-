@@ -31,6 +31,22 @@ The current Windows development checkout has been validated with JDK 17, Android
 
 Historical toolchain pins and Android-hosted Termux build paths remain documented under `docs/recovery/`; they are recovery evidence, not requirements for the current desktop build.
 
+## Optional desktop environments
+
+V66 keeps the APK/bootstrap small and installs a desktop only when requested from inside Alpine. Run:
+
+```sh
+install-desktop
+```
+
+The interactive installer offers XFCE, LXQt, LXDE, Openbox, MATE, and Plasma. The selected desktop is saved as the default and can then be launched with:
+
+```sh
+start-desktop
+```
+
+`start-desktop` starts the integrated Alpine Display/X11 bridge, prepares a D-Bus session and PRoot-friendly X11 environment, and launches the selected desktop. A desktop can also be selected directly, for example `install-desktop xfce` or `start-desktop mate`. Plasma is experimental on Alpine 3.24 because current packages may not include the historical `startplasma-x11` session launcher; the project provides a best-effort `kwin_x11` + `plasmashell` fallback when those binaries exist.
+
 ## APKs and historical assets
 
 Existing releases are retained. The `termux-recovery-2026-09-14` recovery release is an archive snapshot, not a new stable application version. V65 artifact identities are frozen under `docs/releases/v65/`. A V66 APK should not be published as stable until the Android runtime checks in `docs/DEVELOPMENT.md` pass on-device.

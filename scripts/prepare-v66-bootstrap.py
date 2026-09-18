@@ -158,7 +158,12 @@ def _prepared_payload() -> tuple[dict[str, tuple[bytes | None, bool, int]], dict
             existing = rootfs.get(name)
             if existing is not None:
                 mode = existing[2]
-            elif name.endswith("/usr/local/bin/start-x11") or name.endswith("/usr/local/sbin/apk"):
+            elif (
+                name.endswith("/usr/local/bin/start-x11")
+                or name.endswith("/usr/local/bin/install-desktop")
+                or name.endswith("/usr/local/bin/start-desktop")
+                or name.endswith("/usr/local/sbin/apk")
+            ):
                 mode = 0o755
             else:
                 mode = 0o644
