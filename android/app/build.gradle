@@ -42,8 +42,8 @@ android {
     defaultConfig {
         minSdkVersion project.properties.minSdkVersion.toInteger()
         targetSdkVersion project.properties.targetSdkVersion.toInteger()
-        versionCode 134
-        versionName "0.133.0-v66-dev"
+        versionCode 135
+        versionName "0.134.0-v67-dev"
 
         if (appVersionName) versionName = appVersionName
         validateVersionName(versionName)
@@ -163,7 +163,7 @@ task verifyBootstrap() {
     doLast {
         def bootstrap = file("src/main/cpp/bootstrap-aarch64.zip")
         if (!bootstrap.isFile() || bootstrap.length() == 0) {
-            throw new GradleException("Prepared arm64 bootstrap is missing. From the repository root run: python scripts/fetch-assets.py --bootstrap && python scripts/prepare-v66-bootstrap.py")
+            throw new GradleException("Prepared arm64 bootstrap is missing. From the repository root run: python scripts/fetch-assets.py --bootstrap && python scripts/prepare-v67-bootstrap.py")
         }
         logger.lifecycle("Using prepared bootstrap: ${bootstrap.name} (${bootstrap.length()} bytes)")
     }

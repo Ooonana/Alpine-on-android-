@@ -15,15 +15,15 @@ See [`THIRD_PARTY.md`](THIRD_PARTY.md) for provenance and license information.
 
 ## Recovery and build status
 
-The root [`README.md`](../README.md) describes the recovered project state. [`docs/recovery/HANDOFF.md`](../docs/recovery/HANDOFF.md) contains the development history, V65/V66 status, bootstrap recovery details, and desktop build notes.
+The root [`README.md`](../README.md) describes the recovered project state. [`docs/recovery/HANDOFF.md`](../docs/recovery/HANDOFF.md) contains the development history, V65/V66/V67 status, bootstrap recovery details, and desktop build notes.
 
-V65 remains the frozen known artifact baseline. V66 has been made desktop-buildable and now uses a prepared Alpine 3.24.1 rootfs, but it must not be treated as a stable release merely because it compiles. Android runtime validation is still required for proot, package scripts/triggers, DBus, and the embedded display.
+V65 remains the frozen known artifact baseline. V67 is the active development line. It keeps the prepared Alpine 3.24.1 rootfs and integrated display, but restores the distribution's stock `/sbin/apk` instead of the V66 custom package wrapper. Android runtime validation is still required for package transactions, DBus, and the embedded display.
 
 The embedded bootstrap is intentionally not downloaded by Gradle from legacy Termux/fork URLs. Restore the checksummed recovery asset from the repository root with:
 
 ```sh
 python3 scripts/fetch-assets.py --bootstrap
-python3 scripts/prepare-v66-bootstrap.py
+python3 scripts/prepare-v67-bootstrap.py
 ```
 
 Before building on another desktop, configure the local Android SDK/NDK for that machine and verify the prepared bootstrap. Do not reintroduce historical Termux-host SDK paths or blindly rename technical `com.termux.x11` identifiers.

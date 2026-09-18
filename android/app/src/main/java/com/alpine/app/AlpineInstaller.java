@@ -29,13 +29,12 @@ import static com.alpine.shared.alpine.AlpineConstants.*;
 
 final class AlpineInstaller {
     private static final String LOG_TAG = "AlpineInstaller";
-    private static final String BOOTSTRAP_VERSION = "v66";
+    private static final String BOOTSTRAP_VERSION = "v67";
     private static final String BOOTSTRAP_VERSION_FILE_PATH = ALPINE_PREFIX_DIR_PATH + "/etc/alpine-bootstrap-version";
     private static final String BOOTSTRAP_BACKUP_DIR_PATH = ALPINE_PREFIX_DIR_PATH + "-backup";
     private static final File BOOTSTRAP_BACKUP_DIR = new File(BOOTSTRAP_BACKUP_DIR_PATH);
-    // The final V66 bootstrap expands to about 98 MiB. Keep roughly another
-    // payload's worth of headroom for filesystem allocation and transactional
-    // staging while the previous prefix is still present during an upgrade.
+    // Keep generous headroom for filesystem allocation and transactional staging
+    // while the previous prefix is still present during an upgrade.
     private static final long MIN_BOOTSTRAP_FREE_BYTES = 192L * 1024L * 1024L;
     private static final String ROOTFS_RELATIVE_PATH = "var/lib/proot-distro/installed-rootfs/alpine";
     private static final String[] REQUIRED_BOOTSTRAP_FILES = {
@@ -46,17 +45,19 @@ final class AlpineInstaller {
         ROOTFS_RELATIVE_PATH + "/bin/sh",
         ROOTFS_RELATIVE_PATH + "/etc/alpine-release",
         ROOTFS_RELATIVE_PATH + "/etc/alpine-bootstrap-version",
-        ROOTFS_RELATIVE_PATH + "/sbin/apk.static",
-        ROOTFS_RELATIVE_PATH + "/usr/local/sbin/apk",
-        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11"
+        ROOTFS_RELATIVE_PATH + "/sbin/apk",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/install-desktop",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-desktop"
     };
     private static final String[] REQUIRED_EXECUTABLE_FILES = {
         "bin/proot",
         "bin/proot-distro",
         ROOTFS_RELATIVE_PATH + "/bin/sh",
-        ROOTFS_RELATIVE_PATH + "/sbin/apk.static",
-        ROOTFS_RELATIVE_PATH + "/usr/local/sbin/apk",
-        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11"
+        ROOTFS_RELATIVE_PATH + "/sbin/apk",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/install-desktop",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-desktop"
     };
 
     static void setupBootstrapIfNeeded(final Activity activity, final Runnable whenDone) {

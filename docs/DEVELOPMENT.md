@@ -1,6 +1,6 @@
 # Development layout
 
-This repository is intentionally split into the Android source tree, a tracked V66 compatibility overlay, recovery evidence, and reproducible bootstrap helper scripts.
+This repository is intentionally split into the Android source tree, a tracked V67 integration overlay, recovery evidence, and reproducible bootstrap helper scripts.
 
 ## Active source
 
@@ -14,17 +14,19 @@ The X11 Java/JNI implementation intentionally keeps technical `com.termux.x11` i
 
 ## Bootstrap work
 
-- `bootstrap/v66-overlay/` — tracked host-prefix and nested-rootfs compatibility files applied during V66 preparation. It is not a complete root filesystem.
+- `bootstrap/v67-overlay/` — active host-prefix and nested-rootfs integration files applied during V67 preparation. It is not a complete root filesystem.
+- `bootstrap/v66-overlay/` — preserved V66 compatibility experiment; V67 does not use its custom `apk` wrapper.
 - `android/app/src/main/cpp/bootstrap-aarch64.zip` — ignored complete build input. It preserves the recovered host prefix while the nested rootfs is regenerated from pinned Alpine 3.24.1 inputs.
 - `scripts/fetch-assets.py` — restores checksummed recovery assets.
-- `scripts/v66_rootfs.py` — rebuilds the nested Alpine 3.24.1 rootfs from pinned minirootfs, XKB, and static apk-tools inputs.
-- `scripts/prepare-v66-bootstrap.py` — applies the V66 overlay, regenerates rootfs symlinks/markers, and verifies the final bootstrap atomically.
+- `scripts/v67_rootfs.py` — rebuilds the nested Alpine 3.24.1 rootfs from the pinned official minirootfs plus XKB data. Stock Alpine `/sbin/apk` is retained.
+- `scripts/prepare-v67-bootstrap.py` — applies the V67 overlay, regenerates rootfs symlinks/markers, rejects V66 package-manager shims, and verifies the final bootstrap atomically.
+- `scripts/v66_rootfs.py` / `scripts/prepare-v66-bootstrap.py` — preserved V66 tooling for historical reproducibility.
 
 Prepare the build input from the repository root with:
 
 ```sh
 python3 scripts/fetch-assets.py --bootstrap
-python3 scripts/prepare-v66-bootstrap.py
+python3 scripts/prepare-v67-bootstrap.py
 ```
 
 Do not place downloaded `.deb`, `.apk`, APK files, temporary extracted root filesystems, build outputs, Gradle caches, or duplicate test binaries in the tracked source tree.
@@ -40,8 +42,8 @@ The V65 freeze records known-good artifacts; it must not be interpreted as proof
 
 1. Keep the tree clean and verify no generated output is tracked.
 2. Preserve/freeze the last known successful V65 artifacts.
-3. Restore the recovered bootstrap and regenerate the V66 Alpine 3.24.1 build input with the preparation script.
-4. Apply V66 fixes to tracked Android source or `bootstrap/v66-overlay/`; rerun preparation after overlay changes.
+3. Restore the recovered bootstrap and regenerate the V67 Alpine 3.24.1 build input with the preparation script.
+4. Apply V67 fixes to tracked Android source or `bootstrap/v67-overlay/`; rerun preparation after overlay changes.
 5. Before building, run the Python tests, shell syntax/shellcheck checks, bootstrap verifier, and `git diff --check`.
 6. Build from a clean native/Gradle state and verify the APK contains the exact prepared bootstrap and expected X11/native libraries.
 7. Runtime-test terminal startup/exit, `apk update/add/upgrade`, account lookup, DBus, package triggers, X11 socket/display startup, fonts, desktop startup, and app background/resume separately from build success.
