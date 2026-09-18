@@ -108,6 +108,13 @@ class V66RuntimeOverlayTest(unittest.TestCase):
         self.assertIn('m == 4 ? "R"', text)
         self.assertNotIn("Map.of(", text)
 
+    def test_apk_wrapper_prefers_android_host_curl_for_https(self):
+        text = APK_WRAPPER.read_text(encoding="utf-8")
+        self.assertIn('host_curl="/data/data/com.alpine/files/usr/bin/curl"', text)
+        self.assertIn('"$host_curl" --fail --location --show-error --output "$tmp" "$url"', text)
+        self.assertLess(text.index('if [ -x "$host_curl" ]'), text.index('elif command -v wget'))
+        self.assertIn('elif command -v curl >/dev/null 2>&1', text)
+
     def test_apk_wrapper_replays_suppressed_maintenance(self):
         text = APK_WRAPPER.read_text(encoding="utf-8")
         self.assertIn('"$action" --no-scripts', text)
