@@ -37,7 +37,13 @@ server_pid_file="/tmp/alpine-x11-server.pid"
 
 export DISPLAY="$display"
 export TMPDIR="${TMPDIR:-/tmp}"
-export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-$TMPDIR}"
+uid="$(id -u 2>/dev/null || echo 0)"
+if [ -z "${XDG_RUNTIME_DIR:-}" ] || [ "$XDG_RUNTIME_DIR" = "$TMPDIR" ]; then
+    XDG_RUNTIME_DIR="$TMPDIR/alpine-runtime-$uid"
+fi
+export XDG_RUNTIME_DIR
+mkdir -p "$XDG_RUNTIME_DIR" || exit 1
+chmod 0700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
 
 proc_start_time() {
     pid="$1"

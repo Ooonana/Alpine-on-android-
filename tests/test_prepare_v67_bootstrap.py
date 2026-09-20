@@ -55,6 +55,7 @@ class PrepareV67BootstrapTest(unittest.TestCase):
                 "lib/libtalloc.so.2": b"ELF/data/data/com.termux/files/usr/lib",
                 "lib/libtalloc.so.2.4.3": b"ELF/data/data/com.termux/files/usr/lib",
                 "bin/proot": b"ELF/data/data/com.alpine/files/usr/lib",
+                "bin/start-alpine.sh": b"legacy launcher",
                 "etc/alpine-bootstrap-version": b"v65\n",
                 "SYMLINKS.txt": "host-target←./host-link\n".encode(),
                 prefix + "old-stale-file": b"remove me",
@@ -71,18 +72,22 @@ class PrepareV67BootstrapTest(unittest.TestCase):
             "RECOVERED_BYTES": prepare.RECOVERED_BYTES,
             "RECOVERED_SHA256": prepare.RECOVERED_SHA256,
             "RECOVERED_HOST_LINEAGE_SHA256": prepare.RECOVERED_HOST_LINEAGE_SHA256,
+            "STOCK_APK_SHA256": prepare.v67_rootfs.STOCK_APK_SHA256,
             "build_rootfs": prepare.v67_rootfs.build_rootfs,
         }
         prepare.OVERLAY = self.overlay
         prepare.RECOVERED_BYTES = self.zip_path.stat().st_size
         prepare.RECOVERED_SHA256 = hashlib.sha256(self.zip_path.read_bytes()).hexdigest()
         prepare.v67_rootfs.build_rootfs = lambda: (dict(self.fake_rootfs), dict(self.fake_symlinks))
+        prepare.v67_rootfs.STOCK_APK_SHA256 = hashlib.sha256(b"fake-stock-apk").hexdigest()
         prepare.RECOVERED_HOST_LINEAGE_SHA256 = prepare.host_lineage_digest(self.zip_path)
 
     def tearDown(self):
         for name, value in self.saved.items():
             if name == "build_rootfs":
                 prepare.v67_rootfs.build_rootfs = value
+            elif name == "STOCK_APK_SHA256":
+                prepare.v67_rootfs.STOCK_APK_SHA256 = value
             else:
                 setattr(prepare, name, value)
 
@@ -95,6 +100,7 @@ class PrepareV67BootstrapTest(unittest.TestCase):
             self.assertEqual(z.read(prefix + "etc/alpine-release"), b"3.24.1\n")
             self.assertEqual(z.read(prefix + "etc/nsswitch.conf"), b"hosts: files dns\n")
             self.assertNotIn(prefix + "old-stale-file", z.namelist())
+            self.assertNotIn("bin/start-alpine.sh", z.namelist())
             self.assertNotIn(prefix + "var/run", z.namelist())
             self.assertNotIn(prefix + "etc/os-release", z.namelist())
             lines = z.read("SYMLINKS.txt").decode().splitlines()

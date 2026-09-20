@@ -10,7 +10,7 @@ This repository is intentionally split into the Android source tree, a tracked V
 - `android/x11/` — embedded Termux:X11-derived display implementation and `libXlorie.so`.
 - `android/x11-stub/` — compile-only stubs required by the X11 module for hidden Android framework interfaces. This is build input, not a second app.
 
-The X11 Java/JNI implementation intentionally keeps technical `com.termux.x11` identifiers where upstream code, Binder descriptors, actions, or native symbols depend on them. User-facing integration belongs to Alpine and should use Alpine/Display wording without mechanically renaming those implementation identifiers.
+The X11 Java/JNI implementation intentionally keeps technical `com.termux.x11` identifiers where upstream code, Binder descriptors, actions, or native symbols depend on them. User-facing integration belongs to Alpine and should use Alpine/Display wording without mechanically renaming those implementation identifiers. Terminal/bootstrap support keeps `minSdk 21`; the integrated Alpine Display itself requires Android 8.0 / API 26 or newer.
 
 ## Bootstrap work
 
@@ -30,6 +30,8 @@ python3 scripts/prepare-v67-bootstrap.py
 ```
 
 Do not place downloaded `.deb`, `.apk`, APK files, temporary extracted root filesystems, build outputs, Gradle caches, or duplicate test binaries in the tracked source tree.
+
+The validated V67 desktop build defaults are committed as compileSdk 36, NDK 27.1.12297006, Gradle 9.3.1, JDK 17, and Android Gradle Plugin 8.13.2. Machine-specific SDK/JDK paths remain local.
 
 ## Recovery and releases
 

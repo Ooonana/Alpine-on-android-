@@ -28,7 +28,9 @@ python3 scripts/prepare-v67-bootstrap.py
 
 The downloader verifies size and SHA-256 and restores the recovered host-prefix bootstrap to `android/app/src/main/cpp/bootstrap-aarch64.zip`. The preparation step then deterministically rebuilds the nested Alpine rootfs from pinned Alpine 3.24.1 inputs, applies the tracked V67 integration overlay, repairs rootfs symlinks, and verifies the result before replacing the build input.
 
-The current Windows development checkout has been validated with JDK 17, Android Gradle Plugin 8.13.2, compileSdk 36, Gradle 9.3.1, and NDK 27.1.12297006. The project still targets Android 28 and arm64-v8a for compatibility with the recovered app/runtime architecture. Local SDK/NDK paths remain machine-specific and should not be committed.
+The current Windows development checkout has been validated with JDK 17, Android Gradle Plugin 8.13.2, compileSdk 36, Gradle 9.3.1, and NDK 27.1.12297006. Those validated versions are now the committed V67 build defaults. The project still targets Android 28 and arm64-v8a for compatibility with the recovered app/runtime architecture. Local SDK/NDK paths remain machine-specific and should not be committed.
+
+The terminal/bootstrap path keeps `minSdk 21`. The integrated Alpine Display requires Android 8.0 / API 26 or newer because its embedded X11 native/runtime stack depends on API-26-era platform components.
 
 Historical toolchain pins and Android-hosted Termux build paths remain documented under `docs/recovery/`; they are recovery evidence, not requirements for the current desktop build.
 

@@ -21,49 +21,54 @@ export PATH="$PREFIX/bin:$PATH"
 export MAGIC="$PREFIX/share/file/magic.mgc"
 
 ensure_alpine_runtime() {
-    mkdir -p "$TMPDIR" "$PROOT_WORK_DIR" "$ROOTFS/etc" "$ROOTFS/etc/apk" \
+    mkdir -p "$TMPDIR" "$TMPDIR/alpine-runtime-0" "$PROOT_WORK_DIR" "$ROOTFS/etc" "$ROOTFS/etc/apk" \
         "$ROOTFS/run/dbus" "$ROOTFS/var/empty" "$ROOTFS/var/run/pulse" \
-        "$ROOTFS/usr/local/bin" 2>/dev/null || true
+        "$ROOTFS/tmp/alpine-runtime-0" "$ROOTFS/usr/local/bin" 2>/dev/null || true
     chmod 700 "$PROOT_WORK_DIR" 2>/dev/null || true
     chmod 1777 "$TMPDIR" "$ROOTFS/tmp" 2>/dev/null || true
+    chmod 0700 "$TMPDIR/alpine-runtime-0" "$ROOTFS/tmp/alpine-runtime-0" 2>/dev/null || true
     chmod 755 "$ROOTFS/run" "$ROOTFS/run/dbus" "$ROOTFS/var/run" 2>/dev/null || true
     touch "$ROOTFS/etc/environment" 2>/dev/null || true
     chmod 600 "$ROOTFS/etc/environment" 2>/dev/null || true
     rm -f "$ROOTFS/run/dbus/pid" 2>/dev/null || true
 
-    resolver_tmp="$TMPDIR/alpine-resolv.conf.$$"
-    : > "$resolver_tmp" 2>/dev/null || resolver_tmp=""
-    if [ -n "$resolver_tmp" ]; then
-        if [ -n "${ALPINE_DNS_SERVERS:-}" ]; then
-            dns_candidates="$ALPINE_DNS_SERVERS"
-        elif [ -x /system/bin/getprop ]; then
-            dns_candidates="$(
-                /system/bin/getprop 2>/dev/null |
-                    sed -n 's/^\[[^]]*\.dns[1-4]\]: \[\([^]]*\)\]$/\1/p' |
-                    tr '\n' ' '
-            )"
-        else
-            dns_candidates=""
-        fi
-
-        for dns in $dns_candidates; do
-            case "$dns" in
-                ""|*[!0-9A-Fa-f:.]*) continue ;;
-            esac
-            if ! grep -qxF "nameserver $dns" "$resolver_tmp" 2>/dev/null; then
-                echo "nameserver $dns" >> "$resolver_tmp"
+    # Seed DNS on first launch, or refresh it only when explicitly requested.
+    # Preserve a user's non-empty resolv.conf during normal subsequent launches.
+    if [ ! -s "$RESOLV_CONF" ] || [ -n "${ALPINE_DNS_SERVERS:-}" ] || [ "${ALPINE_DNS_FORCE:-0}" = "1" ]; then
+        resolver_tmp="$TMPDIR/alpine-resolv.conf.${BASHPID:-$PPID}"
+        : > "$resolver_tmp" 2>/dev/null || resolver_tmp=""
+        if [ -n "$resolver_tmp" ]; then
+            if [ -n "${ALPINE_DNS_SERVERS:-}" ]; then
+                dns_candidates="$ALPINE_DNS_SERVERS"
+            elif [ -x /system/bin/getprop ]; then
+                dns_candidates="$(
+                    /system/bin/getprop 2>/dev/null |
+                        sed -n 's/^\[[^]]*\.dns[1-4]\]: \[\([^]]*\)\]$/\1/p' |
+                        tr '\n' ' '
+                )"
+            else
+                dns_candidates=""
             fi
-        done
 
-        if [ -s "$resolver_tmp" ]; then
-            cat "$resolver_tmp" > "$RESOLV_CONF" 2>/dev/null || true
-        elif [ ! -s "$RESOLV_CONF" ]; then
-            {
-                echo "nameserver 8.8.8.8"
-                echo "nameserver 8.8.4.4"
-            } > "$RESOLV_CONF" 2>/dev/null || true
+            for dns in $dns_candidates; do
+                case "$dns" in
+                    ""|*[!0-9A-Fa-f:.]*) continue ;;
+                esac
+                if ! grep -qxF "nameserver $dns" "$resolver_tmp" 2>/dev/null; then
+                    echo "nameserver $dns" >> "$resolver_tmp"
+                fi
+            done
+
+            if [ -s "$resolver_tmp" ]; then
+                cat "$resolver_tmp" > "$RESOLV_CONF" 2>/dev/null || true
+            elif [ ! -s "$RESOLV_CONF" ]; then
+                {
+                    echo "nameserver 8.8.8.8"
+                    echo "nameserver 8.8.4.4"
+                } > "$RESOLV_CONF" 2>/dev/null || true
+            fi
+            rm -f "$resolver_tmp" 2>/dev/null || true
         fi
-        rm -f "$resolver_tmp" 2>/dev/null || true
     fi
 
     # V67 uses Alpine's stock apk and normal remote repositories. Only repair
@@ -219,7 +224,7 @@ run_alpine_proot_distro() {
         --work-dir /root \
         --env DISPLAY="${DISPLAY:-:1}" \
         --env TMPDIR=/tmp \
-        --env XDG_RUNTIME_DIR=/tmp \
+        --env XDG_RUNTIME_DIR=/tmp/alpine-runtime-0 \
         "$@"
 
     if [ "${ALPINE_DISABLE_SYSVIPC:-0}" = "1" ]; then
@@ -267,7 +272,7 @@ run_alpine_direct_proot() {
         TERM="${TERM:-xterm-256color}" \
         DISPLAY="${DISPLAY:-:1}" \
         TMPDIR=/tmp \
-        XDG_RUNTIME_DIR=/tmp \
+        XDG_RUNTIME_DIR=/tmp/alpine-runtime-0 \
         PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
         IN_ALPINE=1 \
         "$@"

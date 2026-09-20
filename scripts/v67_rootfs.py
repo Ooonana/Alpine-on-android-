@@ -18,6 +18,7 @@ ALPINE_MINIROOTFS_NAME = f"alpine-minirootfs-{ALPINE_VERSION}-aarch64.tar.gz"
 ALPINE_MINIROOTFS_URL = f"https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/{ALPINE_MINIROOTFS_NAME}"
 ALPINE_MINIROOTFS_BYTES = 4_023_732
 ALPINE_MINIROOTFS_SHA256 = "f55a90f69052c5bd6f92cb09a8f47065970830b194c917a006fb94028e721259"
+STOCK_APK_SHA256 = "d16008960b59601559ea2ffe6832f8e0282013532c9dfcc140b34d3cc6198b05"
 
 XKB_NAME = "xkeyboard-config-2.47-r0.apk"
 XKB_URL = f"https://dl-cdn.alpinelinux.org/alpine/v3.24/main/aarch64/{XKB_NAME}"
@@ -28,7 +29,10 @@ OFFICIAL_REPOSITORIES = (
     "https://dl-cdn.alpinelinux.org/alpine/v3.24/main\n"
     "https://dl-cdn.alpinelinux.org/alpine/v3.24/community\n"
 ).encode()
-RESOLV_CONF = b"nameserver 8.8.8.8\nnameserver 8.8.4.4\n"
+# Leave DNS empty in the prepared rootfs so the first Android launch can seed
+# it from the device. The launcher then preserves a user's non-empty file unless
+# an explicit ALPINE_DNS_SERVERS/ALPINE_DNS_FORCE override is requested.
+RESOLV_CONF = b""
 ENVIRONMENT = (
     b"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n"
     b"HOME=/root\nTERM=xterm-256color\nLANG=C.UTF-8\n"

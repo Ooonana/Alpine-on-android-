@@ -12,6 +12,9 @@ START_DESKTOP = ROOTFS / "usr/local/bin/start-desktop"
 NSSWITCH = ROOTFS / "etc/nsswitch.conf"
 INSTALLER = ROOT / "android/app/src/main/java/com/alpine/app/AlpineInstaller.java"
 APP_BUILD = ROOT / "android/app/build.gradle"
+GRADLE_PROPERTIES = ROOT / "android/gradle.properties"
+GRADLE_WRAPPER_PROPERTIES = ROOT / "android/gradle/wrapper/gradle-wrapper.properties"
+JITPACK = ROOT / "android/jitpack.yml"
 ROOTFS_BUILDER = ROOT / "scripts/v67_rootfs.py"
 PREPARE = ROOT / "scripts/prepare-v67-bootstrap.py"
 
@@ -44,6 +47,8 @@ class V67RuntimeOverlayTest(unittest.TestCase):
         self.assertIn('"etc/apk/repositories"', builder)
         self.assertIn("Legacy V66 apk wrapper is still embedded", prepare)
         self.assertIn("Stock Alpine /sbin/apk is missing", prepare)
+        self.assertIn("Stock Alpine /sbin/apk SHA-256 mismatch", prepare)
+        self.assertIn("STOCK_APK_SHA256", builder)
 
     def test_v67_version_identity(self):
         installer = INSTALLER.read_text(encoding="utf-8")
@@ -55,6 +60,15 @@ class V67RuntimeOverlayTest(unittest.TestCase):
         self.assertIn('versionName "0.134.0-v67-dev"', build)
         self.assertIn('b"v67\\n"', builder)
         self.assertIn('b"v67\\n"', prepare)
+
+    def test_v67_build_toolchain_defaults_match_validated_build(self):
+        properties = GRADLE_PROPERTIES.read_text(encoding="utf-8")
+        wrapper = GRADLE_WRAPPER_PROPERTIES.read_text(encoding="utf-8")
+        jitpack = JITPACK.read_text(encoding="utf-8")
+        self.assertIn("compileSdkVersion=36", properties)
+        self.assertIn("ndkVersion=27.1.12297006", properties)
+        self.assertIn("gradle-9.3.1-bin.zip", wrapper)
+        self.assertIn('JITPACK_NDK_VERSION: "27.1.12297006"', jitpack)
 
     def test_desktop_installer_still_supports_all_choices(self):
         installer = INSTALL_DESKTOP.read_text(encoding="utf-8")
@@ -74,6 +88,9 @@ class V67RuntimeOverlayTest(unittest.TestCase):
         self.assertEqual(text.count("--no-sysvipc"), 1)
         self.assertIn("/system/bin/getprop", text)
         self.assertIn("ALPINE_DNS_SERVERS", text)
+        self.assertIn("ALPINE_DNS_FORCE", text)
+        self.assertIn('XDG_RUNTIME_DIR=/tmp/alpine-runtime-0', text)
+        self.assertIn('RESOLV_CONF = b""', ROOTFS_BUILDER.read_text(encoding="utf-8"))
         self.assertIn("pid_identity_file_alive", text)
         self.assertIn("write_pid_identity", text)
 

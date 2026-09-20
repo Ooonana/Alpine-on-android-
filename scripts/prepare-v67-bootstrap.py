@@ -32,7 +32,11 @@ RECOVERED_SHA256 = "af4107177ffa0f0e4dd16b5f5d33f0543ef1b342e654ce4a7a42187b5bbf
 # Hash of every preserved host-prefix ZIP entry, excluding the Alpine rootfs,
 # SYMLINKS.txt, and tracked V67 host-overlay paths. This permits safe reruns after
 # rootfs/overlay edits without retaining a second 205 MB recovery copy.
-RECOVERED_HOST_LINEAGE_SHA256 = "b6f43d4fe206c3feb8387e9f927f3d9c1b3e5f73798d0325ab83756bf8f07c6b"
+RECOVERED_HOST_LINEAGE_SHA256 = "7d9a47e4757d9f405348e095384ba3eaf756e014071176187f920052cba31c2b"
+
+# Obsolete V65-era host helpers that are no longer part of the V67 launch path.
+# They are preserved in Git/recovery history, but omitted from new V67 bootstraps.
+LEGACY_HOST_PATHS = {"bin/start-alpine.sh"}
 
 TOP_VERSION_MARKER = "etc/alpine-bootstrap-version"
 ROOTFS_VERSION_MARKER = ROOTFS_PREFIX + "etc/alpine-bootstrap-version"
@@ -70,7 +74,11 @@ def overlay_entries() -> dict[str, bytes]:
 
 
 def _host_mutable_names() -> set[str]:
-    return {name for name in overlay_entries() if not name.startswith(ROOTFS_PREFIX)} | {SYMLINKS_NAME, MODES_NAME}
+    return (
+        {name for name in overlay_entries() if not name.startswith(ROOTFS_PREFIX)}
+        | {SYMLINKS_NAME, MODES_NAME}
+        | LEGACY_HOST_PATHS
+    )
 
 
 def host_lineage_digest(path: Path) -> str:
@@ -203,6 +211,9 @@ def verify_prepared(path: Path) -> None:
         if len(names) != len(set(names)):
             raise RuntimeError("Bootstrap contains duplicate ZIP entry names")
         name_set = set(names)
+        stale_host_paths = sorted(LEGACY_HOST_PATHS & name_set)
+        if stale_host_paths:
+            raise RuntimeError("Legacy host helpers are still embedded: " + ", ".join(stale_host_paths))
 
         mode_manifest = _parse_mode_manifest(archive.read(MODES_NAME))
         expected_mode_names = {name for name in names if name not in {SYMLINKS_NAME, MODES_NAME}}
@@ -282,8 +293,12 @@ def verify_prepared(path: Path) -> None:
             raise RuntimeError("Legacy V66 apk wrapper is still embedded")
         if ROOTFS_PREFIX + "sbin/apk.static" in name_set:
             raise RuntimeError("Legacy V66 apk.static compatibility payload is still embedded")
-        if ROOTFS_PREFIX + "sbin/apk" not in name_set:
+        stock_apk_name = ROOTFS_PREFIX + "sbin/apk"
+        if stock_apk_name not in name_set:
             raise RuntimeError("Stock Alpine /sbin/apk is missing")
+        stock_apk_sha256 = hashlib.sha256(archive.read(stock_apk_name)).hexdigest()
+        if stock_apk_sha256 != v67_rootfs.STOCK_APK_SHA256:
+            raise RuntimeError("Stock Alpine /sbin/apk SHA-256 mismatch")
         if any(name.startswith(ROOTFS_PREFIX + "var/cache/apk-mirror/") and not name.endswith("/") for name in names):
             raise RuntimeError("Stale local APK mirror payload is embedded")
         if any(name.startswith(ROOTFS_PREFIX + "var/cache/apk/") and not name.endswith("/") for name in names):
@@ -357,6 +372,8 @@ def prepare(source: Path = BOOTSTRAP) -> None:
             for info in src.infolist():
                 name = info.filename
                 if name.startswith(ROOTFS_PREFIX):
+                    continue
+                if name in LEGACY_HOST_PATHS:
                     continue
                 if name == MODES_NAME:
                     continue

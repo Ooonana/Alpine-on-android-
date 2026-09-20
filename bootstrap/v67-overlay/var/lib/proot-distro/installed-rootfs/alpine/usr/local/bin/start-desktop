@@ -77,7 +77,10 @@ export QT_X11_NO_MITSHM="${QT_X11_NO_MITSHM:-1}"
 export LIBGL_ALWAYS_SOFTWARE="${LIBGL_ALWAYS_SOFTWARE:-1}"
 
 uid="$(id -u 2>/dev/null || echo 0)"
-export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp/alpine-runtime-$uid}"
+if [ -z "${XDG_RUNTIME_DIR:-}" ] || [ "$XDG_RUNTIME_DIR" = "/tmp" ]; then
+    XDG_RUNTIME_DIR="/tmp/alpine-runtime-$uid"
+fi
+export XDG_RUNTIME_DIR
 mkdir -p "$XDG_RUNTIME_DIR" || exit 1
 chmod 0700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
 
