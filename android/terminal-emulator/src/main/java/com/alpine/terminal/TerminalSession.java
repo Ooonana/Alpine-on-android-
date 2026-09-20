@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -299,7 +300,7 @@ public final class TerminalSession extends TerminalOutput {
             return null;
         }
         try {
-            final String cwdSymlink = String.format("/proc/%s/cwd/", mShellPid);
+            final String cwdSymlink = String.format(Locale.US, "/proc/%s/cwd/", mShellPid);
             String outputPath = new File(cwdSymlink).getCanonicalPath();
             String outputPathWithTrailingSlash = outputPath;
             if (!outputPath.endsWith("/")) {

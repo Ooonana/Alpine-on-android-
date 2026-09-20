@@ -371,7 +371,7 @@ public final class TerminalEmulator {
         if (mouseButton == MOUSE_LEFT_BUTTON_MOVED && !isDecsetInternalBitSet(DECSET_BIT_MOUSE_TRACKING_BUTTON_EVENT)) {
             // Do not send tracking.
         } else if (isDecsetInternalBitSet(DECSET_BIT_MOUSE_PROTOCOL_SGR)) {
-            mSession.write(String.format("\033[<%d;%d;%d" + (pressed ? 'M' : 'm'), mouseButton, column, row));
+            mSession.write(String.format(Locale.US, "\033[<%d;%d;%d" + (pressed ? 'M' : 'm'), mouseButton, column, row));
         } else {
             mouseButton = pressed ? mouseButton : 3; // 3 for release of all buttons.
             // Clip to screen, and clip to the limits of 8-bit data.
@@ -1010,7 +1010,7 @@ public final class TerminalEmulator {
                             } else {
                                 StringBuilder hexEncoded = new StringBuilder();
                                 for (int j = 0; j < responseValue.length(); j++) {
-                                    hexEncoded.append(String.format("%02X", (int) responseValue.charAt(j)));
+                                    hexEncoded.append(String.format(Locale.US, "%02X", (int) responseValue.charAt(j)));
                                 }
                                 mSession.write("\033P1+r" + part + "=" + hexEncoded + "\033\\");
                             }
@@ -1976,7 +1976,7 @@ public final class TerminalEmulator {
                 mBackColor = code - 100 + 8;
             } else {
                 if (LOG_ESCAPE_SEQUENCES)
-                    Logger.logWarn(mClient, LOG_TAG, String.format("SGR unknown code %d", code));
+                    Logger.logWarn(mClient, LOG_TAG, String.format(Locale.US, "SGR unknown code %d", code));
             }
         }
     }
@@ -2292,7 +2292,7 @@ public final class TerminalEmulator {
     }
 
     private void unimplementedSequence(int b) {
-        logError("Unimplemented sequence char '" + (char) b + "' (U+" + String.format("%04x", b) + ")");
+        logError("Unimplemented sequence char '" + (char) b + "' (U+" + String.format(Locale.US, "%04x", b) + ")");
         finishSequence();
     }
 

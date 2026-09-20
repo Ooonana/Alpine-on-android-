@@ -45,6 +45,7 @@
 
     <string name="action_open_display">Display</string>
     <string name="error_display_open_failed">Unable to open Alpine Display.</string>
+    <string name="error_display_requires_android_8">Alpine Display requires Android 8.0 or newer.</string>
     <string name="error_no_running_session">Start an Alpine session before opening the display.</string>
 
     <string name="msg_enabling_terminal_toolbar">Enabling Terminal Toolbar</string>

@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 public class AlpineUtils {
@@ -667,7 +668,7 @@ public class AlpineUtils {
     public static String getAPKRelease(String signingCertificateSHA256Digest) {
         if (signingCertificateSHA256Digest == null) return "null";
 
-        switch (signingCertificateSHA256Digest.toUpperCase()) {
+        switch (signingCertificateSHA256Digest.toUpperCase(Locale.ROOT)) {
             case AlpineConstants.APK_RELEASE_FDROID_SIGNING_CERTIFICATE_SHA256_DIGEST:
                 return AlpineConstants.APK_RELEASE_FDROID;
             case AlpineConstants.APK_RELEASE_GITHUB_SIGNING_CERTIFICATE_SHA256_DIGEST:

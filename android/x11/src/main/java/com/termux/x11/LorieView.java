@@ -296,7 +296,9 @@ class InputConnectionWrapper implements InputConnection {
     @Override
     public boolean commitContent(@NonNull InputContentInfo inputContentInfo, int flags, Bundle opts) {
         Log.d(TAG, "commitContent(" + inputContentInfo + ", " + flags + ", " + opts + ")");
-        return wrapped.commitContent(inputContentInfo, flags, opts);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1)
+            return wrapped.commitContent(inputContentInfo, flags, opts);
+        return false;
     }
 
     @Override
@@ -780,12 +782,14 @@ public class LorieView extends SurfaceView implements InputStub {
 
     public void checkForClipboardChange() {
         ClipDescription desc = clipboard.getPrimaryClipDescription();
-        if (clipboardSyncEnabled && desc != null &&
-                lastClipboardTimestamp < desc.getTimestamp() &&
+        if (desc == null) return;
+        long timestamp = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                ? desc.getTimestamp() : System.currentTimeMillis();
+        if (clipboardSyncEnabled && lastClipboardTimestamp < timestamp &&
                 desc.getMimeTypeCount() == 1 &&
                 (desc.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) ||
                         desc.hasMimeType(ClipDescription.MIMETYPE_TEXT_HTML))) {
-            lastClipboardTimestamp = desc.getTimestamp();
+            lastClipboardTimestamp = timestamp;
             sendClipboardAnnounce();
             Log.d("CLIP", "sending clipboard announce");
         }

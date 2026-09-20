@@ -216,11 +216,14 @@ public class MainActivity extends AppCompatActivity {
             LorieView.sendWindowChange(screenWidth, screenHeight, framerate, name);
         });
 
-        registerReceiver(receiver, new IntentFilter(ACTION_START) {{
-            addAction(ACTION_PREFERENCES_CHANGED);
-            addAction(ACTION_STOP);
-            addAction(ACTION_CUSTOM);
-        }}, SDK_INT >= VERSION_CODES.TIRAMISU ? RECEIVER_EXPORTED : 0);
+        IntentFilter receiverFilter = new IntentFilter(ACTION_START);
+        receiverFilter.addAction(ACTION_PREFERENCES_CHANGED);
+        receiverFilter.addAction(ACTION_STOP);
+        receiverFilter.addAction(ACTION_CUSTOM);
+        if (SDK_INT >= VERSION_CODES.TIRAMISU)
+            registerReceiver(receiver, receiverFilter, RECEIVER_EXPORTED);
+        else
+            registerReceiver(receiver, receiverFilter);
 
         inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 
@@ -839,6 +842,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    @SuppressLint("MissingSuperCall")
     public void onBackPressed() {
         finish();
     }

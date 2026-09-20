@@ -29,7 +29,7 @@ import static com.alpine.shared.alpine.AlpineConstants.*;
 
 final class AlpineInstaller {
     private static final String LOG_TAG = "AlpineInstaller";
-    private static final String BOOTSTRAP_VERSION = "v67";
+    private static final String BOOTSTRAP_VERSION = "v68.1";
     private static final String BOOTSTRAP_VERSION_FILE_PATH = ALPINE_PREFIX_DIR_PATH + "/etc/alpine-bootstrap-version";
     private static final String BOOTSTRAP_BACKUP_DIR_PATH = ALPINE_PREFIX_DIR_PATH + "-backup";
     private static final File BOOTSTRAP_BACKUP_DIR = new File(BOOTSTRAP_BACKUP_DIR_PATH);
@@ -40,6 +40,9 @@ final class AlpineInstaller {
     private static final String[] REQUIRED_BOOTSTRAP_FILES = {
         "bin/proot",
         "bin/proot-distro",
+        "lib/libandroid-shmem.so",
+        "lib/libtalloc.so.2",
+        "libexec/proot/loader",
         "etc/bash.bashrc",
         "etc/alpine-bootstrap-version",
         ROOTFS_RELATIVE_PATH + "/bin/sh",
@@ -53,6 +56,7 @@ final class AlpineInstaller {
     private static final String[] REQUIRED_EXECUTABLE_FILES = {
         "bin/proot",
         "bin/proot-distro",
+        "libexec/proot/loader",
         ROOTFS_RELATIVE_PATH + "/bin/sh",
         ROOTFS_RELATIVE_PATH + "/sbin/apk",
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11",

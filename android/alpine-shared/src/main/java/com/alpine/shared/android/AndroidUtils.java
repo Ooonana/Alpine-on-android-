@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
@@ -248,21 +249,21 @@ public class AndroidUtils {
 
     public static String getCurrentTimeStamp() {
         @SuppressLint("SimpleDateFormat")
-        final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+        final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.US);
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
         return df.format(new Date());
     }
 
     public static String getCurrentMilliSecondUTCTimeStamp() {
         @SuppressLint("SimpleDateFormat")
-        final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
+        final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z", Locale.US);
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
         return df.format(new Date());
     }
 
     public static String getCurrentMilliSecondLocalTimeStamp() {
         @SuppressLint("SimpleDateFormat")
-        final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss.SSS");
+        final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss.SSS", Locale.US);
         df.setTimeZone(TimeZone.getDefault());
         return df.format(new Date());
     }

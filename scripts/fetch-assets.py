@@ -22,7 +22,7 @@ def digest(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--bootstrap', action='store_true', help='Restore the recovered V66-era host bootstrap; run prepare-v67-bootstrap.py before building V67')
+    group.add_argument('--bootstrap', action='store_true', help='Restore the recovered V66-era host bootstrap; run prepare-v68-bootstrap.py before building V68')
     group.add_argument('--all', action='store_true', help='Download every historical asset (many GB)')
     group.add_argument('--name', help='Download one asset by exact name')
     group.add_argument('--list', action='store_true', help='List asset names and sizes without downloading')

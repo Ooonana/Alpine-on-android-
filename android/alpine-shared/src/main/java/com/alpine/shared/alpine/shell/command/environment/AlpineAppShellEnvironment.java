@@ -18,6 +18,7 @@ import com.alpine.shared.alpine.AlpineUtils;
 import com.alpine.shared.alpine.shell.am.AlpineAmSocketServer;
 
 import java.util.HashMap;
+import java.util.Locale;
 
 /**
  * Environment for {@link AlpineConstants#ALPINE_PACKAGE_NAME} app.
@@ -157,7 +158,7 @@ public class AlpineAppShellEnvironment {
             AlpineConstants.ALPINE_PACKAGE_NAME);
         if (signingCertificateSHA256Digest != null) {
             ShellEnvironmentUtils.putToEnvIfSet(environment, ENV_ALPINE_APP__APK_RELEASE,
-                AlpineUtils.getAPKRelease(signingCertificateSHA256Digest).replaceAll("[^a-zA-Z]", "_").toUpperCase());
+                AlpineUtils.getAPKRelease(signingCertificateSHA256Digest).replaceAll("[^a-zA-Z]", "_").toUpperCase(Locale.ROOT));
         }
     }
 

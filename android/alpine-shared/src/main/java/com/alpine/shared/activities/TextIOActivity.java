@@ -43,7 +43,7 @@ import java.util.Locale;
  */
 public class TextIOActivity extends AppCompatActivity {
 
-    private static final String CLASS_NAME = ReportActivity.class.getCanonicalName();
+    private static final String CLASS_NAME = TextIOActivity.class.getCanonicalName();
     public static final String EXTRA_TEXT_IO_INFO_OBJECT = CLASS_NAME + ".EXTRA_TEXT_IO_INFO_OBJECT";
 
     private TextView mTextIOLabel;
@@ -233,6 +233,7 @@ public class TextIOActivity extends AppCompatActivity {
     }
 
     @Override
+    @android.annotation.SuppressLint("MissingSuperCall")
     public void onBackPressed() {
         confirm();
     }

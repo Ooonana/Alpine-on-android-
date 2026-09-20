@@ -118,7 +118,11 @@ public class ReportActivity extends AppCompatActivity {
         mReportInfoFilePath = null;
 
         if (mBundle.containsKey(EXTRA_REPORT_INFO_OBJECT_FILE_PATH)) {
-            mReportInfoFilePath = mBundle.getString(EXTRA_REPORT_INFO_OBJECT_FILE_PATH);
+            mReportInfoFilePath = getSafeReportInfoFilePath(this, mBundle.getString(EXTRA_REPORT_INFO_OBJECT_FILE_PATH));
+            if (mReportInfoFilePath == null) {
+                Logger.logError(LOG_TAG, "Refusing to deserialize ReportInfo from a path outside the app report cache");
+                finish(); return;
+            }
             Logger.logVerbose(LOG_TAG, ReportInfo.class.getSimpleName() + " serialized object will be read from file at path \"" + mReportInfoFilePath + "\"");
             if (mReportInfoFilePath != null) {
                 try {
@@ -204,6 +208,7 @@ public class ReportActivity extends AppCompatActivity {
     }
 
     @Override
+    @android.annotation.SuppressLint("MissingSuperCall")
     public void onBackPressed() {
         // Remove activity from recents menu on back button press
         finishAndRemoveTask();
@@ -394,20 +399,31 @@ public class ReportActivity extends AppCompatActivity {
         return FileUtils.getCanonicalPath(context.getCacheDir().getAbsolutePath(), null) + "/" + CACHE_DIR_BASENAME;
     }
 
+    private static String getSafeReportInfoFilePath(Context context, String reportInfoFilePath) {
+        if (context == null || reportInfoFilePath == null || reportInfoFilePath.isEmpty()) return null;
+        String reportInfoDirectoryPath = getReportInfoDirectoryPath(context);
+        String canonicalPath = FileUtils.getCanonicalPath(reportInfoFilePath, null);
+        String requiredPrefix = reportInfoDirectoryPath + "/" + CACHE_FILE_BASENAME_PREFIX;
+        if (!canonicalPath.startsWith(requiredPrefix)) return null;
+        // Files created by newInstance() are direct children, not paths below a report_info_* directory.
+        if (canonicalPath.lastIndexOf('/') != reportInfoDirectoryPath.length()) return null;
+        return canonicalPath;
+    }
+
     private static void deleteReportInfoFile(Context context, String reportInfoFilePath) {
         if (context == null || reportInfoFilePath == null) return;
 
         // Extra protection for mainly if someone set `exported="true"` for ReportActivityBroadcastReceiver
         String reportInfoDirectoryPath = getReportInfoDirectoryPath(context);
-        reportInfoFilePath = FileUtils.getCanonicalPath(reportInfoFilePath, null);
-        if(!reportInfoFilePath.equals(reportInfoDirectoryPath) && reportInfoFilePath.startsWith(reportInfoDirectoryPath + "/")) {
+        reportInfoFilePath = getSafeReportInfoFilePath(context, reportInfoFilePath);
+        if (reportInfoFilePath != null) {
             Logger.logVerbose(LOG_TAG, "Deleting " + ReportInfo.class.getSimpleName() + " serialized object file at path \"" + reportInfoFilePath + "\"");
             Error error = FileUtils.deleteRegularFile(ReportInfo.class.getSimpleName(), reportInfoFilePath, true);
             if (error != null) {
                 Logger.logErrorExtended(LOG_TAG, error.toString());
             }
         } else {
-            Logger.logError(LOG_TAG, "Not deleting " + ReportInfo.class.getSimpleName() + " serialized object file at path \"" + reportInfoFilePath + "\" since its not under \"" + reportInfoDirectoryPath + "\"");
+            Logger.logError(LOG_TAG, "Not deleting " + ReportInfo.class.getSimpleName() + " serialized object because its path is not a direct child of \"" + reportInfoDirectoryPath + "\"");
         }
     }
 

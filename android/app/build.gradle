@@ -27,7 +27,7 @@ android {
         implementation "androidx.preference:preference:1.2.1"
         implementation "androidx.viewpager:viewpager:1.0.0"
         implementation "com.google.android.material:material:1.12.0"
-        implementation "com.google.guava:guava:24.1-jre"
+        implementation "com.google.guava:guava:33.3.1-android"
         implementation "io.noties.markwon:core:$markwonVersion"
         implementation "io.noties.markwon:ext-strikethrough:$markwonVersion"
         implementation "io.noties.markwon:linkify:$markwonVersion"
@@ -42,8 +42,8 @@ android {
     defaultConfig {
         minSdkVersion project.properties.minSdkVersion.toInteger()
         targetSdkVersion project.properties.targetSdkVersion.toInteger()
-        versionCode 135
-        versionName "0.134.0-v67-dev"
+        versionCode 137
+        versionName "0.135.1-v68-dev"
 
         if (appVersionName) versionName = appVersionName
         validateVersionName(versionName)
@@ -136,7 +136,7 @@ android {
 dependencies {
     testImplementation "junit:junit:4.13.2"
     testImplementation "org.robolectric:robolectric:4.10"
-    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:1.1.5"
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs_nio:2.0.4"
 }
 
 task versionName {
@@ -163,7 +163,7 @@ task verifyBootstrap() {
     doLast {
         def bootstrap = file("src/main/cpp/bootstrap-aarch64.zip")
         if (!bootstrap.isFile() || bootstrap.length() == 0) {
-            throw new GradleException("Prepared arm64 bootstrap is missing. From the repository root run: python scripts/fetch-assets.py --bootstrap && python scripts/prepare-v67-bootstrap.py")
+            throw new GradleException("Prepared arm64 bootstrap is missing. From the repository root run: python scripts/fetch-assets.py --bootstrap && python scripts/prepare-v68-bootstrap.py")
         }
         logger.lifecycle("Using prepared bootstrap: ${bootstrap.name} (${bootstrap.length()} bytes)")
     }

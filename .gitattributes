@@ -11,3 +11,9 @@ bootstrap/v67-overlay/var/lib/proot-distro/installed-rootfs/alpine/usr/local/bin
 bootstrap/v67-overlay/var/lib/proot-distro/installed-rootfs/alpine/usr/local/bin/install-desktop text eol=lf
 bootstrap/v67-overlay/var/lib/proot-distro/installed-rootfs/alpine/usr/local/bin/start-desktop text eol=lf
 bootstrap/v67-overlay/var/lib/proot-distro/installed-rootfs/alpine/etc/nsswitch.conf text eol=lf
+bootstrap/v68-overlay/bin/proot-distro text eol=lf
+bootstrap/v68-overlay/etc/bash.bashrc text eol=lf
+bootstrap/v68-overlay/var/lib/proot-distro/installed-rootfs/alpine/usr/local/bin/start-x11 text eol=lf
+bootstrap/v68-overlay/var/lib/proot-distro/installed-rootfs/alpine/usr/local/bin/install-desktop text eol=lf
+bootstrap/v68-overlay/var/lib/proot-distro/installed-rootfs/alpine/usr/local/bin/start-desktop text eol=lf
+bootstrap/v68-overlay/var/lib/proot-distro/installed-rootfs/alpine/etc/nsswitch.conf text eol=lf

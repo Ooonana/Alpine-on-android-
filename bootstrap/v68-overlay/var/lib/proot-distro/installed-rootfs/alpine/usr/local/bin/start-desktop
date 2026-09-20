@@ -1,0 +1,171 @@
+#!/bin/sh
+
+set -u
+
+CONFIG_FILE="/etc/alpine-desktop"
+display="${ALPINE_DESKTOP_DISPLAY:-:1}"
+
+normalize_choice() {
+    case "${1:-}" in
+        xfce|XFCE|Xfce) printf '%s\n' xfce ;;
+        lxqt|LXQT|LXQt) printf '%s\n' lxqt ;;
+        openbox|Openbox|OPENBOX) printf '%s\n' openbox ;;
+        mate|MATE|Mate) printf '%s\n' mate ;;
+        plasma|PLASMA|Plasma|kde|KDE) printf '%s\n' plasma ;;
+        *) return 1 ;;
+    esac
+}
+
+usage() {
+    cat <<'EOF'
+Usage:
+  start-desktop
+  start-desktop <xfce|lxqt|openbox|mate|plasma>
+
+Without an argument, starts the desktop selected by install-desktop.
+Set ALPINE_DESKTOP_DISPLAY=:N to choose another X11 display.
+EOF
+}
+
+case "${1:-}" in
+    --help|-h)
+        usage
+        exit 0
+        ;;
+esac
+
+if [ -n "${1:-}" ]; then
+    desktop="$(normalize_choice "$1" 2>/dev/null || true)"
+else
+    desktop=""
+    if [ -r "$CONFIG_FILE" ]; then
+        IFS= read -r configured < "$CONFIG_FILE" || true
+        desktop="$(normalize_choice "${configured:-}" 2>/dev/null || true)"
+    fi
+fi
+
+if [ -z "$desktop" ]; then
+    echo "No desktop is selected."
+    echo "Run install-desktop first."
+    exit 2
+fi
+
+case "$display" in
+    :*) ;;
+    *) display=":$display" ;;
+esac
+display_number="${display#:}"
+display_number="${display_number%%.*}"
+case "$display_number" in
+    ""|*[!0-9]*)
+        echo "ERROR: invalid ALPINE_DESKTOP_DISPLAY: $display" >&2
+        exit 2
+        ;;
+esac
+display=":$display_number"
+
+if ! command -v start-x11 >/dev/null 2>&1; then
+    echo "ERROR: start-x11 is missing from this Alpine installation." >&2
+    exit 1
+fi
+
+export DISPLAY="$display"
+export GDK_BACKEND="${GDK_BACKEND:-x11}"
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
+export QT_X11_NO_MITSHM="${QT_X11_NO_MITSHM:-1}"
+export LIBGL_ALWAYS_SOFTWARE="${LIBGL_ALWAYS_SOFTWARE:-1}"
+
+uid="$(id -u 2>/dev/null || echo 0)"
+if [ -z "${XDG_RUNTIME_DIR:-}" ] || [ "$XDG_RUNTIME_DIR" = "/tmp" ]; then
+    XDG_RUNTIME_DIR="/tmp/alpine-runtime-$uid"
+fi
+export XDG_RUNTIME_DIR
+mkdir -p "$XDG_RUNTIME_DIR" || exit 1
+chmod 0700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
+
+if command -v dbus-uuidgen >/dev/null 2>&1; then
+    dbus-uuidgen --ensure=/etc/machine-id >/dev/null 2>&1 || true
+fi
+
+if command -v dbus-daemon >/dev/null 2>&1 && [ ! -S /run/dbus/system_bus_socket ]; then
+    mkdir -p /run/dbus
+    dbus-daemon --system --fork >/tmp/alpine-dbus-system.log 2>&1 || {
+        echo "WARNING: system D-Bus did not start; some desktop features may be unavailable." >&2
+    }
+fi
+
+if command -v pulseaudio >/dev/null 2>&1; then
+    pulseaudio --start --exit-idle-time=-1 >/tmp/alpine-pulseaudio.log 2>&1 || true
+fi
+
+echo "Starting Alpine Display on $DISPLAY..."
+if ! start-x11 "$DISPLAY"; then
+    echo "ERROR: Alpine Display failed to start." >&2
+    exit 1
+fi
+
+run_session() {
+    if command -v dbus-run-session >/dev/null 2>&1; then
+        exec dbus-run-session -- "$@"
+    fi
+    exec "$@"
+}
+
+run_session_shell() {
+    if command -v dbus-run-session >/dev/null 2>&1; then
+        exec dbus-run-session -- sh -c "$1"
+    fi
+    exec sh -c "$1"
+}
+
+case "$desktop" in
+    xfce)
+        command -v startxfce4 >/dev/null 2>&1 || {
+            echo "ERROR: XFCE is not installed. Run: install-desktop xfce" >&2
+            exit 1
+        }
+        echo "Starting XFCE..."
+        run_session startxfce4
+        ;;
+    lxqt)
+        command -v startlxqt >/dev/null 2>&1 || {
+            echo "ERROR: LXQt is not installed. Run: install-desktop lxqt" >&2
+            exit 1
+        }
+        echo "Starting LXQt..."
+        run_session startlxqt
+        ;;
+    openbox)
+        command -v openbox-session >/dev/null 2>&1 || {
+            echo "ERROR: Openbox is not installed. Run: install-desktop openbox" >&2
+            exit 1
+        }
+        echo "Starting Openbox..."
+        run_session_shell 'if command -v pcmanfm >/dev/null 2>&1; then pcmanfm --desktop >/tmp/alpine-openbox-pcmanfm.log 2>&1 & fi; if command -v tint2 >/dev/null 2>&1; then tint2 >/tmp/alpine-openbox-tint2.log 2>&1 & fi; exec openbox-session'
+        ;;
+    mate)
+        command -v mate-session >/dev/null 2>&1 || {
+            echo "ERROR: MATE is not installed. Run: install-desktop mate" >&2
+            exit 1
+        }
+        echo "Starting MATE..."
+        run_session mate-session
+        ;;
+    plasma)
+        if command -v startplasma-x11 >/dev/null 2>&1; then
+            echo "Starting Plasma X11..."
+            run_session startplasma-x11
+        fi
+
+        if command -v kwin_x11 >/dev/null 2>&1 && command -v plasmashell >/dev/null 2>&1; then
+            echo "WARNING: Alpine 3.23 has no standard Plasma X11 session launcher."
+            echo "Starting the experimental kwin_x11 + plasmashell fallback."
+            # shellcheck disable=SC2016 # Expanded by the nested session shell, not this launcher.
+            run_session_shell 'command -v kded6 >/dev/null 2>&1 && kded6 >/tmp/alpine-plasma-kded.log 2>&1 & kwin_x11 --replace >/tmp/alpine-plasma-kwin.log 2>&1 & kwin_pid=$!; trap "kill $kwin_pid 2>/dev/null || true" EXIT HUP INT TERM; plasmashell; status=$?; kill "$kwin_pid" 2>/dev/null || true; wait "$kwin_pid" 2>/dev/null || true; exit "$status"'
+        fi
+
+        echo "ERROR: Plasma was installed, but this Alpine build has no usable X11 Plasma launcher." >&2
+        echo "The integrated Alpine Display is X11; Plasma Wayland cannot use it directly." >&2
+        exit 1
+        ;;
+esac

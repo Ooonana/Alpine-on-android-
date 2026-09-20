@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -619,6 +620,10 @@ public final class AlpineActivity extends AppCompatActivity implements ServiceCo
 
     /** Open the embedded X11 display as another screen in this app's task. */
     private void openAlpineDisplay(boolean startServerCommand) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            showToast(getString(R.string.error_display_requires_android_8), true);
+            return;
+        }
         if (startServerCommand && !sendStartX11CommandToCurrentSession()) return;
 
         Intent x11Intent = new Intent(this, com.termux.x11.MainActivity.class);

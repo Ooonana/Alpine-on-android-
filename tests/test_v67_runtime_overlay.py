@@ -50,14 +50,9 @@ class V67RuntimeOverlayTest(unittest.TestCase):
         self.assertIn("Stock Alpine /sbin/apk SHA-256 mismatch", prepare)
         self.assertIn("STOCK_APK_SHA256", builder)
 
-    def test_v67_version_identity(self):
-        installer = INSTALLER.read_text(encoding="utf-8")
-        build = APP_BUILD.read_text(encoding="utf-8")
+    def test_v67_historical_bootstrap_identity(self):
         builder = ROOTFS_BUILDER.read_text(encoding="utf-8")
         prepare = PREPARE.read_text(encoding="utf-8")
-        self.assertIn('BOOTSTRAP_VERSION = "v67"', installer)
-        self.assertIn("versionCode 135", build)
-        self.assertIn('versionName "0.134.0-v67-dev"', build)
         self.assertIn('b"v67\\n"', builder)
         self.assertIn('b"v67\\n"', prepare)
 
