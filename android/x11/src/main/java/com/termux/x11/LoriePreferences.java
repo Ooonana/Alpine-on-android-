@@ -470,7 +470,7 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
                 desc.setLinksClickable(true);
                 desc.setText(R.string.extra_keys_config_desc);
                 desc.setMovementMethod(LinkMovementMethod.getInstance());
-                new android.app.AlertDialog.Builder(getActivity())
+                new AlertDialog.Builder(requireContext())
                         .setView(view)
                         .setTitle("Extra keys config")
                         .setPositiveButton("OK",

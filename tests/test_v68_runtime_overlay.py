@@ -34,6 +34,8 @@ X11_ERROR_LAYOUT = ROOT / "android/x11/src/main/res/layout/main_activity_error.x
 X11_STYLES = ROOT / "android/x11/src/main/res/values/styles.xml"
 X11_STRINGS = ROOT / "android/x11/src/main/res/values/strings.xml"
 X11_COLORS = ROOT / "android/x11/src/main/res/values/colors.xml"
+X11_MANIFEST = ROOT / "android/x11/src/main/AndroidManifest.xml"
+X11_EXTRA_KEYS_LAYOUT = ROOT / "android/x11/src/main/res/layout/extra_keys_config.xml"
 X11_DISPLAY_LOGO = ROOT / "android/x11/src/main/res/drawable/ic_alpine_display.xml"
 X11_NOTIFICATION_LOGO = ROOT / "android/x11/src/main/res/drawable/ic_alpine_display_notification.xml"
 TERMINAL_LOGO = ROOT / "android/app/src/main/res/drawable/ic_foreground.xml"
@@ -282,6 +284,39 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertIn("Embedded termux-x11 launcher changed unexpectedly", prepare)
         self.assertIn("b'TERMUX_X11_OVERRIDE_PACKAGE=\"com.alpine\"'", prepare)
         self.assertIn('b"com.termux.x11.CmdEntryPoint"', prepare)
+
+    def test_display_settings_use_green_alpine_theme(self):
+        manifest = X11_MANIFEST.read_text(encoding="utf-8")
+        styles = X11_STYLES.read_text(encoding="utf-8")
+
+        self.assertIn('android:theme="@style/AlpineDisplay.PreferencesTheme"', manifest)
+        self.assertIn('<style name="AlpineDisplay.PreferencesTheme"', styles)
+        self.assertIn('<item name="colorAccent">@color/alpine_display_green</item>', styles)
+        self.assertIn('<item name="colorControlActivated">@color/alpine_display_green</item>', styles)
+        self.assertIn('<item name="android:colorControlActivated">@color/alpine_display_green</item>', styles)
+        self.assertIn('<item name="actionBarStyle">@style/AlpineDisplay.ActionBar</item>', styles)
+        self.assertIn('<item name="alertDialogTheme">@style/AlpineDisplay.DialogTheme</item>', styles)
+        self.assertNotIn('android:theme="@style/Theme.AppCompat.DayNight"', manifest)
+        preferences = X11_PREFERENCES.read_text(encoding="utf-8")
+        extra_keys_layout = X11_EXTRA_KEYS_LAYOUT.read_text(encoding="utf-8")
+        self.assertIn("new AlertDialog.Builder(requireContext())", preferences)
+        self.assertNotIn("new android.app.AlertDialog.Builder", preferences)
+        self.assertIn('android:backgroundTint="@color/alpine_display_green"', extra_keys_layout)
+        self.assertIn('android:textColor="@color/alpine_display_white"', extra_keys_layout)
+
+    def test_display_never_overlays_extra_key_toolbar(self):
+        activity = X11_MAIN_ACTIVITY.read_text(encoding="utf-8")
+
+        method = activity[
+            activity.index("private void setTerminalToolbarView()"):
+            activity.index("public void toggleExtraKeys(boolean visible", activity.index("private void setTerminalToolbarView()"))
+        ]
+        self.assertIn("pager.setVisibility(View.GONE);", method)
+        self.assertIn("pager.setAdapter(null);", method)
+        self.assertIn("layoutParams.height = 0;", method)
+        self.assertIn("frm.setPadding(0, 0, 0, 0);", method)
+        self.assertNotIn("View.VISIBLE", method)
+        self.assertNotIn("X11ToolbarViewPager", method)
 
     def test_display_preferences_are_crash_hardened(self):
         activity = X11_MAIN_ACTIVITY.read_text(encoding="utf-8")

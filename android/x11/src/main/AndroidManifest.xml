@@ -30,7 +30,7 @@
             android:parentActivityName="com.termux.x11.MainActivity"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="false"
-            android:theme="@style/Theme.AppCompat.DayNight" />
+            android:theme="@style/AlpineDisplay.PreferencesTheme" />
 
         <service
             android:name="com.termux.x11.utils.KeyInterceptor"

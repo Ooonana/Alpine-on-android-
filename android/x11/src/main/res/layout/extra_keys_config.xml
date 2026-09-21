@@ -7,6 +7,7 @@
     android:paddingBottom="20dp"
     android:paddingLeft="20dp"
     android:paddingRight="20dp"
+    android:background="@color/alpine_display_panel"
     android:orientation="vertical">
     <EditText
         android:id="@+id/extra_keys_config"
@@ -16,6 +17,9 @@
         android:inputType="textMultiLine"
         android:lines="10"
         android:minLines="5"
+        android:backgroundTint="@color/alpine_display_green"
+        android:textColor="@color/alpine_display_white"
+        android:textColorHint="@color/alpine_display_muted"
         android:textSize="16sp"
         android:scrollHorizontally="true"
         android:scrollbars="vertical"
@@ -25,6 +29,7 @@
         android:id="@+id/extra_keys_config_description"
         android:text="@string/extra_keys_config_desc"
         android:textSize="18sp"
+        android:textColor="@color/alpine_display_muted"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 

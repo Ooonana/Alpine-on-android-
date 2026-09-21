@@ -66,7 +66,6 @@ import com.termux.x11.utils.FullscreenWorkaround;
 import com.termux.x11.utils.KeyInterceptor;
 import com.termux.x11.utils.SamsungDexUtils;
 import com.termux.x11.utils.TermuxX11ExtraKeys;
-import com.termux.x11.utils.X11ToolbarViewPager;
 
 
 @SuppressLint("ApplySharedPref")
@@ -721,30 +720,22 @@ public class MainActivity extends AppCompatActivity {
 
     private void setTerminalToolbarView() {
         final ViewPager pager = getTerminalToolbarViewPager();
-        ViewGroup parent = (ViewGroup) pager.getParent();
 
-        boolean showNow = LorieView.connected() && prefs.showAdditionalKbd.get() && prefs.additionalKbdVisible.get();
-
-        pager.setVisibility(showNow ? View.VISIBLE : View.INVISIBLE);
-
-        if (showNow) {
-            pager.setAdapter(new X11ToolbarViewPager.PageAdapter(this, (v, k, e) -> mInputHandler.sendKeyEvent(e)));
-            pager.clearOnPageChangeListeners();
-            pager.addOnPageChangeListener(new X11ToolbarViewPager.OnPageChangeListener(this, pager));
-            pager.bringToFront();
-        } else {
-            parent.removeView(pager);
-            parent.addView(pager, 0);
-            if (mExtraKeys != null)
-                mExtraKeys.unsetSpecialKeys();
-        }
+        // Alpine Display owns the full graphical surface. The embedded Termux:X11
+        // extra-key pager is useful in the standalone upstream app, but here it
+        // overlays the Linux desktop and duplicates the Alpine terminal controls.
+        // Keep it completely out of the Display activity regardless of persisted
+        // upstream preferences from older installs.
+        pager.setVisibility(View.GONE);
+        pager.setAdapter(null);
+        pager.clearOnPageChangeListeners();
+        if (mExtraKeys != null)
+            mExtraKeys.unsetSpecialKeys();
 
         ViewGroup.LayoutParams layoutParams = pager.getLayoutParams();
-        layoutParams.height = Math.round(37.5f * getResources().getDisplayMetrics().density *
-                (TermuxX11ExtraKeys.getExtraKeysInfo() == null ? 0 : TermuxX11ExtraKeys.getExtraKeysInfo().getMatrix().length));
+        layoutParams.height = 0;
         pager.setLayoutParams(layoutParams);
-
-        frm.setPadding(0, 0, 0, prefs.adjustHeightForEK.get() && showNow ? layoutParams.height : 0);
+        frm.setPadding(0, 0, 0, 0);
         getLorieView().requestFocus();
     }
 

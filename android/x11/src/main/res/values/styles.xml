@@ -28,6 +28,51 @@
         <item name="android:background">@drawable/alpine_display_action_primary</item>
         <item name="android:textColor">@color/alpine_display_black</item>
     </style>
+
+    <!-- Keep every Display settings surface on the same black/white/green palette. -->
+    <style name="AlpineDisplay.PreferencesTheme" parent="@style/Theme.AppCompat.DayNight">
+        <item name="colorPrimary">@color/alpine_display_black</item>
+        <item name="colorPrimaryDark">@color/alpine_display_black</item>
+        <item name="colorAccent">@color/alpine_display_green</item>
+        <item name="colorControlNormal">@color/alpine_display_muted</item>
+        <item name="colorControlActivated">@color/alpine_display_green</item>
+        <item name="colorControlHighlight">@color/alpine_display_panel_pressed</item>
+        <item name="android:colorAccent">@color/alpine_display_green</item>
+        <item name="android:colorControlNormal">@color/alpine_display_muted</item>
+        <item name="android:colorControlActivated">@color/alpine_display_green</item>
+        <item name="android:textColorPrimary">@color/alpine_display_white</item>
+        <item name="android:textColorSecondary">@color/alpine_display_muted</item>
+        <item name="android:textColorHighlight">@color/alpine_display_panel_pressed</item>
+        <item name="android:windowBackground">@color/alpine_display_black</item>
+        <item name="android:statusBarColor">@color/alpine_display_black</item>
+        <item name="android:navigationBarColor">@color/alpine_display_black</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="actionBarStyle">@style/AlpineDisplay.ActionBar</item>
+        <item name="alertDialogTheme">@style/AlpineDisplay.DialogTheme</item>
+        <item name="android:alertDialogTheme">@style/AlpineDisplay.DialogTheme</item>
+    </style>
+
+    <style name="AlpineDisplay.ActionBar" parent="@style/Widget.AppCompat.ActionBar.Solid">
+        <item name="background">@color/alpine_display_black</item>
+        <item name="titleTextStyle">@style/AlpineDisplay.ActionBar.Title</item>
+    </style>
+
+    <style name="AlpineDisplay.ActionBar.Title" parent="@style/TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:textColor">@color/alpine_display_white</item>
+        <item name="android:fontFamily">monospace</item>
+    </style>
+
+    <style name="AlpineDisplay.DialogTheme" parent="@style/Theme.AppCompat.DayNight.Dialog.Alert">
+        <item name="colorAccent">@color/alpine_display_green</item>
+        <item name="colorControlActivated">@color/alpine_display_green</item>
+        <item name="android:colorAccent">@color/alpine_display_green</item>
+        <item name="android:colorControlActivated">@color/alpine_display_green</item>
+        <item name="android:textColorPrimary">@color/alpine_display_white</item>
+        <item name="android:textColorSecondary">@color/alpine_display_muted</item>
+        <item name="android:windowBackground">@color/alpine_display_panel</item>
+        <item name="android:fontFamily">monospace</item>
+    </style>
     <style name="Preference.Category.Material">
         <item name="android:layout">@layout/preference_category_material</item>
         <item name="allowDividerAbove">true</item>
