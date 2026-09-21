@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="32dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.14"
+            android:text="@string/display_brand"
+            android:textColor="@color/alpine_display_muted"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_marginTop="22dp"
+            android:contentDescription="@string/display_logo_description"
+            android:src="@drawable/ic_alpine_display" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:letterSpacing="0.06"
+            android:text="@string/display_startup_failed"
+            android:textColor="@color/alpine_display_white"
+            android:textSize="19sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="44dp"
+            android:layout_height="2dp"
+            android:layout_marginTop="14dp"
+            android:background="@color/alpine_display_green" />
+
+        <TextView
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:lineSpacingExtra="2dp"
+            android:text="@string/display_startup_failed_hint"
+            android:textColor="@color/alpine_display_muted"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/help_button"
+            style="@style/AlpineDisplay.ActionButton"
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/help_button_text" />
+
+        <Button
+            android:id="@+id/exit_button"
+            style="@style/AlpineDisplay.PrimaryButton"
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/exit_button_text" />
+    </LinearLayout>
+</ScrollView>

@@ -12,6 +12,8 @@ START_X11 = ROOTFS / "usr/local/bin/start-x11"
 INSTALL_DESKTOP = ROOTFS / "usr/local/bin/install-desktop"
 START_DESKTOP = ROOTFS / "usr/local/bin/start-desktop"
 NSSWITCH = ROOTFS / "etc/nsswitch.conf"
+HOST_MOTD = OVERLAY / "etc/motd"
+ROOTFS_MOTD = ROOTFS / "etc/motd"
 INSTALLER = ROOT / "android/app/src/main/java/com/alpine/app/AlpineInstaller.java"
 APP_BUILD = ROOT / "android/app/build.gradle"
 ALPINE_SHARED_BUILD = ROOT / "android/alpine-shared/build.gradle"
@@ -27,6 +29,16 @@ X11_MAIN_ACTIVITY = ROOT / "android/x11/src/main/java/com/termux/x11/MainActivit
 X11_PREFERENCES = ROOT / "android/x11/src/main/java/com/termux/x11/LoriePreferences.java"
 X11_VIEW = ROOT / "android/x11/src/main/java/com/termux/x11/LorieView.java"
 X11_TOUCH = ROOT / "android/x11/src/main/java/com/termux/x11/input/TouchInputHandler.java"
+X11_LAYOUT = ROOT / "android/x11/src/main/res/layout/main_activity.xml"
+X11_ERROR_LAYOUT = ROOT / "android/x11/src/main/res/layout/main_activity_error.xml"
+X11_STYLES = ROOT / "android/x11/src/main/res/values/styles.xml"
+X11_STRINGS = ROOT / "android/x11/src/main/res/values/strings.xml"
+X11_COLORS = ROOT / "android/x11/src/main/res/values/colors.xml"
+X11_DISPLAY_LOGO = ROOT / "android/x11/src/main/res/drawable/ic_alpine_display.xml"
+X11_NOTIFICATION_LOGO = ROOT / "android/x11/src/main/res/drawable/ic_alpine_display_notification.xml"
+TERMINAL_LOGO = ROOT / "android/app/src/main/res/drawable/ic_foreground.xml"
+X11_CMD_ENTRYPOINT = ROOT / "android/x11/src/main/java/com/termux/x11/CmdEntryPoint.java"
+X11_NATIVE_LIB = ROOT / "android/x11/src/main/jniLibs/arm64-v8a/libXlorie.so"
 JITPACK = ROOT / "android/jitpack.yml"
 ROOTFS_BUILDER = ROOT / "scripts/v68_rootfs.py"
 PREPARE = ROOT / "scripts/prepare-v68-bootstrap.py"
@@ -68,12 +80,12 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         build = APP_BUILD.read_text(encoding="utf-8")
         builder = ROOTFS_BUILDER.read_text(encoding="utf-8")
         prepare = PREPARE.read_text(encoding="utf-8")
-        self.assertIn('BOOTSTRAP_VERSION = "v68.2"', installer)
-        self.assertIn("versionCode 138", build)
-        self.assertIn('versionName "0.135.2-v68-dev"', build)
+        self.assertIn('BOOTSTRAP_VERSION = "v68.3"', installer)
+        self.assertIn("versionCode 139", build)
+        self.assertIn('versionName "0.135.3-v68-dev"', build)
         self.assertIn('ALPINE_VERSION = "3.23.6"', builder)
-        self.assertIn('b"v68.2\\n"', builder)
-        self.assertIn('b"v68.2\\n"', prepare)
+        self.assertIn('b"v68.3\\n"', builder)
+        self.assertIn('b"v68.3\\n"', prepare)
 
     def test_v68_build_toolchain_defaults_match_validated_build(self):
         properties = GRADLE_PROPERTIES.read_text(encoding="utf-8")
@@ -142,6 +154,157 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         for path in (X11_MAIN_ACTIVITY, X11_PREFERENCES, X11_VIEW, X11_TOUCH):
             text = path.read_text(encoding="utf-8")
             self.assertNotIn("@RequiresApi(Build.VERSION_CODES.O)", text, path)
+
+    def test_v68_3_hotfix_migrates_v68_1_and_v68_2_in_place(self):
+        installer = INSTALLER.read_text(encoding="utf-8")
+        self.assertIn('PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2" }', installer)
+        self.assertIn("V68_HOTFIX_PATCH_FILES", installer)
+        for path in (
+            '"etc/bash.bashrc"',
+            'ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11"',
+            '"etc/motd"',
+            'ROOTFS_RELATIVE_PATH + "/etc/motd"',
+            'ROOTFS_RELATIVE_PATH + "/etc/alpine-bootstrap-version"',
+            '"etc/alpine-bootstrap-version"',
+        ):
+            self.assertIn(path, installer)
+        self.assertIn("applyV68HotfixInPlacePatch", installer)
+        self.assertIn("replacePatchFile", installer)
+        self.assertIn("installedBootstrapLooksUsable() || isV68HotfixInPlacePatchCandidate()", installer)
+        self.assertIn("v68HotfixUnchangedRuntimeLooksUsable()", installer)
+        self.assertIn("cleanupV68HotfixPatchArtifacts()", installer)
+        self.assertIn("packages, user configuration, and /root data", installer)
+        self.assertLess(
+            installer.index("applyV68HotfixInPlacePatch();"),
+            installer.index('deletePathOrThrow("staging", ALPINE_STAGING_PREFIX_DIR_PATH, true)'),
+        )
+
+    def test_v68_3_startup_banner_and_gui_hint_are_tracked(self):
+        host = HOST_MOTD.read_text(encoding="utf-8")
+        rootfs = ROOTFS_MOTD.read_text(encoding="utf-8")
+        self.assertEqual(host, rootfs)
+        self.assertIn("Alpine on Android by Ooonana", rootfs)
+        self.assertIn("Made with Gemini 3 (base) + GPT-5.5 + GPT-5.6 Sol (final touches)", rootfs)
+        self.assertTrue(
+            rootfs.rstrip().endswith(
+                "GUI desktop: run install-desktop to install one, then start-desktop to launch it."
+            )
+        )
+
+    def test_display_shell_matches_terminal_and_has_startup_fallback(self):
+        activity = X11_MAIN_ACTIVITY.read_text(encoding="utf-8")
+        layout = X11_LAYOUT.read_text(encoding="utf-8")
+        fallback = X11_ERROR_LAYOUT.read_text(encoding="utf-8")
+        styles = X11_STYLES.read_text(encoding="utf-8")
+        strings = X11_STRINGS.read_text(encoding="utf-8")
+
+        self.assertIn("@color/alpine_display_black", layout)
+        self.assertIn("@drawable/ic_alpine_display", layout)
+        self.assertIn("@style/AlpineDisplay.ActionButton", layout)
+        self.assertIn("@style/AlpineDisplay.PrimaryButton", layout)
+        self.assertNotIn("@drawable/ic_x11_icon", layout)
+        self.assertIn("R.drawable.ic_alpine_display_notification", activity)
+        self.assertFalse((ROOT / "android/x11/src/main/res/drawable/ic_x11_icon.xml").exists())
+        self.assertIn('<item name="android:windowBackground">@color/alpine_display_black</item>', styles)
+        self.assertIn('<item name="android:colorAccent">@color/alpine_display_green</item>', styles)
+        self.assertIn("$ start-desktop", strings)
+        self.assertIn("Back to terminal", strings)
+
+        self.assertNotIn("Integer.parseInt(prefs.touchMode.get())", activity)
+        self.assertIn("catch (android.view.InflateException | LinkageError e)", activity)
+        self.assertIn("R.layout.main_activity_error", activity)
+        self.assertIn("receiverRegistered", activity)
+        self.assertIn("updateDisplayNotification()", activity)
+        self.assertNotIn("com.termux.x11.LorieView", fallback)
+        self.assertIn("display_startup_failed", fallback)
+
+    def test_display_branding_matches_terminal_identity(self):
+        terminal_logo = TERMINAL_LOGO.read_text(encoding="utf-8")
+        display_logo = X11_DISPLAY_LOGO.read_text(encoding="utf-8")
+        notification_logo = X11_NOTIFICATION_LOGO.read_text(encoding="utf-8")
+        colors = X11_COLORS.read_text(encoding="utf-8")
+
+        # Display keeps Alpine's terminal visual language: black, white and green,
+        # and reuses the exact >_ prompt geometry instead of an X11/window badge.
+        for path_data in (
+            'android:pathData="M34,38',
+            'android:pathData="M56,66',
+        ):
+            self.assertIn(path_data, terminal_logo)
+            self.assertIn(path_data, display_logo)
+            self.assertIn(path_data, notification_logo)
+        self.assertNotIn("strokeColor", display_logo)
+        self.assertNotIn("strokeColor", notification_logo)
+        self.assertIn('<color name="alpine_display_black">#FF000000</color>', colors)
+        self.assertIn('<color name="alpine_display_white">#FFFFFFFF</color>', colors)
+        self.assertIn('<color name="alpine_display_green">#FF00FF66</color>', colors)
+        self.assertNotIn("alpine_display_red", colors)
+        self.assertNotIn("#FFFF0000", colors)
+
+    def test_display_backend_handoff_is_complete_and_pinned(self):
+        launcher = BASHRC.read_text(encoding="utf-8")
+        start_x11 = START_X11.read_text(encoding="utf-8")
+        alpine_activity = ALPINE_ACTIVITY.read_text(encoding="utf-8")
+        cmd_entry = X11_CMD_ENTRYPOINT.read_text(encoding="utf-8")
+        activity = X11_MAIN_ACTIVITY.read_text(encoding="utf-8")
+        view = X11_VIEW.read_text(encoding="utf-8")
+        prepare = PREPARE.read_text(encoding="utf-8")
+
+        # Guest /tmp is intentionally the host-prefix tmp through --shared-tmp,
+        # so start-x11's request is consumed by the host bridge.
+        self.assertIn("--shared-tmp", launcher)
+        self.assertIn('request_file="/tmp/alpine-x11-request"', start_x11)
+        self.assertIn('request_file="$TMPDIR/alpine-x11-request"', launcher)
+        self.assertIn('"$PREFIX/bin/termux-x11" "$display"', launcher)
+        self.assertIn(r'START_DISPLAY_COMMAND = "start-x11 :1 --no-open\n"', alpine_activity)
+
+        # The embedded launcher enters CmdEntryPoint, broadcasts its Binder, and
+        # MainActivity transfers the X connection fd into native LorieView.
+        self.assertIn('ACTION_START = "com.termux.x11.CmdEntryPoint.ACTION_START"', cmd_entry)
+        self.assertIn("bundle.putBinder(null, this)", cmd_entry)
+        self.assertIn("sendBroadcastDelayed()", cmd_entry)
+        self.assertIn("onReceiveConnection(intent)", activity)
+        self.assertIn("service.getXConnection()", activity)
+        self.assertIn("LorieView.connect(fd.detachFd())", activity)
+        self.assertIn("LorieView.requestConnection()", activity)
+        self.assertIn('System.loadLibrary("Xlorie")', view)
+
+        # libXlorie is prebuilt, so pin the exact blob and the host app_process
+        # launcher that selects com.alpine and CmdEntryPoint.
+        self.assertEqual(
+            hashlib.sha256(X11_NATIVE_LIB.read_bytes()).hexdigest(),
+            "5ad7e186ae39af3e3ff2babab80e6c599ce71376a786d1d413f20a271073afb1",
+        )
+        self.assertIn(
+            'TERMUX_X11_LAUNCHER_SHA256 = "596ed18e0b6896b8293ddb4e2bcc0705ae07b8c82266f6bca5f1041e3b2e737e"',
+            prepare,
+        )
+        self.assertIn("Embedded termux-x11 launcher changed unexpectedly", prepare)
+        self.assertIn("b'TERMUX_X11_OVERRIDE_PACKAGE=\"com.alpine\"'", prepare)
+        self.assertIn('b"com.termux.x11.CmdEntryPoint"', prepare)
+
+    def test_display_preferences_are_crash_hardened(self):
+        activity = X11_MAIN_ACTIVITY.read_text(encoding="utf-8")
+        view = X11_VIEW.read_text(encoding="utf-8")
+        preferences = X11_PREFERENCES.read_text(encoding="utf-8")
+
+        self.assertNotIn("Integer.parseInt(prefs.touchMode.get())", activity)
+        self.assertNotIn("Integer.parseInt(prefs.touchMode.get())", preferences)
+        self.assertIn("safeResolution", view)
+        self.assertIn("Math.max(30, Math.min(300, prefs.displayScale.get()))", view)
+        self.assertIn("parts.length != 2", view)
+        self.assertIn("width > maxDimension || height > maxDimension", view)
+        self.assertIn('value.split("x", -1)', preferences)
+        self.assertIn("width > 8192 || height > 8192", preferences)
+
+    def test_start_x11_can_reopen_activity_when_server_is_already_running(self):
+        start_x11 = START_X11.read_text(encoding="utf-8")
+        activity_request = 'if [ "$open_activity" = "1" ]; then'
+        existing_socket = 'if [ -S "$socket_path" ]; then'
+        self.assertIn(activity_request, start_x11)
+        self.assertIn(existing_socket, start_x11)
+        self.assertLess(start_x11.index(activity_request), start_x11.index(existing_socket))
+        self.assertIn('mv "$activity_request_tmp" "$activity_request_file"', start_x11)
 
     def test_desktop_installer_still_supports_all_choices(self):
         installer = INSTALL_DESKTOP.read_text(encoding="utf-8")

@@ -29,7 +29,7 @@ python3 scripts/prepare-v68-bootstrap.py
 
 The downloader verifies size and SHA-256 and restores the recovered host-prefix bootstrap to `android/app/src/main/cpp/bootstrap-aarch64.zip`. The preparation step then refreshes the host PRoot runtime to pinned Termux PRoot 5.1.107.92, deterministically rebuilds the nested Alpine rootfs from pinned Alpine 3.23.6 inputs, applies the tracked V68 integration overlay, repairs rootfs symlinks, and verifies the result before replacing the build input.
 
-V68.2 retains the embedded PRoot-Distro 4.38.0 login path, but its public CLI is restricted to `login`, `list`, and `help`; install/reset/restore/copy and the other mutating management commands are disabled because Alpine-on-Android ships and upgrades its own prepared rootfs.
+V68.3 retains the embedded PRoot-Distro 4.38.0 login path, but its public CLI is restricted to `login`, `list`, and `help`; install/reset/restore/copy and the other mutating management commands are disabled because Alpine-on-Android ships its own prepared rootfs. V68.3 migrates V68.1/V68.2 installations in place: only bootstrap-owned launcher/display/banner files and the two version markers are replaced, so packages installed with `apk`, Alpine `/etc` changes outside those owned files, and files under `/root` are preserved.
 
 The current Windows development checkout has been validated with JDK 17, Android Gradle Plugin 8.13.2, compileSdk 36, Gradle 9.3.1, and NDK 27.1.12297006. Those validated versions remain the V68 build defaults. The project still targets Android 28 and arm64-v8a for compatibility with the recovered app/runtime architecture. Local SDK/NDK paths remain machine-specific and should not be committed.
 

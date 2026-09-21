@@ -1,0 +1,18 @@
+       _____________
+      |  __    __  |
+      | /  \  /  \ |
+     /|            |\
+      |   \____/   |
+      |____________|
+         |     |
+
+Alpine on Android by Ooonana
+Made with Gemini 3 (base) + GPT-5.5 + GPT-5.6 Sol (final touches)
+
+Working with Alpine packages (apk):
+ - Search:  apk search <query>
+ - Install: apk add <package>
+ - Update:  apk update
+ - Upgrade: apk upgrade
+
+GUI desktop: run install-desktop to install one, then start-desktop to launch it.

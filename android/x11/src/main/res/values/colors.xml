@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="alpine_display_black">#FF000000</color>
+    <color name="alpine_display_panel">#FF080808</color>
+    <color name="alpine_display_panel_pressed">#FF002811</color>
+    <color name="alpine_display_border">#FF303030</color>
+    <color name="alpine_display_white">#FFFFFFFF</color>
+    <color name="alpine_display_muted">#FF9E9E9E</color>
+    <color name="alpine_display_green">#FF00FF66</color>
+</resources>

@@ -32,7 +32,7 @@ RECOVERED_SHA256 = "af4107177ffa0f0e4dd16b5f5d33f0543ef1b342e654ce4a7a42187b5bbf
 # Hash of every preserved host-prefix ZIP entry, excluding the Alpine rootfs,
 # SYMLINKS.txt, and tracked V68 host-overlay paths. This permits safe reruns after
 # rootfs/overlay edits without retaining a second 205 MB recovery copy.
-RECOVERED_HOST_LINEAGE_SHA256 = "2f81f65a64710234ab212ddf7e8b347a3e32c2a24b59ea788a6f5f0263b349da"
+RECOVERED_HOST_LINEAGE_SHA256 = "cdbb2c13bda6d46109312f2c9c3acc822be6932c595dad4395d89210e09159a0"
 
 # Obsolete V65-era host helpers that are no longer part of the V68 launch path.
 # They are preserved in Git/recovery history, but omitted from new V68 bootstraps.
@@ -45,7 +45,7 @@ MODES_NAME = "MODES.txt"
 SYMLINK_DELIMITER = "←"
 
 TEXT_OVERLAY_SUFFIXES = {".sh", ".conf", ".rc"}
-TEXT_OVERLAY_NAMES = {"bash.bashrc", "proot-distro", "nsswitch.conf", "start-x11", "install-desktop", "start-desktop"}
+TEXT_OVERLAY_NAMES = {"bash.bashrc", "proot-distro", "nsswitch.conf", "motd", "start-x11", "install-desktop", "start-desktop"}
 FIXED_ZIP_TIME = (2026, 6, 13, 0, 0, 0)
 
 
@@ -69,7 +69,7 @@ def overlay_entries() -> dict[str, bytes]:
     for path in sorted(OVERLAY.rglob("*")):
         if path.is_file():
             result[path.relative_to(OVERLAY).as_posix()] = overlay_bytes(path)
-    result[TOP_VERSION_MARKER] = b"v68.2\n"
+    result[TOP_VERSION_MARKER] = b"v68.3\n"
     return result
 
 
@@ -175,7 +175,7 @@ def _prepared_payload() -> tuple[dict[str, tuple[bytes | None, bool, int]], dict
             else:
                 mode = 0o644
             rootfs[name] = (data, False, mode)
-    rootfs[ROOTFS_VERSION_MARKER] = (b"v68.2\n", False, 0o644)
+    rootfs[ROOTFS_VERSION_MARKER] = (b"v68.3\n", False, 0o644)
     return rootfs, overlays, v68_rootfs.rootfs_symlink_lines(rootfs_symlinks)
 
 
@@ -205,6 +205,7 @@ def _updated_symlinks(existing: bytes, rootfs_lines: list[str]) -> bytes:
 
 
 PROOT_DISTRO_LOGIN_SHA256 = "9ba2ea50600a84e87d6849c1611b9f2978acfc6de7e94a267d3c56d189203b2f"
+TERMUX_X11_LAUNCHER_SHA256 = "596ed18e0b6896b8293ddb4e2bcc0705ae07b8c82266f6bca5f1041e3b2e737e"
 
 
 def _verify_restricted_proot_distro(data: bytes) -> None:
@@ -349,6 +350,17 @@ def verify_prepared(path: Path) -> None:
                 raise RuntimeError(f"Legacy Termux RUNPATH remains in {name}")
             if b"/data/data/com.alpine/files/usr/lib" not in data:
                 raise RuntimeError(f"Alpine RUNPATH not found in {name}")
+        termux_x11 = archive.read("bin/termux-x11")
+        if hashlib.sha256(termux_x11).hexdigest() != TERMUX_X11_LAUNCHER_SHA256:
+            raise RuntimeError("Embedded termux-x11 launcher changed unexpectedly")
+        for marker in (
+            b'TERMUX_X11_OVERRIDE_PACKAGE="com.alpine"',
+            b"com.termux.x11.CmdEntryPoint",
+            b"/system/bin/app_process",
+        ):
+            if marker not in termux_x11:
+                raise RuntimeError(f"Embedded termux-x11 launcher is missing required marker: {marker!r}")
+
         proot_distro = archive.read("bin/proot-distro")
         _verify_restricted_proot_distro(proot_distro)
 

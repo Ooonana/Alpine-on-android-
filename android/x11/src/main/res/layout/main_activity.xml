@@ -3,8 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@android:color/black">
+    android:layout_height="match_parent">
 
     <FrameLayout
         android:id="@+id/frame"
@@ -12,107 +11,156 @@
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:layoutDirection="ltr"
-        android:paddingLeft="0dp"
-        android:paddingTop="0dp"
-        android:paddingRight="0dp"
-        android:paddingBottom="0dp"
-        android:background="@android:color/black">
+        android:background="@color/alpine_display_black">
 
         <com.termux.x11.LorieView
             android:id="@+id/lorieView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:visibility="visible"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:visibility="visible" />
 
-        <LinearLayout
+        <ScrollView
             android:id="@+id/stub"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@android:color/black"
-            android:gravity="center_horizontal|center_vertical"
-            android:orientation="vertical"
+            android:background="@color/alpine_display_black"
+            android:fillViewport="true"
+            android:scrollbars="none"
             android:visibility="visible">
 
-            <ImageView
-                android:id="@+id/x11_image"
-                android:layout_width="130dp"
-                android:layout_height="130dp"
-                android:scaleType="fitCenter"
-                app:srcCompat="@drawable/ic_x11_icon"
-                android:contentDescription="@string/display_logo_description" />
-
-            <Space
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minHeight="20dp" />
+                android:layout_gravity="center"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingLeft="32dp"
+                android:paddingTop="32dp"
+                android:paddingRight="32dp"
+                android:paddingBottom="32dp">
 
-            <TextView
-                android:id="@+id/textView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_horizontal|center_vertical"
-                android:text="@string/not_connected"
-                android:textColor="#FFFFFF"
-                android:textSize="20sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.14"
+                    android:text="@string/display_brand"
+                    android:textColor="@color/alpine_display_muted"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
 
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="40dp" />
+                <ImageView
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_marginTop="22dp"
+                    android:contentDescription="@string/display_logo_description"
+                    android:src="@drawable/ic_alpine_display" />
 
-            <Button
-                android:id="@+id/preferences_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/preferences_button_text" />
+                <TextView
+                    android:id="@+id/textView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="22dp"
+                    android:fontFamily="monospace"
+                    android:gravity="center"
+                    android:letterSpacing="0.08"
+                    android:text="@string/not_connected"
+                    android:textColor="@color/alpine_display_white"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
 
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="10dp" />
+                <View
+                    android:layout_width="44dp"
+                    android:layout_height="2dp"
+                    android:layout_marginTop="14dp"
+                    android:background="@color/alpine_display_green" />
 
-            <Button
-                android:id="@+id/help_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/help_button_text" />
+                <TextView
+                    android:layout_width="280dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:fontFamily="monospace"
+                    android:gravity="center"
+                    android:lineSpacingExtra="2dp"
+                    android:text="@string/display_waiting_hint"
+                    android:textColor="@color/alpine_display_muted"
+                    android:textSize="13sp" />
 
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="10dp" />
+                <TextView
+                    android:layout_width="280dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/alpine_display_panel"
+                    android:fontFamily="monospace"
+                    android:gravity="center_vertical"
+                    android:paddingLeft="16dp"
+                    android:paddingTop="12dp"
+                    android:paddingRight="16dp"
+                    android:paddingBottom="12dp"
+                    android:text="@string/display_waiting_command"
+                    android:textColor="@color/alpine_display_white"
+                    android:textSize="14sp" />
 
-            <Button
-                android:id="@+id/exit_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/exit_button_text" />
-        </LinearLayout>
+                <LinearLayout
+                    android:layout_width="280dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:orientation="vertical">
 
+                    <Button
+                        android:id="@+id/preferences_button"
+                        style="@style/AlpineDisplay.ActionButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/preferences_button_text" />
 
+                    <Button
+                        android:id="@+id/help_button"
+                        style="@style/AlpineDisplay.ActionButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/help_button_text" />
+
+                    <Button
+                        android:id="@+id/exit_button"
+                        style="@style/AlpineDisplay.PrimaryButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/exit_button_text" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.08"
+                    android:text="@string/display_waiting_meta"
+                    android:textColor="@color/alpine_display_muted"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </ScrollView>
     </FrameLayout>
 
     <LinearLayout
         android:id="@+id/mouse_helper_visibility"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:translationX="0px"
         android:translationY="0px">
 
         <Button
             android:id="@+id/button_visibility"
+            style="@style/AlpineDisplay.ActionButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:minWidth="48dp"
             android:minHeight="48dp"
-            android:padding="0px"
-            android:paddingStart="0px"
-            android:paddingLeft="0px"
-            android:paddingTop="0px"
-            android:paddingEnd="0px"
-            android:paddingRight="0px"
-            android:paddingBottom="0px"
+            android:padding="0dp"
             android:text="X"
             android:textSize="12sp"
             tools:ignore="HardcodedText,PxUsage,SmallSp" />
@@ -121,58 +169,44 @@
             android:id="@+id/mouse_helper_secondary_layer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:orientation="horizontal"
             tools:visibility="visible">
 
             <Button
                 android:id="@+id/button_left_click"
+                style="@style/AlpineDisplay.ActionButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:minWidth="48dp"
                 android:minHeight="48dp"
-                android:padding="0px"
-                android:paddingStart="0px"
-                android:paddingLeft="0px"
-                android:paddingTop="0px"
-                android:paddingEnd="0px"
-                android:paddingRight="0px"
-                android:paddingBottom="0px"
+                android:padding="0dp"
                 android:text="L"
                 android:textSize="12sp"
-                tools:ignore="HardcodedText,PxUsage,SmallSp" />
+                tools:ignore="ButtonStyle,HardcodedText,SmallSp" />
 
             <Button
                 android:id="@+id/button_middle_click"
+                style="@style/AlpineDisplay.ActionButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:minWidth="48dp"
                 android:minHeight="48dp"
-                android:padding="0px"
-                android:paddingStart="0px"
-                android:paddingLeft="0px"
-                android:paddingTop="0px"
-                android:paddingEnd="0px"
-                android:paddingRight="0px"
-                android:paddingBottom="0px"
+                android:padding="0dp"
                 android:text="M"
                 android:textSize="12sp"
-                tools:ignore="HardcodedText,PxUsage,SmallSp" />
+                tools:ignore="ButtonStyle,HardcodedText,SmallSp" />
 
             <Button
                 android:id="@+id/button_right_click"
+                style="@style/AlpineDisplay.ActionButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:minWidth="48dp"
                 android:minHeight="48dp"
-                android:padding="0px"
-                android:paddingStart="0px"
-                android:paddingLeft="0px"
-                android:paddingTop="0px"
-                android:paddingEnd="0px"
-                android:paddingRight="0px"
-                android:paddingBottom="0px"
+                android:padding="0dp"
                 android:text="R"
                 android:textSize="12sp"
-                tools:ignore="HardcodedText,PxUsage,SmallSp" />
+                tools:ignore="ButtonStyle,HardcodedText,SmallSp" />
         </LinearLayout>
     </LinearLayout>
 
@@ -180,9 +214,9 @@
         android:id="@+id/mouse_buttons"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center"
+        android:layout_gravity="bottom|center_horizontal"
+        android:alpha="0.86"
         android:orientation="vertical"
-        android:alpha="0.7"
         android:translationX="0px"
         android:translationY="0px">
 
@@ -190,94 +224,77 @@
             android:id="@+id/mouse_buttons_secondary_layer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:orientation="horizontal"
             tools:visibility="visible">
 
             <Button
                 android:id="@+id/mouse_button_left_click"
                 android:layout_width="96dp"
                 android:layout_height="48dp"
+                android:background="@drawable/mouse_buttons"
                 android:minWidth="48dp"
                 android:minHeight="48dp"
-                android:padding="0px"
-                android:paddingStart="0px"
-                android:paddingLeft="0px"
-                android:paddingTop="0px"
-                android:paddingEnd="0px"
-                android:paddingRight="0px"
-                android:paddingBottom="0px"
+                android:padding="0dp"
                 android:text="L"
-                android:textColor="@android:color/black"
-                android:background="@drawable/mouse_buttons"
-                android:textSize="8sp"
-                tools:ignore="HardcodedText,PxUsage,SmallSp" />
+                android:textColor="@color/alpine_display_white"
+                android:textSize="10sp"
+                tools:ignore="ButtonStyle,HardcodedText,SmallSp" />
 
             <Button
                 android:id="@+id/mouse_button_middle_click"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
+                android:background="@drawable/mouse_buttons"
                 android:minWidth="48dp"
                 android:minHeight="48dp"
-                android:padding="0px"
-                android:paddingStart="0px"
-                android:paddingLeft="0px"
-                android:paddingTop="0px"
-                android:paddingEnd="0px"
-                android:paddingRight="0px"
-                android:paddingBottom="0px"
+                android:padding="0dp"
                 android:text="M"
-                android:textColor="@android:color/black"
-                android:background="@drawable/mouse_buttons"
-                android:textSize="8sp"
-                tools:ignore="HardcodedText,PxUsage,SmallSp" />
+                android:textColor="@color/alpine_display_white"
+                android:textSize="10sp"
+                tools:ignore="ButtonStyle,HardcodedText,SmallSp" />
 
             <Button
                 android:id="@+id/mouse_button_right_click"
                 android:layout_width="96dp"
                 android:layout_height="48dp"
+                android:background="@drawable/mouse_buttons"
                 android:minWidth="48dp"
                 android:minHeight="48dp"
-                android:padding="0px"
-                android:paddingStart="0px"
-                android:paddingLeft="0px"
-                android:paddingTop="0px"
-                android:paddingEnd="0px"
-                android:paddingRight="0px"
-                android:paddingBottom="0px"
+                android:padding="0dp"
                 android:text="R"
-                android:textColor="@android:color/black"
-                android:background="@drawable/mouse_buttons"
-                android:textSize="8sp"
-                tools:ignore="HardcodedText,PxUsage,SmallSp" />
+                android:textColor="@color/alpine_display_white"
+                android:textSize="10sp"
+                tools:ignore="ButtonStyle,HardcodedText,SmallSp" />
         </LinearLayout>
 
         <ImageButton
             android:id="@+id/mouse_buttons_position"
             android:layout_width="48dp"
             android:layout_height="48dp"
+            android:layout_gravity="center_horizontal"
+            android:adjustViewBounds="true"
+            android:background="@drawable/mouse_buttons"
+            android:contentDescription="@string/mouse_helper_move_description"
             android:minWidth="48dp"
             android:minHeight="48dp"
-            android:adjustViewBounds="true"
-            android:padding="2dp"
+            android:padding="10dp"
             android:scaleType="fitCenter"
             android:src="@android:drawable/ic_menu_mylocation"
-            android:contentDescription="@string/mouse_helper_move_description"
-            android:layout_gravity="center"
-            android:background="@drawable/mouse_buttons"
-            tools:ignore="HardcodedText,PxUsage,SmallSp" />
+            app:tint="@color/alpine_display_white" />
     </LinearLayout>
 
     <androidx.viewpager.widget.ViewPager
         android:id="@+id/terminal_toolbar_view_pager"
-        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="37.5dp"
-        android:background="@android:color/black"
-        android:layout_gravity="bottom|center"/>
+        android:layout_gravity="bottom|center_horizontal"
+        android:background="@color/alpine_display_black"
+        android:visibility="gone" />
 
     <View
         android:id="@+id/activity_termux_bottom_space_view"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@android:color/transparent"
-        android:layout_gravity="bottom|center" />
+        android:layout_gravity="bottom|center_horizontal"
+        android:background="@android:color/transparent" />
 </FrameLayout>

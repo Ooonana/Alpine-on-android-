@@ -29,7 +29,8 @@ import static com.alpine.shared.alpine.AlpineConstants.*;
 
 final class AlpineInstaller {
     private static final String LOG_TAG = "AlpineInstaller";
-    private static final String BOOTSTRAP_VERSION = "v68.2";
+    private static final String BOOTSTRAP_VERSION = "v68.3";
+    private static final String[] PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2" };
     private static final String BOOTSTRAP_VERSION_FILE_PATH = ALPINE_PREFIX_DIR_PATH + "/etc/alpine-bootstrap-version";
     private static final String BOOTSTRAP_BACKUP_DIR_PATH = ALPINE_PREFIX_DIR_PATH + "-backup";
     private static final File BOOTSTRAP_BACKUP_DIR = new File(BOOTSTRAP_BACKUP_DIR_PATH);
@@ -44,9 +45,11 @@ final class AlpineInstaller {
         "lib/libtalloc.so.2",
         "libexec/proot/loader",
         "etc/bash.bashrc",
+        "etc/motd",
         "etc/alpine-bootstrap-version",
         ROOTFS_RELATIVE_PATH + "/bin/sh",
         ROOTFS_RELATIVE_PATH + "/etc/alpine-release",
+        ROOTFS_RELATIVE_PATH + "/etc/motd",
         ROOTFS_RELATIVE_PATH + "/etc/alpine-bootstrap-version",
         ROOTFS_RELATIVE_PATH + "/sbin/apk",
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11",
@@ -63,11 +66,25 @@ final class AlpineInstaller {
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/install-desktop",
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-desktop"
     };
+    // V68.3 is a non-destructive hotfix for V68.1/V68.2 installations. Only
+    // bootstrap-owned launch/display/banner files and version markers are replaced;
+    // packages, user configuration, and /root data inside Alpine stay untouched.
+    // Runtime files are committed before markers so interrupted migrations retry safely.
+    private static final String[] V68_HOTFIX_PATCH_FILES = {
+        "etc/bash.bashrc",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11",
+        "etc/motd",
+        ROOTFS_RELATIVE_PATH + "/etc/motd",
+        ROOTFS_RELATIVE_PATH + "/etc/alpine-bootstrap-version",
+        "etc/alpine-bootstrap-version"
+    };
+    private static final int[] V68_HOTFIX_PATCH_MODES = { 0600, 0755, 0600, 0644, 0644, 0600 };
 
     static void setupBootstrapIfNeeded(final Activity activity, final Runnable whenDone) {
         if (FileUtils.directoryFileExists(ALPINE_PREFIX_DIR_PATH, true) &&
                 !AlpineFileUtils.isAlpinePrefixDirectoryEmpty() &&
                 installedBootstrapLooksUsable()) {
+            cleanupV68HotfixPatchArtifacts();
             cleanupStaleBackupAsync();
             whenDone.run(); return;
         }
@@ -79,6 +96,18 @@ final class AlpineInstaller {
                 boolean newPrefixActivated = false;
                 try {
                     recoverInterruptedBootstrapInstall();
+                    if (isV68HotfixInPlacePatchCandidate()) {
+                        applyV68HotfixInPlacePatch();
+                        AlpineShellEnvironment.writeEnvironmentToFile(activity);
+                        File environmentFile = new File(AlpineConstants.ALPINE_ENV_FILE_PATH);
+                        if (!environmentFile.isFile() || environmentFile.length() == 0)
+                            throw new IOException("Could not write Alpine shell environment after V68.3 migration");
+                        validateBootstrapDirectory(ALPINE_PREFIX_DIR, true);
+                        cleanupV68HotfixPatchArtifacts();
+                        cleanupStaleBackupAsync();
+                        activity.runOnUiThread(whenDone);
+                        return;
+                    }
                     deletePathOrThrow("staging", ALPINE_STAGING_PREFIX_DIR_PATH, true);
                     ensureBootstrapFreeSpace(activity);
                     final byte[] buffer = new byte[8192];
@@ -219,16 +248,184 @@ final class AlpineInstaller {
         return bootstrapVersionIsCurrent(new File(BOOTSTRAP_VERSION_FILE_PATH));
     }
 
-    private static boolean bootstrapVersionIsCurrent(File marker) {
-        if (!marker.isFile()) return false;
+    private static String readBootstrapVersion(File marker) {
+        if (!marker.isFile()) return null;
         int length = (int) Math.min(marker.length(), 64);
         byte[] data = new byte[length];
         try (FileInputStream in = new FileInputStream(marker)) {
             int read = in.read(data);
-            if (read <= 0) return false;
-            return BOOTSTRAP_VERSION.equals(new String(data, 0, read, StandardCharsets.UTF_8).trim());
+            if (read <= 0) return null;
+            return new String(data, 0, read, StandardCharsets.UTF_8).trim();
         } catch (IOException e) {
-            return false;
+            return null;
+        }
+    }
+
+    private static boolean bootstrapVersionIsCurrent(File marker) {
+        return BOOTSTRAP_VERSION.equals(readBootstrapVersion(marker));
+    }
+
+    private static boolean isPatchableBootstrapVersion(String version) {
+        if (version == null) return false;
+        for (String patchable : PATCHABLE_BOOTSTRAP_VERSIONS) {
+            if (patchable.equals(version)) return true;
+        }
+        return false;
+    }
+
+    private static boolean isV68HotfixInPlacePatchCandidate() {
+        if (!ALPINE_PREFIX_DIR.isDirectory()) return false;
+        String topVersion = readBootstrapVersion(new File(BOOTSTRAP_VERSION_FILE_PATH));
+        String rootVersion = readBootstrapVersion(new File(
+            ALPINE_PREFIX_DIR, ROOTFS_RELATIVE_PATH + "/etc/alpine-bootstrap-version"));
+
+        boolean topSupported = isPatchableBootstrapVersion(topVersion) || BOOTSTRAP_VERSION.equals(topVersion);
+        boolean rootSupported = isPatchableBootstrapVersion(rootVersion) || BOOTSTRAP_VERSION.equals(rootVersion);
+        // Both-current is handled by installedBootstrapLooksUsable(). The mixed-marker
+        // cases are intentionally accepted so a power loss between marker replacements
+        // can resume the same non-destructive patch instead of falling into full reinstall.
+        return topSupported && rootSupported &&
+            !(BOOTSTRAP_VERSION.equals(topVersion) && BOOTSTRAP_VERSION.equals(rootVersion)) &&
+            v68HotfixUnchangedRuntimeLooksUsable();
+    }
+
+    private static boolean v68HotfixUnchangedRuntimeLooksUsable() {
+        for (String relativePath : REQUIRED_BOOTSTRAP_FILES) {
+            if (isV68HotfixPatchFile(relativePath)) continue;
+            if (!new File(ALPINE_PREFIX_DIR, relativePath).isFile()) return false;
+        }
+        for (String relativePath : REQUIRED_EXECUTABLE_FILES) {
+            if (isV68HotfixPatchFile(relativePath)) continue;
+            if (!new File(ALPINE_PREFIX_DIR, relativePath).canExecute()) return false;
+        }
+        return true;
+    }
+
+    private static boolean isV68HotfixPatchFile(String relativePath) {
+        for (String patchPath : V68_HOTFIX_PATCH_FILES) {
+            if (patchPath.equals(relativePath)) return true;
+        }
+        return false;
+    }
+
+    private static void applyV68HotfixInPlacePatch() throws Exception {
+        final File[] tempFiles = new File[V68_HOTFIX_PATCH_FILES.length];
+        final boolean[] found = new boolean[V68_HOTFIX_PATCH_FILES.length];
+        final byte[] buffer = new byte[8192];
+
+        try (ZipInputStream zipInput = new ZipInputStream(loadZipStream())) {
+            ZipEntry zipEntry;
+            while ((zipEntry = zipInput.getNextEntry()) != null) {
+                String entryName = zipEntry.getName();
+                for (int i = 0; i < V68_HOTFIX_PATCH_FILES.length; i++) {
+                    if (!V68_HOTFIX_PATCH_FILES[i].equals(entryName)) continue;
+                    if (found[i] || zipEntry.isDirectory())
+                        throw new IOException("Invalid V68 hotfix patch entry: " + entryName);
+
+                    File target = safeLiveTarget(entryName);
+                    File parent = target.getParentFile();
+                    if (parent == null || (!parent.isDirectory() && !parent.mkdirs()))
+                        throw new IOException("Could not create V68 hotfix patch parent: " + entryName);
+                    File temp = new File(target.getAbsolutePath() + ".v68.3.tmp");
+                    if (temp.exists() && !temp.delete())
+                        throw new IOException("Could not clear stale V68 hotfix patch temp file: " + entryName);
+
+                    try (FileOutputStream out = new FileOutputStream(temp)) {
+                        int read;
+                        while ((read = zipInput.read(buffer)) != -1) out.write(buffer, 0, read);
+                        out.getFD().sync();
+                    }
+                    Os.chmod(temp.getAbsolutePath(), V68_HOTFIX_PATCH_MODES[i]);
+                    tempFiles[i] = temp;
+                    found[i] = true;
+                    break;
+                }
+            }
+        }
+
+        for (int i = 0; i < found.length; i++) {
+            if (!found[i] || tempFiles[i] == null || !tempFiles[i].isFile())
+                throw new IOException("Embedded bootstrap is missing V68 hotfix patch file: " + V68_HOTFIX_PATCH_FILES[i]);
+        }
+
+        // Array order is deliberate: runtime code first, rootfs marker next, top-level
+        // commit marker last. If the process dies early, old/mixed markers cause retry.
+        for (int i = 0; i < V68_HOTFIX_PATCH_FILES.length; i++) {
+            replacePatchFile(safeLiveTarget(V68_HOTFIX_PATCH_FILES[i]), tempFiles[i], V68_HOTFIX_PATCH_MODES[i]);
+        }
+    }
+
+    private static File safeLiveTarget(String relativePath) throws IOException {
+        File liveRoot = ALPINE_PREFIX_DIR.getCanonicalFile();
+        File target = new File(liveRoot, relativePath).getCanonicalFile();
+        String rootPath = liveRoot.getPath() + File.separator;
+        if (!target.getPath().startsWith(rootPath))
+            throw new IOException("V68 hotfix patch path escapes Alpine prefix: " + relativePath);
+        return target;
+    }
+
+    private static void replacePatchFile(File target, File temp, int mode) throws Exception {
+        File backup = new File(target.getAbsolutePath() + ".v68.hotfix.bak");
+        File legacyBackup = new File(target.getAbsolutePath() + ".v68.1.bak");
+
+        // Recover crash windows from this updater and the immediately preceding
+        // V68.2 updater before replacing a bootstrap-owned file.
+        if (!target.exists() && backup.isFile()) {
+            if (!backup.renameTo(target))
+                throw new IOException("Could not restore interrupted V68 hotfix patch backup: " + target);
+        } else if (!target.exists() && legacyBackup.isFile()) {
+            if (!legacyBackup.renameTo(target))
+                throw new IOException("Could not restore interrupted legacy V68 patch backup: " + target);
+        }
+        if (target.exists() && backup.exists() && !backup.delete())
+            throw new IOException("Could not clear stale V68 hotfix patch backup: " + backup);
+        if (target.exists() && legacyBackup.exists() && !legacyBackup.delete())
+            throw new IOException("Could not clear stale legacy V68 patch backup: " + legacyBackup);
+
+        boolean backedUp = false;
+        if (target.exists()) {
+            if (!target.renameTo(backup))
+                throw new IOException("Could not back up V68 hotfix source file before patch: " + target);
+            backedUp = true;
+        }
+
+        boolean replaced = false;
+        try {
+            if (!temp.renameTo(target))
+                throw new IOException("Could not activate V68 hotfix patch file: " + target);
+            Os.chmod(target.getAbsolutePath(), mode);
+            replaced = true;
+        } finally {
+            if (!replaced && backedUp) {
+                if (target.exists()) target.delete();
+                if (backup.exists() && !backup.renameTo(target))
+                    Logger.logError(LOG_TAG, "Could not restore V68 hotfix patch backup: " + target);
+            }
+        }
+
+        if (backup.exists() && !backup.delete())
+            Logger.logWarn(LOG_TAG, "Could not delete V68 hotfix patch backup: " + backup);
+    }
+
+    private static void cleanupV68HotfixPatchArtifacts() {
+        for (String relativePath : V68_HOTFIX_PATCH_FILES) {
+            try {
+                File target = safeLiveTarget(relativePath);
+                File temp = new File(target.getAbsolutePath() + ".v68.3.tmp");
+                File legacyTemp = new File(target.getAbsolutePath() + ".v68.2.tmp");
+                File backup = new File(target.getAbsolutePath() + ".v68.hotfix.bak");
+                File legacyBackup = new File(target.getAbsolutePath() + ".v68.1.bak");
+                if (temp.exists() && !temp.delete())
+                    Logger.logWarn(LOG_TAG, "Could not delete stale V68 hotfix patch temp file: " + temp);
+                if (legacyTemp.exists() && !legacyTemp.delete())
+                    Logger.logWarn(LOG_TAG, "Could not delete stale legacy V68 patch temp file: " + legacyTemp);
+                if (target.exists() && backup.exists() && !backup.delete())
+                    Logger.logWarn(LOG_TAG, "Could not delete stale V68 hotfix patch backup: " + backup);
+                if (target.exists() && legacyBackup.exists() && !legacyBackup.delete())
+                    Logger.logWarn(LOG_TAG, "Could not delete stale legacy V68 patch backup: " + legacyBackup);
+            } catch (IOException e) {
+                Logger.logWarn(LOG_TAG, "Could not clean V68 hotfix patch artifacts: " + e.getMessage());
+            }
         }
     }
 
@@ -287,7 +484,10 @@ final class AlpineInstaller {
             return;
         }
         if (ALPINE_PREFIX_DIR.exists() && BOOTSTRAP_BACKUP_DIR.exists()) {
-            if (installedBootstrapLooksUsable()) {
+            // V68.1/V68.2 prefixes are intentionally patchable by V68.3. Do not discard them
+            // merely because its marker is older than BOOTSTRAP_VERSION; doing so
+            // could restore an even older stale full-install backup and lose user data.
+            if (installedBootstrapLooksUsable() || isV68HotfixInPlacePatchCandidate()) {
                 deletePathBestEffort("stale bootstrap backup", BOOTSTRAP_BACKUP_DIR_PATH);
             } else {
                 deletePathOrThrow("incomplete Alpine prefix", ALPINE_PREFIX_DIR_PATH, false);

@@ -47,7 +47,7 @@ class PrepareV68BootstrapTest(unittest.TestCase):
             prefix + "etc/alpine-release": (b"3.23.6\n", False, 0o644),
             prefix + "usr/lib/os-release": (b"VERSION_ID=3.23.6\n", False, 0o644),
             prefix + "etc/apk/repositories": (prepare.v68_rootfs.OFFICIAL_REPOSITORIES, False, 0o644),
-            prefix + "etc/alpine-bootstrap-version": (b"v68.2\n", False, 0o644),
+            prefix + "etc/alpine-bootstrap-version": (b"v68.3\n", False, 0o644),
             prefix + "sbin/apk": (b"fake-stock-apk", False, 0o755),
             prefix + "usr/share/X11/xkb/rules/base": (b"xkb", False, 0o644),
         }
@@ -55,6 +55,12 @@ class PrepareV68BootstrapTest(unittest.TestCase):
             "var/run": "../run",
             "etc/os-release": "../usr/lib/os-release",
         }
+
+        self.fake_termux_x11 = (
+            b'#!/bin/sh\n'
+            b'export TERMUX_X11_OVERRIDE_PACKAGE="com.alpine"\n'
+            b'exec /system/bin/app_process / com.termux.x11.CmdEntryPoint "$@"\n'
+        )
 
         self.zip_path = self.root / "bootstrap.zip"
         with zipfile.ZipFile(self.zip_path, "w") as z:
@@ -64,6 +70,7 @@ class PrepareV68BootstrapTest(unittest.TestCase):
                 "lib/libtalloc.so.2": b"ELF/data/data/com.termux/files/usr/lib",
                 "lib/libtalloc.so.2.4.3": b"ELF/data/data/com.termux/files/usr/lib",
                 "bin/proot": b"ELF/data/data/com.alpine/files/usr/lib",
+                "bin/termux-x11": self.fake_termux_x11,
                 "bin/start-alpine.sh": b"legacy launcher",
                 "etc/alpine-bootstrap-version": b"v65\n",
                 "SYMLINKS.txt": "host-target←./host-link\n".encode(),
@@ -82,6 +89,7 @@ class PrepareV68BootstrapTest(unittest.TestCase):
             "RECOVERED_SHA256": prepare.RECOVERED_SHA256,
             "RECOVERED_HOST_LINEAGE_SHA256": prepare.RECOVERED_HOST_LINEAGE_SHA256,
             "STOCK_APK_SHA256": prepare.v68_rootfs.STOCK_APK_SHA256,
+            "TERMUX_X11_LAUNCHER_SHA256": prepare.TERMUX_X11_LAUNCHER_SHA256,
             "build_rootfs": prepare.v68_rootfs.build_rootfs,
         }
         prepare.OVERLAY = self.overlay
@@ -89,6 +97,7 @@ class PrepareV68BootstrapTest(unittest.TestCase):
         prepare.RECOVERED_SHA256 = hashlib.sha256(self.zip_path.read_bytes()).hexdigest()
         prepare.v68_rootfs.build_rootfs = lambda: (dict(self.fake_rootfs), dict(self.fake_symlinks))
         prepare.v68_rootfs.STOCK_APK_SHA256 = hashlib.sha256(b"fake-stock-apk").hexdigest()
+        prepare.TERMUX_X11_LAUNCHER_SHA256 = hashlib.sha256(self.fake_termux_x11).hexdigest()
         prepare.RECOVERED_HOST_LINEAGE_SHA256 = prepare.host_lineage_digest(self.zip_path)
 
     def tearDown(self):
@@ -105,7 +114,7 @@ class PrepareV68BootstrapTest(unittest.TestCase):
         prefix = prepare.ROOTFS_PREFIX
         with zipfile.ZipFile(self.zip_path) as z:
             self.assertEqual(z.read("etc/bash.bashrc"), b"#!/bin/sh\necho v68\n")
-            self.assertEqual(z.read("etc/alpine-bootstrap-version"), b"v68.2\n")
+            self.assertEqual(z.read("etc/alpine-bootstrap-version"), b"v68.3\n")
             self.assertEqual(z.read(prefix + "etc/alpine-release"), b"3.23.6\n")
             self.assertEqual(z.read(prefix + "etc/nsswitch.conf"), b"hosts: files dns\n")
             self.assertNotIn(prefix + "old-stale-file", z.namelist())

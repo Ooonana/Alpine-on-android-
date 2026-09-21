@@ -56,7 +56,6 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
-import java.util.regex.PatternSyntaxException;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -616,6 +615,26 @@ public class LorieView extends SurfaceView implements InputStub {
         MainActivity.getInstance().runOnUiThread(() -> mSurfaceCallback.surfaceChanged(getHolder(), PixelFormat.BGRA_8888, r.width(), r.height()));
     }
 
+    private static int[] safeResolution(String value) {
+        final int fallbackWidth = 1280;
+        final int fallbackHeight = 1024;
+        final int maxDimension = 8192;
+        if (value == null) return new int[] { fallbackWidth, fallbackHeight };
+        try {
+            String[] parts = value.toLowerCase(java.util.Locale.ROOT).split("x", -1);
+            if (parts.length != 2)
+                throw new NumberFormatException("resolution must contain one x separator");
+            int width = Integer.parseInt(parts[0].trim());
+            int height = Integer.parseInt(parts[1].trim());
+            if (width <= 0 || height <= 0 || width > maxDimension || height > maxDimension)
+                throw new NumberFormatException("resolution is outside the supported range");
+            return new int[] { width, height };
+        } catch (NumberFormatException e) {
+            Log.w("LorieView", "Ignoring invalid stored display resolution: " + value, e);
+            return new int[] { fallbackWidth, fallbackHeight };
+        }
+    }
+
     void getDimensionsFromSettings() {
         Prefs prefs = MainActivity.getPrefs();
         int width = getMeasuredWidth();
@@ -624,26 +643,23 @@ public class LorieView extends SurfaceView implements InputStub {
         int h = height;
         switch(prefs.displayResolutionMode.get()) {
             case "scaled": {
-                int scale = prefs.displayScale.get();
+                // Preference UI constrains this to 30..300, but old installs or the
+                // preference broadcast API may contain an out-of-range integer.
+                int scale = Math.max(30, Math.min(300, prefs.displayScale.get()));
                 w = width * 100 / scale;
                 h = height * 100 / scale;
                 break;
             }
             case "exact": {
-                String[] resolution = prefs.displayResolutionExact.get().split("x");
-                w = Integer.parseInt(resolution[0]);
-                h = Integer.parseInt(resolution[1]);
+                int[] resolution = safeResolution(prefs.displayResolutionExact.get());
+                w = resolution[0];
+                h = resolution[1];
                 break;
             }
             case "custom": {
-                try {
-                    String[] resolution = prefs.displayResolutionCustom.get().split("x");
-                    w = Integer.parseInt(resolution[0]);
-                    h = Integer.parseInt(resolution[1]);
-                } catch (NumberFormatException | PatternSyntaxException ignored) {
-                    w = 1280;
-                    h = 1024;
-                }
+                int[] resolution = safeResolution(prefs.displayResolutionCustom.get());
+                w = resolution[0];
+                h = resolution[1];
                 break;
             }
         }

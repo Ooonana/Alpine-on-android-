@@ -8,10 +8,16 @@
     <string name="mouse_helper_move_description">Move mouse helper</string>
     <string name="accessibility_service_label">Alpine Display keyboard shortcuts</string>
 
-    <string name="not_connected">Waiting for Alpine display...</string>
+    <string name="not_connected">WAITING FOR DESKTOP</string>
+    <string name="display_brand">ALPINE // DISPLAY</string>
+    <string name="display_waiting_hint">The X11 surface is ready. Start a desktop session from the Alpine terminal.</string>
+    <string name="display_waiting_command" translatable="false">$ start-desktop</string>
+    <string name="display_waiting_meta" translatable="false">DISPLAY :1  /  LOCAL</string>
+    <string name="display_startup_failed">DISPLAY COULD NOT START</string>
+    <string name="display_startup_failed_hint">The embedded X11 surface could not initialize. Return to the terminal and inspect termux-x11.log before retrying.</string>
     <string name="preferences_button_text">Display settings</string>
-    <string name="help_button_text">Project help</string>
-    <string name="exit_button_text">Close display</string>
+    <string name="help_button_text">Project</string>
+    <string name="exit_button_text">Back to terminal</string>
     <string name="extra_keys_config_desc">Configure the additional key bar using the supported key names \n
 E.g. <b>META</b> for <i>META key</i>, \n
 <b>KEYBOARD</b> for <i>soft keyboard toggling key</i>, \n
@@ -21,7 +27,7 @@ E.g. <b>META</b> for <i>META key</i>, \n
 <b>EXIT</b> for <i>display close key</i>.</string>
     <string name="lorie_notification_content_text">Pull down to show options</string>
     <string name="lorie_notification_open_preferences">Display settings</string>
-    <string name="lorie_notification_exit">Close display</string>
+    <string name="lorie_notification_exit">Back to terminal</string>
     <string name="lorie_notification_restart_activity">Restart display</string>
     <string name="lorie_notification_toggle_soft_keyboard">Toggle IME</string>
     <string name="lorie_notification_toggle_additional_key_bar">Toggle additional keyboard</string>

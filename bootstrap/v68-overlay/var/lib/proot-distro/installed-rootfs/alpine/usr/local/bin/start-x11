@@ -133,6 +133,11 @@ if [ -S "$socket_path" ] && ! pid_identity_file_alive "$server_pid_file"; then
     rm -f "$socket_path" "$server_pid_file"
 fi
 
+if [ "$open_activity" = "1" ]; then
+    echo "$DISPLAY" > "$activity_request_tmp" 2>>"$log_file"
+    mv "$activity_request_tmp" "$activity_request_file" 2>>"$log_file"
+fi
+
 if [ -S "$socket_path" ]; then
     echo "Alpine display socket already exists at $socket_path"
 else
@@ -141,10 +146,6 @@ else
     echo "Requesting Alpine display on DISPLAY=$DISPLAY"
     echo "$DISPLAY" > "$request_tmp" 2>>"$log_file"
     mv "$request_tmp" "$request_file" 2>>"$log_file"
-    if [ "$open_activity" = "1" ]; then
-        echo "$DISPLAY" > "$activity_request_tmp" 2>>"$log_file"
-        mv "$activity_request_tmp" "$activity_request_file" 2>>"$log_file"
-    fi
 
     i=0
     while [ "$i" -lt 45 ]; do

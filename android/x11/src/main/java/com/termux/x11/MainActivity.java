@@ -92,6 +92,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean filterOutWinKey = false;
     boolean useTermuxEKBarBehaviour = false;
     private boolean isInPictureInPictureMode = false;
+    private boolean receiverRegistered = false;
+    private boolean displayUiReady = false;
 
     public static Prefs prefs = null;
 
@@ -153,9 +155,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         prefs = new Prefs(this);
-        int modeValue = Integer.parseInt(prefs.touchMode.get()) - 1;
-        if (modeValue > 2)
+        String touchMode = prefs.touchMode.get();
+        if (!("1".equals(touchMode) || "2".equals(touchMode) || "3".equals(touchMode))) {
+            Log.w("MainActivity", "Resetting invalid touchscreen input mode: " + touchMode);
             prefs.touchMode.put("1");
+        }
 
         oldFullscreen = prefs.fullscreen.get();
         oldHideCutout = prefs.hideCutout.get();
@@ -164,7 +168,12 @@ public class MainActivity extends AppCompatActivity {
 
         getWindow().setFlags(FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS | FLAG_KEEP_SCREEN_ON | FLAG_TRANSLUCENT_STATUS, 0);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        setContentView(R.layout.main_activity);
+        try {
+            setContentView(R.layout.main_activity);
+        } catch (android.view.InflateException | LinkageError e) {
+            showDisplayStartupFailure(e);
+            return;
+        }
 
         frm = findViewById(R.id.frame);
         findViewById(R.id.preferences_button).setOnClickListener((l) -> startActivity(new Intent(this, LoriePreferences.class) {{ setAction(Intent.ACTION_MAIN); }}));
@@ -224,15 +233,15 @@ public class MainActivity extends AppCompatActivity {
             registerReceiver(receiver, receiverFilter, RECEIVER_EXPORTED);
         else
             registerReceiver(receiver, receiverFilter);
+        receiverRegistered = true;
 
         inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 
         // Taken from Stackoverflow answer https://stackoverflow.com/questions/7417123/android-how-to-adjust-layout-in-full-screen-mode-when-softkeyboard-is-visible/7509285#
         FullscreenWorkaround.assistActivity(this);
         mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotification = buildNotification();
-        mNotificationManager.notify(mNotificationId, mNotification);
-        mNotificationVisible = true;
+        displayUiReady = true;
+        updateDisplayNotification();
 
         if (tryConnect()) {
             final View content = findViewById(android.R.id.content);
@@ -261,10 +270,44 @@ public class MainActivity extends AppCompatActivity {
         handler.removeCallbacks(mConnectionRetry);
         if (prefs != null)
             prefs.get().unregisterOnSharedPreferenceChangeListener(preferencesChangedListener);
-        unregisterReceiver(receiver);
+        if (receiverRegistered) {
+            try {
+                unregisterReceiver(receiver);
+            } catch (IllegalArgumentException e) {
+                Log.w("MainActivity", "Display receiver was already unregistered", e);
+            }
+            receiverRegistered = false;
+        }
         if (instance == this)
             instance = null;
         super.onDestroy();
+    }
+
+    private void showDisplayStartupFailure(Throwable cause) {
+        displayUiReady = false;
+        Log.e("MainActivity", "Embedded Alpine Display surface failed to initialize", cause);
+        try {
+            setContentView(R.layout.main_activity_error);
+            findViewById(R.id.help_button).setOnClickListener(v ->
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.project_url)))));
+            findViewById(R.id.exit_button).setOnClickListener(v -> finish());
+        } catch (RuntimeException fallbackError) {
+            Log.e("MainActivity", "Could not render Alpine Display fallback UI", fallbackError);
+            finish();
+        }
+    }
+
+    private void updateDisplayNotification() {
+        if (!displayUiReady || mNotificationManager == null || mInputHandler == null) return;
+        try {
+            mNotification = buildNotification();
+            mNotificationManager.notify(mNotificationId, mNotification);
+            mNotificationVisible = true;
+        } catch (RuntimeException e) {
+            // Notification permission/OEM notification failures must never take down X11.
+            mNotificationVisible = false;
+            Log.w("MainActivity", "Could not show Alpine Display notification", e);
+        }
     }
 
     private float clampToVisibleBounds(float value, float min, float max) {
@@ -611,6 +654,7 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("UnsafeIntentLaunch")
     void onPreferencesChangedCallback() {
+        if (!displayUiReady) return;
         prefs.recheckStoringSecondaryDisplayPreferences();
 
         onWindowFocusChanged(hasWindowFocus());
@@ -641,29 +685,27 @@ public class MainActivity extends AppCompatActivity {
         lorieView.requestLayout();
         lorieView.invalidate();
 
-        if (mNotificationVisible) {
-            mNotification = buildNotification();
-            mNotificationManager.notify(mNotificationId, mNotification);
-        }
+        if (mNotificationVisible)
+            updateDisplayNotification();
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        if (!displayUiReady) return;
 
-        mNotification = buildNotification();
-        mNotificationManager.notify(mNotificationId, mNotification);
-        mNotificationVisible = true;
-
+        updateDisplayNotification();
         setTerminalToolbarView();
         getLorieView().requestFocus();
     }
 
     @Override
     public void onPause() {
-        inputMethodManager.hideSoftInputFromWindow(getWindow().getDecorView().getRootView().getWindowToken(), 0);
+        if (displayUiReady && inputMethodManager != null)
+            inputMethodManager.hideSoftInputFromWindow(getWindow().getDecorView().getRootView().getWindowToken(), 0);
 
-        mNotificationManager.cancel(mNotificationId);
+        if (mNotificationManager != null)
+            mNotificationManager.cancel(mNotificationId);
         mNotificationVisible = false;
 
         super.onPause();
@@ -730,13 +772,13 @@ public class MainActivity extends AppCompatActivity {
     Notification buildNotification() {
         NotificationCompat.Builder builder =  new NotificationCompat.Builder(this, getNotificationChannel(mNotificationManager))
                 .setContentTitle(getString(R.string.app_name))
-                .setSmallIcon(R.drawable.ic_x11_icon)
+                .setSmallIcon(R.drawable.ic_alpine_display_notification)
                 .setContentText(getResources().getText(R.string.lorie_notification_content_text))
                 .setOngoing(true)
                 .setPriority(Notification.PRIORITY_MAX)
                 .setSilent(true)
                 .setShowWhen(false)
-                .setColor(0xFF607D8B);
+                .setColor(0xFF00FF66);
         return mInputHandler.setupNotification(prefs, builder).build();
     }
 
@@ -759,6 +801,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+        if (!displayUiReady) return;
 
         if (newConfig.orientation != orientation)
             inputMethodManager.hideSoftInputFromWindow(getWindow().getDecorView().getRootView().getWindowToken(), 0);
@@ -771,6 +814,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
+        if (!displayUiReady) return;
         KeyInterceptor.recheck();
         prefs.recheckStoringSecondaryDisplayPreferences();
         Window window = getWindow();
@@ -861,6 +905,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onUserLeaveHint() {
+        if (!displayUiReady) return;
         if (SDK_INT >= VERSION_CODES.O && prefs.PIP.get() && hasPipPermission(this)) {
             enterPictureInPictureMode();
         }
@@ -868,6 +913,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, @NonNull Configuration newConfig) {
+        if (!displayUiReady) {
+            super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
+            return;
+        }
         this.isInPictureInPictureMode = isInPictureInPictureMode;
         final ViewPager pager = getTerminalToolbarViewPager();
         pager.setAlpha(isInPictureInPictureMode ? 0.f : ((float) prefs.opacityEKBar.get())/100);

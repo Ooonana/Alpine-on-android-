@@ -17,7 +17,7 @@ See [`THIRD_PARTY.md`](THIRD_PARTY.md) for provenance and license information.
 
 The root [`README.md`](../README.md) describes the recovered project state. [`docs/recovery/HANDOFF.md`](../docs/recovery/HANDOFF.md) contains the development history, V65/V66/V67 status, bootstrap recovery details, and desktop build notes.
 
-V65 remains the frozen known artifact baseline. V68/V68.2 is the active development line. It uses the reproducibly prepared Alpine 3.23.6 rootfs, Termux PRoot 5.1.107.92, stock Alpine `/sbin/apk`, and the integrated display. The embedded PRoot-Distro 4.38.0 CLI is restricted to `login`, `list`, and `help`. Android runtime validation is still required for package transactions, DBus, and the embedded display.
+V65 remains the frozen known artifact baseline. V68/V68.3 is the active development line. It uses the reproducibly prepared Alpine 3.23.6 rootfs, Termux PRoot 5.1.107.92, stock Alpine `/sbin/apk`, and the integrated display. The embedded PRoot-Distro 4.38.0 CLI is restricted to `login`, `list`, and `help`. V68.3 migrates V68.1/V68.2 in place, preserving installed packages and user data while refreshing bootstrap-owned launcher/display/banner files. Android runtime validation is still required for package transactions, DBus, and the embedded display.
 
 The embedded bootstrap is intentionally not downloaded by Gradle from legacy Termux/fork URLs. Restore the checksummed recovery asset from the repository root with:
 

@@ -75,7 +75,6 @@ import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.regex.PatternSyntaxException;
 
 @SuppressWarnings("deprecation")
 public class LoriePreferences extends AppCompatActivity implements PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
@@ -241,7 +240,8 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
         public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey) {
             getPreferenceManager().setPreferenceDataStore(prefs);
 
-            if ((Integer.parseInt(prefs.touchMode.get()) - 1) > 2)
+            String touchMode = prefs.touchMode.get();
+            if (!("1".equals(touchMode) || "2".equals(touchMode) || "3".equals(touchMode)))
                 prefs.touchMode.put("1");
 
             setPreferencesFromResource(R.xml.preferences, root == null ? "main" : root);
@@ -418,10 +418,13 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
             if ("displayResolutionCustom".contentEquals(key)) {
                 String value = (String) newValue;
                 try {
-                    String[] resolution = value.split("x");
-                    Integer.parseInt(resolution[0]);
-                    Integer.parseInt(resolution[1]);
-                } catch (NumberFormatException | PatternSyntaxException ignored) {
+                    String[] resolution = value.split("x", -1);
+                    if (resolution.length != 2) throw new NumberFormatException("Wrong resolution format");
+                    int width = Integer.parseInt(resolution[0].trim());
+                    int height = Integer.parseInt(resolution[1].trim());
+                    if (width <= 0 || height <= 0 || width > 8192 || height > 8192)
+                        throw new NumberFormatException("Resolution is outside supported range");
+                } catch (NumberFormatException ignored) {
                     Toast.makeText(getActivity(), "Wrong resolution format", Toast.LENGTH_SHORT).show();
                     return false;
                 }
@@ -541,10 +544,13 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
                         switch (key) {
                             case "displayResolutionCustom": {
                                 try {
-                                    String[] resolution = newValue.split("x");
-                                    Integer.parseInt(resolution[0]);
-                                    Integer.parseInt(resolution[1]);
-                                } catch (NumberFormatException | PatternSyntaxException ignored) {
+                                    String[] resolution = newValue.split("x", -1);
+                                    if (resolution.length != 2) throw new NumberFormatException("Wrong resolution format");
+                                    int width = Integer.parseInt(resolution[0].trim());
+                                    int height = Integer.parseInt(resolution[1].trim());
+                                    if (width <= 0 || height <= 0 || width > 8192 || height > 8192)
+                                        throw new NumberFormatException("Resolution is outside supported range");
+                                } catch (NumberFormatException ignored) {
                                     sendResponse(remote, 1, 1, "displayResolutionCustom: Wrong resolution format.");
                                     return;
                                 }
@@ -579,7 +585,7 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
                                 } else if (pref != null && pref.type == int.class) {
                                     try {
                                         edit.putInt(key, Integer.parseInt(newValue));
-                                    } catch (NumberFormatException | PatternSyntaxException exception) {
+                                    } catch (NumberFormatException exception) {
                                         sendResponse(remote, 1, 4, key + ": failed to parse integer: " + exception);
                                         return;
                                     }
