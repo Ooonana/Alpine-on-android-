@@ -216,6 +216,25 @@ start_x11_bridge() {
     fi
 }
 
+detect_android_sdk() {
+    local sdk="${ALPINE_ANDROID_SDK:-}"
+    case "$sdk" in
+        ""|*[!0-9]*) sdk="" ;;
+        *) printf '%s\n' "$sdk"; return 0 ;;
+    esac
+
+    if [ -x "$PREFIX/bin/getprop" ]; then
+        sdk="$("$PREFIX/bin/getprop" ro.build.version.sdk 2>/dev/null || true)"
+    elif [ -x /system/bin/getprop ]; then
+        sdk="$(/system/bin/getprop ro.build.version.sdk 2>/dev/null || true)"
+    fi
+
+    case "$sdk" in
+        ""|*[!0-9]*) return 1 ;;
+        *) printf '%s\n' "$sdk" ;;
+    esac
+}
+
 run_alpine_proot_distro() {
     # Keep proot-distro's Android defaults for hard-link and SysV IPC
     # emulation. The opt-out variables below are diagnostic escape hatches
@@ -227,6 +246,10 @@ run_alpine_proot_distro() {
         --env TMPDIR=/tmp \
         --env XDG_RUNTIME_DIR=/tmp/alpine-runtime-0 \
         "$@"
+
+    if [ -n "${ALPINE_ANDROID_SDK:-}" ]; then
+        set -- --env ALPINE_ANDROID_SDK="$ALPINE_ANDROID_SDK" "$@"
+    fi
 
     if [ "${ALPINE_DISABLE_SYSVIPC:-0}" = "1" ]; then
         set -- --no-sysvipc "$@"
@@ -274,6 +297,7 @@ run_alpine_direct_proot() {
         DISPLAY="${DISPLAY:-:1}" \
         TMPDIR=/tmp \
         XDG_RUNTIME_DIR=/tmp/alpine-runtime-0 \
+        ALPINE_ANDROID_SDK="${ALPINE_ANDROID_SDK:-}" \
         PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
         IN_ALPINE=1 \
         "$@"
@@ -282,6 +306,8 @@ run_alpine_direct_proot() {
 if [ -z "$IN_ALPINE" ] && [ "$ALPINE_FAILSAFE" != "1" ]; then
     export DISPLAY="${DISPLAY:-:1}"
     ensure_alpine_runtime
+    ALPINE_ANDROID_SDK="$(detect_android_sdk 2>/dev/null || true)"
+    export ALPINE_ANDROID_SDK
     if ! start_x11_bridge; then
         echo "WARNING: Alpine display bridge could not start; terminal mode is still available."
     fi

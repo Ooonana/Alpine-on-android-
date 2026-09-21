@@ -68,12 +68,12 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         build = APP_BUILD.read_text(encoding="utf-8")
         builder = ROOTFS_BUILDER.read_text(encoding="utf-8")
         prepare = PREPARE.read_text(encoding="utf-8")
-        self.assertIn('BOOTSTRAP_VERSION = "v68.1"', installer)
-        self.assertIn("versionCode 137", build)
-        self.assertIn('versionName "0.135.1-v68-dev"', build)
+        self.assertIn('BOOTSTRAP_VERSION = "v68.2"', installer)
+        self.assertIn("versionCode 138", build)
+        self.assertIn('versionName "0.135.2-v68-dev"', build)
         self.assertIn('ALPINE_VERSION = "3.23.6"', builder)
-        self.assertIn('b"v68.1\\n"', builder)
-        self.assertIn('b"v68.1\\n"', prepare)
+        self.assertIn('b"v68.2\\n"', builder)
+        self.assertIn('b"v68.2\\n"', prepare)
 
     def test_v68_build_toolchain_defaults_match_validated_build(self):
         properties = GRADLE_PROPERTIES.read_text(encoding="utf-8")
@@ -135,6 +135,8 @@ class V68RuntimeOverlayTest(unittest.TestCase):
 
         start_x11 = START_X11.read_text(encoding="utf-8")
         self.assertIn("ro.build.version.sdk", start_x11)
+        self.assertIn('sdk="${ALPINE_ANDROID_SDK:-}"', start_x11)
+        self.assertIn("/data/data/com.alpine/files/usr/bin/getprop", start_x11)
         self.assertIn('[ "$android_sdk" -lt 26 ]', start_x11)
         self.assertIn("Alpine Display requires Android 8.0 (API 26) or newer", start_x11)
         for path in (X11_MAIN_ACTIVITY, X11_PREFERENCES, X11_VIEW, X11_TOUCH):
@@ -164,6 +166,10 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertEqual(text.count("--no-link2symlink"), 1)
         self.assertEqual(text.count("--no-sysvipc"), 1)
         self.assertIn("/system/bin/getprop", text)
+        self.assertIn('"$PREFIX/bin/getprop" ro.build.version.sdk', text)
+        self.assertIn('ALPINE_ANDROID_SDK="$(detect_android_sdk', text)
+        self.assertIn('--env ALPINE_ANDROID_SDK="$ALPINE_ANDROID_SDK"', text)
+        self.assertIn('ALPINE_ANDROID_SDK="${ALPINE_ANDROID_SDK:-}"', text)
         self.assertIn("ALPINE_DNS_SERVERS", text)
         self.assertIn("ALPINE_DNS_FORCE", text)
         self.assertIn('XDG_RUNTIME_DIR=/tmp/alpine-runtime-0', text)

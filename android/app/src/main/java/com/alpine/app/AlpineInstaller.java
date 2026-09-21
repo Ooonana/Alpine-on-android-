@@ -29,7 +29,7 @@ import static com.alpine.shared.alpine.AlpineConstants.*;
 
 final class AlpineInstaller {
     private static final String LOG_TAG = "AlpineInstaller";
-    private static final String BOOTSTRAP_VERSION = "v68.1";
+    private static final String BOOTSTRAP_VERSION = "v68.2";
     private static final String BOOTSTRAP_VERSION_FILE_PATH = ALPINE_PREFIX_DIR_PATH + "/etc/alpine-bootstrap-version";
     private static final String BOOTSTRAP_BACKUP_DIR_PATH = ALPINE_PREFIX_DIR_PATH + "-backup";
     private static final File BOOTSTRAP_BACKUP_DIR = new File(BOOTSTRAP_BACKUP_DIR_PATH);

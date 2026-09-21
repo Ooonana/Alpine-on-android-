@@ -1,6 +1,27 @@
 #!/bin/sh
 
-android_sdk="$(/system/bin/getprop ro.build.version.sdk 2>/dev/null || true)"
+detect_android_sdk() {
+    sdk="${ALPINE_ANDROID_SDK:-}"
+    case "$sdk" in
+        ""|*[!0-9]*) sdk="" ;;
+        *) printf '%s\n' "$sdk"; return 0 ;;
+    esac
+
+    for getprop_cmd in \
+        /data/data/com.alpine/files/usr/bin/getprop \
+        /system/bin/getprop; do
+        [ -x "$getprop_cmd" ] || continue
+        sdk="$("$getprop_cmd" ro.build.version.sdk 2>/dev/null || true)"
+        case "$sdk" in
+            ""|*[!0-9]*) ;;
+            *) printf '%s\n' "$sdk"; return 0 ;;
+        esac
+    done
+
+    return 1
+}
+
+android_sdk="$(detect_android_sdk || true)"
 case "$android_sdk" in
     ""|*[!0-9]*)
         echo "ERROR: unable to determine Android SDK level; Alpine Display requires Android 8.0 (API 26) or newer." >&2
