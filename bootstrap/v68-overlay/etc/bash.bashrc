@@ -345,6 +345,9 @@ if [ -z "$IN_ALPINE" ] && [ "$ALPINE_FAILSAFE" != "1" ]; then
         if [ "${ALPINE_LAUNCH_DEBUG:-0}" = "1" ] && [ "$status" -ne 0 ]; then
             echo "Alpine session ended with status $status."
         fi
+        # Alpine is the user-facing top-level shell. Never expose the hidden
+        # Android host shell after `exit`; end the terminal session instead.
+        exit "$status"
     else
         echo "Standard Alpine launch is unavailable; using compatibility mode."
         if run_alpine_direct_proot /bin/sh -c 'exit 0' >>"$launch_log" 2>&1; then
@@ -353,6 +356,7 @@ if [ -z "$IN_ALPINE" ] && [ "$ALPINE_FAILSAFE" != "1" ]; then
             if [ "${ALPINE_LAUNCH_DEBUG:-0}" = "1" ] && [ "$status" -ne 0 ]; then
                 echo "Compatibility session ended with status $status."
             fi
+            exit "$status"
         else
             echo "Alpine could not start. Recovery shell is active."
             echo "Diagnostics: $launch_log"

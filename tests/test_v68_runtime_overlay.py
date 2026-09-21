@@ -82,12 +82,12 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         build = APP_BUILD.read_text(encoding="utf-8")
         builder = ROOTFS_BUILDER.read_text(encoding="utf-8")
         prepare = PREPARE.read_text(encoding="utf-8")
-        self.assertIn('BOOTSTRAP_VERSION = "v68.3"', installer)
-        self.assertIn("versionCode 139", build)
-        self.assertIn('versionName "0.135.3-v68-dev"', build)
+        self.assertIn('BOOTSTRAP_VERSION = "v68.4"', installer)
+        self.assertIn("versionCode 140", build)
+        self.assertIn('versionName "0.135.4-v68-dev"', build)
         self.assertIn('ALPINE_VERSION = "3.23.6"', builder)
-        self.assertIn('b"v68.3\\n"', builder)
-        self.assertIn('b"v68.3\\n"', prepare)
+        self.assertIn('b"v68.4\\n"', builder)
+        self.assertIn('b"v68.4\\n"', prepare)
 
     def test_v68_build_toolchain_defaults_match_validated_build(self):
         properties = GRADLE_PROPERTIES.read_text(encoding="utf-8")
@@ -157,9 +157,9 @@ class V68RuntimeOverlayTest(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             self.assertNotIn("@RequiresApi(Build.VERSION_CODES.O)", text, path)
 
-    def test_v68_3_hotfix_migrates_v68_1_and_v68_2_in_place(self):
+    def test_v68_4_hotfix_migrates_v68_1_v68_2_and_v68_3_in_place(self):
         installer = INSTALLER.read_text(encoding="utf-8")
-        self.assertIn('PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2" }', installer)
+        self.assertIn('PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2", "v68.3" }', installer)
         self.assertIn("V68_HOTFIX_PATCH_FILES", installer)
         for path in (
             '"etc/bash.bashrc"',
@@ -181,7 +181,7 @@ class V68RuntimeOverlayTest(unittest.TestCase):
             installer.index('deletePathOrThrow("staging", ALPINE_STAGING_PREFIX_DIR_PATH, true)'),
         )
 
-    def test_v68_3_startup_banner_and_gui_hint_are_tracked(self):
+    def test_v68_4_startup_banner_and_gui_hint_are_tracked(self):
         host = HOST_MOTD.read_text(encoding="utf-8")
         rootfs = ROOTFS_MOTD.read_text(encoding="utf-8")
         self.assertEqual(host, rootfs)
@@ -374,6 +374,16 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertIn('RESOLV_CONF = b""', ROOTFS_BUILDER.read_text(encoding="utf-8"))
         self.assertIn("pid_identity_file_alive", text)
         self.assertIn("write_pid_identity", text)
+
+    def test_alpine_exit_never_exposes_hidden_host_shell(self):
+        text = BASHRC.read_text(encoding="utf-8")
+        self.assertIn('echo "Alpine session ended with status $status."', text)
+        self.assertIn('echo "Compatibility session ended with status $status."', text)
+        self.assertGreaterEqual(text.count('exit "$status"'), 2)
+        standard = text.index('run_alpine_proot_distro\n        status=$?')
+        compatibility = text.index('run_alpine_direct_proot /bin/sh -l')
+        self.assertGreater(text.index('exit "$status"', standard), standard)
+        self.assertGreater(text.index('exit "$status"', compatibility), compatibility)
 
     def test_v68_host_proot_runtime_is_current_and_prefix_patched(self):
         proot = (OVERLAY / "bin/proot").read_bytes()

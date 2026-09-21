@@ -191,7 +191,7 @@ def build_rootfs() -> tuple[dict[str, tuple[bytes | None, bool, int]], dict[str,
     entries[ROOTFS_PREFIX + "etc/apk/repositories"] = (OFFICIAL_REPOSITORIES, False, 0o644)
     entries[ROOTFS_PREFIX + "etc/resolv.conf"] = (RESOLV_CONF, False, 0o644)
     entries[ROOTFS_PREFIX + "etc/environment"] = (ENVIRONMENT, False, 0o600)
-    entries[ROOTFS_PREFIX + "etc/alpine-bootstrap-version"] = (b"v68.3\n", False, 0o644)
+    entries[ROOTFS_PREFIX + "etc/alpine-bootstrap-version"] = (b"v68.4\n", False, 0o644)
 
     for name, expected_target in REQUIRED_RUNTIME_SYMLINKS.items():
         if symlinks.get(name) != expected_target:
