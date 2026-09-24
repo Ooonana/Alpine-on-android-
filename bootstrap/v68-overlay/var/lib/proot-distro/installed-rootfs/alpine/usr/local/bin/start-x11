@@ -80,6 +80,17 @@ export XDG_RUNTIME_DIR
 mkdir -p "$XDG_RUNTIME_DIR" || exit 1
 chmod 0700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
 
+# Xwayland requires the conventional sticky /tmp/.X11-unix directory. The
+# integrated display shares Android's app-private tmp, whose parent still keeps
+# this directory private from other apps even with mode 1777.
+if ! mkdir -p "$socket_dir"; then
+    echo "ERROR: could not create X11 socket directory: $socket_dir" >&2
+    exit 1
+fi
+if ! chmod 1777 "$socket_dir" 2>>"$log_file"; then
+    echo "WARNING: could not set sticky permissions on $socket_dir; nested Xwayland may fail." >&2
+fi
+
 proc_start_time() {
     pid="$1"
     case "$pid" in
@@ -141,7 +152,6 @@ fi
 if [ -S "$socket_path" ]; then
     echo "Alpine display socket already exists at $socket_path"
 else
-    mkdir -p "$socket_dir"
     : > "$log_file"
     echo "Requesting Alpine display on DISPLAY=$DISPLAY"
     echo "$DISPLAY" > "$request_tmp" 2>>"$log_file"
@@ -161,7 +171,8 @@ if [ -S "$socket_path" ]; then
     echo "X11 socket: $socket_path"
     echo "Run GUI apps with DISPLAY=$DISPLAY, for example: DISPLAY=$DISPLAY xterm"
 else
-    echo "WARNING: X11 socket was not created at $socket_path"
-    echo "--- Last X11 log lines ---"
+    echo "ERROR: X11 socket was not created at $socket_path" >&2
+    echo "--- Last X11 log lines ---" >&2
     tail -n 80 "$log_file" 2>/dev/null || true
+    exit 1
 fi

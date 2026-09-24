@@ -9,11 +9,11 @@ print_help() {
     cat <<'EOF'
 Usage:
   install-desktop
-  install-desktop <xfce|lxqt|openbox|mate|plasma>
+  install-desktop <xfce|lxqt|openbox|mate|plasma|lxde|plasma-mobile|phosh>
   install-desktop --list
   install-desktop --help
 
-Installs one desktop environment for the Alpine-on-Android integrated X11 display.
+Installs one desktop environment for the Alpine-on-Android integrated display.
 Only the selected desktop is installed. Installing another desktop later keeps the
 previous desktop packages but changes the default used by start-desktop.
 EOF
@@ -22,21 +22,35 @@ EOF
 print_choices() {
     cat <<'EOF'
 Available desktops:
-  1) XFCE      - recommended; light, mature, full desktop
-  2) LXQt      - light Qt desktop
-  3) Openbox   - minimal window manager + panel/file manager
-  4) MATE      - traditional full desktop
-  5) Plasma    - heaviest; X11 support is experimental on Alpine 3.23
+  1) XFCE           - recommended; light, mature, full X11 desktop
+  2) LXQt           - light Qt X11 desktop
+  3) Openbox        - minimal X11 window manager + panel/file manager
+  4) MATE           - traditional full X11 desktop
+  5) Plasma         - KDE Plasma Desktop; nested Wayland, heavy/experimental
+  6) LXDE           - LXDE-style compatibility session; very light X11 desktop
+  7) Plasma Mobile  - KDE phone/tablet shell; nested Wayland, experimental
+  8) Phosh          - GNOME phone shell; nested Wayland, experimental
 EOF
 }
 
 normalize_choice() {
     case "${1:-}" in
-        1|xfce|XFCE|Xfce) printf '%s\n' xfce ;;
-        2|lxqt|LXQT|LXQt) printf '%s\n' lxqt ;;
-        3|openbox|Openbox|OPENBOX) printf '%s\n' openbox ;;
-        4|mate|MATE|Mate) printf '%s\n' mate ;;
-        5|plasma|PLASMA|Plasma|kde|KDE) printf '%s\n' plasma ;;
+        1|xfce|XFCE|Xfce) printf '%s
+' xfce ;;
+        2|lxqt|LXQT|LXQt) printf '%s
+' lxqt ;;
+        3|openbox|Openbox|OPENBOX) printf '%s
+' openbox ;;
+        4|mate|MATE|Mate) printf '%s
+' mate ;;
+        5|plasma|PLASMA|Plasma|kde|KDE) printf '%s
+' plasma ;;
+        6|lxde|LXDE|Lxde) printf '%s
+' lxde ;;
+        7|plasma-mobile|plasmamobile|PLASMA-MOBILE|Plasma-Mobile|kde-mobile|KDE-Mobile) printf '%s
+' plasma-mobile ;;
+        8|phosh|PHOSH|Phosh) printf '%s
+' phosh ;;
         *) return 1 ;;
     esac
 }
@@ -70,7 +84,7 @@ if [ -z "$choice" ]; then
     echo
     print_choices
     echo
-    printf "Choose a desktop [1-5, q to cancel]: "
+    printf "Choose a desktop [1-8, q to cancel]: "
     IFS= read -r choice || exit 1
     case "$choice" in
         q|Q|quit|QUIT) exit 0 ;;
@@ -104,18 +118,35 @@ case "$desktop" in
         packages="mate-desktop-environment mate-terminal"
         ;;
     plasma)
-        label="Plasma"
-        packages="plasma-desktop plasma-workspace kwin konsole breeze breeze-icons qt6-qtbase-x11"
+        label="Plasma Desktop"
+        packages="plasma-desktop plasma-workspace kwin konsole breeze breeze-cursors breeze-icons xdg-desktop-portal-kde pulseaudio-utils xwayland"
+        ;;
+    lxde)
+        label="LXDE compatibility session"
+        packages="lxsession openbox pcmanfm lxterminal tint2"
+        ;;
+    plasma-mobile)
+        label="Plasma Mobile"
+        packages="plasma-mobile konsole breeze breeze-cursors xdg-desktop-portal-kde pulseaudio-utils xwayland"
+        ;;
+    phosh)
+        label="Phosh"
+        packages="phosh phoc pulseaudio-utils xwayland"
         ;;
 esac
 
 echo
 echo "Selected: $label"
-if [ "$desktop" = "plasma" ]; then
-    echo "NOTE: Plasma is the largest choice. Alpine 3.23 may not ship the old"
-    echo "      startplasma-x11 launcher; start-desktop has an experimental"
-    echo "      kwin_x11 + plasmashell fallback for the integrated X11 display."
-fi
+case "$desktop" in
+    plasma|plasma-mobile|phosh)
+        echo "NOTE: This desktop is Wayland-based. Alpine-on-Android runs it nested"
+        echo "      inside the integrated X11 display. This path is experimental."
+        ;;
+    lxde)
+        echo "NOTE: Alpine 3.23 no longer ships the complete historical LXDE stack."
+        echo "      This choice uses LXDE components with Openbox, PCManFM and tint2."
+        ;;
+esac
 echo
 echo "Refreshing Alpine package indexes..."
 if ! "$APK_CMD" update; then
@@ -131,17 +162,8 @@ if ! "$APK_CMD" add $COMMON_PACKAGES $packages; then
     exit 1
 fi
 
-# Alpine versions that still publish plasma-workspace-x11 provide the normal
-# startplasma-x11 session launcher there. It disappeared from newer branches,
-# so treat it as optional instead of making Plasma installation fail.
-if [ "$desktop" = "plasma" ] && [ ! -x /usr/bin/startplasma-x11 ]; then
-    if "$APK_CMD" search -x plasma-workspace-x11 2>/dev/null | grep -q '^plasma-workspace-x11'; then
-        echo "Installing optional Plasma X11 session package..."
-        "$APK_CMD" add plasma-workspace-x11 || echo "WARNING: optional plasma-workspace-x11 install failed."
-    fi
-fi
-
-printf '%s\n' "$desktop" > "$CONFIG_FILE" || {
+printf '%s
+' "$desktop" > "$CONFIG_FILE" || {
     echo "ERROR: could not save desktop selection to $CONFIG_FILE" >&2
     exit 1
 }

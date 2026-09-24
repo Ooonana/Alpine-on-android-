@@ -483,7 +483,9 @@ public class TouchInputHandler {
 
         switch(pref.asList().get()) {
             case "toggle soft keyboard": return (key, down) -> { if (down) MainActivity.toggleKeyboardVisibility(mActivity); };
-            case "toggle additional key bar": return (key, down) -> { if (down) mActivity.toggleExtraKeys(); };
+            case "toggle input dock":
+            case "toggle additional key bar": // Legacy persisted preference from V68 and earlier.
+                return (key, down) -> { if (down) mActivity.toggleExtraKeys(); };
             case "open preferences": return (key, down) -> { if (down) mActivity.startActivity(new Intent(mActivity, LoriePreferences.class) {{ setAction(Intent.ACTION_MAIN); }}); };
             case "release pointer and keyboard capture": return (key, down) -> { if (down) setCapturingEnabled(false); };
             case "toggle fullscreen": return (key, down) -> { if (down) MainActivity.prefs.fullscreen.put(!MainActivity.prefs.fullscreen.get()); };
@@ -512,7 +514,8 @@ public class TouchInputHandler {
                         Intent.makeRestartActivityTask(mActivity.getComponentName()), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             case "exit":
             case "toggle soft keyboard":
-            case "toggle additional key bar":
+            case "toggle input dock":
+            case "toggle additional key bar": // Legacy persisted preference from V68 and earlier.
             case "release pointer and keyboard capture":
                 return PendingIntent.getBroadcast(mActivity, requestCode, new Intent(MainActivity.ACTION_CUSTOM) {{
                     putExtra("what", name);

@@ -29,8 +29,8 @@ import static com.alpine.shared.alpine.AlpineConstants.*;
 
 final class AlpineInstaller {
     private static final String LOG_TAG = "AlpineInstaller";
-    private static final String BOOTSTRAP_VERSION = "v68.4";
-    private static final String[] PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2", "v68.3" };
+    private static final String BOOTSTRAP_VERSION = "v69.3";
+    private static final String[] PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2", "v68.3", "v68.4", "v69", "v69.1", "v69.2" };
     private static final String BOOTSTRAP_VERSION_FILE_PATH = ALPINE_PREFIX_DIR_PATH + "/etc/alpine-bootstrap-version";
     private static final String BOOTSTRAP_BACKUP_DIR_PATH = ALPINE_PREFIX_DIR_PATH + "-backup";
     private static final File BOOTSTRAP_BACKUP_DIR = new File(BOOTSTRAP_BACKUP_DIR_PATH);
@@ -66,19 +66,21 @@ final class AlpineInstaller {
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/install-desktop",
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-desktop"
     };
-    // V68.4 is a non-destructive hotfix for V68.1/V68.2/V68.3 installations. Only
+    // V69.3 upgrades V68.1/V68.2/V68.3/V68.4/V69/V69.1/V69.2 installations non-destructively. Only
     // bootstrap-owned launch/display/banner files and version markers are replaced;
     // packages, user configuration, and /root data inside Alpine stay untouched.
     // Runtime files are committed before markers so interrupted migrations retry safely.
     private static final String[] V68_HOTFIX_PATCH_FILES = {
         "etc/bash.bashrc",
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/install-desktop",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-desktop",
         "etc/motd",
         ROOTFS_RELATIVE_PATH + "/etc/motd",
         ROOTFS_RELATIVE_PATH + "/etc/alpine-bootstrap-version",
         "etc/alpine-bootstrap-version"
     };
-    private static final int[] V68_HOTFIX_PATCH_MODES = { 0600, 0755, 0600, 0644, 0644, 0600 };
+    private static final int[] V68_HOTFIX_PATCH_MODES = { 0600, 0755, 0755, 0755, 0600, 0644, 0644, 0600 };
 
     static void setupBootstrapIfNeeded(final Activity activity, final Runnable whenDone) {
         if (FileUtils.directoryFileExists(ALPINE_PREFIX_DIR_PATH, true) &&
@@ -101,7 +103,7 @@ final class AlpineInstaller {
                         AlpineShellEnvironment.writeEnvironmentToFile(activity);
                         File environmentFile = new File(AlpineConstants.ALPINE_ENV_FILE_PATH);
                         if (!environmentFile.isFile() || environmentFile.length() == 0)
-                            throw new IOException("Could not write Alpine shell environment after V68.4 migration");
+                            throw new IOException("Could not write Alpine shell environment after V69.3 migration");
                         validateBootstrapDirectory(ALPINE_PREFIX_DIR, true);
                         cleanupV68HotfixPatchArtifacts();
                         cleanupStaleBackupAsync();
@@ -326,7 +328,7 @@ final class AlpineInstaller {
                     File parent = target.getParentFile();
                     if (parent == null || (!parent.isDirectory() && !parent.mkdirs()))
                         throw new IOException("Could not create V68 hotfix patch parent: " + entryName);
-                    File temp = new File(target.getAbsolutePath() + ".v68.4.tmp");
+                    File temp = new File(target.getAbsolutePath() + ".v69.tmp");
                     if (temp.exists() && !temp.delete())
                         throw new IOException("Could not clear stale V68 hotfix patch temp file: " + entryName);
 
@@ -411,13 +413,16 @@ final class AlpineInstaller {
         for (String relativePath : V68_HOTFIX_PATCH_FILES) {
             try {
                 File target = safeLiveTarget(relativePath);
-                File temp = new File(target.getAbsolutePath() + ".v68.4.tmp");
+                File temp = new File(target.getAbsolutePath() + ".v69.tmp");
+                File legacyV68_4Temp = new File(target.getAbsolutePath() + ".v68.4.tmp");
                 File legacyV68_3Temp = new File(target.getAbsolutePath() + ".v68.3.tmp");
                 File legacyV68_2Temp = new File(target.getAbsolutePath() + ".v68.2.tmp");
                 File backup = new File(target.getAbsolutePath() + ".v68.hotfix.bak");
                 File legacyBackup = new File(target.getAbsolutePath() + ".v68.1.bak");
                 if (temp.exists() && !temp.delete())
                     Logger.logWarn(LOG_TAG, "Could not delete stale V68 hotfix patch temp file: " + temp);
+                if (legacyV68_4Temp.exists() && !legacyV68_4Temp.delete())
+                    Logger.logWarn(LOG_TAG, "Could not delete stale V68.4 patch temp file: " + legacyV68_4Temp);
                 if (legacyV68_3Temp.exists() && !legacyV68_3Temp.delete())
                     Logger.logWarn(LOG_TAG, "Could not delete stale V68.3 patch temp file: " + legacyV68_3Temp);
                 if (legacyV68_2Temp.exists() && !legacyV68_2Temp.delete())
@@ -487,7 +492,7 @@ final class AlpineInstaller {
             return;
         }
         if (ALPINE_PREFIX_DIR.exists() && BOOTSTRAP_BACKUP_DIR.exists()) {
-            // V68.1/V68.2/V68.3 prefixes are intentionally patchable by V68.4. Do not discard them
+            // V68.1/V68.2/V68.3/V68.4/V69/V69.1/V69.2 prefixes are intentionally patchable by V69.3. Do not discard them
             // merely because its marker is older than BOOTSTRAP_VERSION; doing so
             // could restore an even older stale full-install backup and lose user data.
             if (installedBootstrapLooksUsable() || isV68HotfixInPlacePatchCandidate()) {

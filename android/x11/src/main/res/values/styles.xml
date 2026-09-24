@@ -29,6 +29,21 @@
         <item name="android:textColor">@color/alpine_display_black</item>
     </style>
 
+    <style name="AlpineDisplay.DockButton" parent="@android:style/Widget.Button">
+        <item name="android:background">@drawable/alpine_display_dock_button</item>
+        <item name="android:textColor">@color/alpine_display_white</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:minHeight">34dp</item>
+        <item name="android:minWidth">34dp</item>
+        <item name="android:paddingLeft">5dp</item>
+        <item name="android:paddingRight">5dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+
     <!-- Keep every Display settings surface on the same black/white/green palette. -->
     <style name="AlpineDisplay.PreferencesTheme" parent="@style/Theme.AppCompat.DayNight">
         <item name="colorPrimary">@color/alpine_display_black</item>

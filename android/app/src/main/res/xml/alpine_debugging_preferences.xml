@@ -30,4 +30,16 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory
+        app:key="process_protection"
+        app:title="@string/alpine_process_protection_header">
+
+        <Preference
+            app:key="android_process_protection"
+            app:persistent="false"
+            app:summary="@string/alpine_process_protection_summary"
+            app:title="@string/alpine_process_protection_title" />
+
+    </PreferenceCategory>
+
 </PreferenceScreen>

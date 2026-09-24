@@ -7,11 +7,22 @@ display="${ALPINE_DESKTOP_DISPLAY:-:1}"
 
 normalize_choice() {
     case "${1:-}" in
-        xfce|XFCE|Xfce) printf '%s\n' xfce ;;
-        lxqt|LXQT|LXQt) printf '%s\n' lxqt ;;
-        openbox|Openbox|OPENBOX) printf '%s\n' openbox ;;
-        mate|MATE|Mate) printf '%s\n' mate ;;
-        plasma|PLASMA|Plasma|kde|KDE) printf '%s\n' plasma ;;
+        xfce|XFCE|Xfce) printf '%s
+' xfce ;;
+        lxqt|LXQT|LXQt) printf '%s
+' lxqt ;;
+        openbox|Openbox|OPENBOX) printf '%s
+' openbox ;;
+        mate|MATE|Mate) printf '%s
+' mate ;;
+        plasma|PLASMA|Plasma|kde|KDE) printf '%s
+' plasma ;;
+        lxde|LXDE|Lxde) printf '%s
+' lxde ;;
+        plasma-mobile|plasmamobile|PLASMA-MOBILE|Plasma-Mobile|kde-mobile|KDE-Mobile) printf '%s
+' plasma-mobile ;;
+        phosh|PHOSH|Phosh) printf '%s
+' phosh ;;
         *) return 1 ;;
     esac
 }
@@ -20,7 +31,7 @@ usage() {
     cat <<'EOF'
 Usage:
   start-desktop
-  start-desktop <xfce|lxqt|openbox|mate|plasma>
+  start-desktop <xfce|lxqt|openbox|mate|plasma|lxde|plasma-mobile|phosh>
 
 Without an argument, starts the desktop selected by install-desktop.
 Set ALPINE_DESKTOP_DISPLAY=:N to choose another X11 display.
@@ -118,6 +129,95 @@ run_session_shell() {
     exec sh -c "$1"
 }
 
+prepare_nested_wayland() {
+    # KWin/wlroots choose a nested X11 backend from DISPLAY. Avoid inheriting a
+    # stale Wayland socket from a previous nested session and let child clients
+    # switch to Wayland after their compositor creates the new socket.
+    unset WAYLAND_DISPLAY
+    unset GDK_BACKEND
+    unset QT_QPA_PLATFORM
+    export XDG_SESSION_TYPE=wayland
+
+    # Xwayland refuses to create sockets when /tmp/.X11-unix lacks the standard
+    # sticky bit. start-x11 fixes this too, but repeat it here for sessions that
+    # reuse an already-running display from an older install.
+    x11_socket_dir="${TMPDIR:-/tmp}/.X11-unix"
+    mkdir -p "$x11_socket_dir" || return 1
+    chmod 1777 "$x11_socket_dir" 2>/dev/null || {
+        echo "WARNING: could not set sticky permissions on $x11_socket_dir; nested Xwayland may fail." >&2
+    }
+}
+
+prepare_plasma_wayland() {
+    prepare_nested_wayland || return 1
+    export XDG_CURRENT_DESKTOP=KDE
+    export XDG_SESSION_DESKTOP=KDE
+    export KDE_FULL_SESSION=true
+    export KDE_SESSION_VERSION=6
+    if [ -d /usr/share/icons/breeze_cursors ]; then
+        export XCURSOR_THEME=breeze_cursors
+    fi
+}
+
+warn_plasma_support_packages() {
+    missing=""
+    for pkg in breeze breeze-cursors xdg-desktop-portal-kde pulseaudio-utils; do
+        if ! apk info -e "$pkg" >/dev/null 2>&1; then
+            missing="$missing $pkg"
+        fi
+    done
+    if [ -n "$missing" ]; then
+        echo "NOTE: Plasma support packages are missing:$missing" >&2
+        echo "      Run 'install-desktop $desktop' once after this app update to add them." >&2
+    fi
+}
+
+
+warn_android_process_limits() {
+    android_sdk="${ALPINE_ANDROID_SDK:-}"
+    case "$android_sdk" in
+        ''|*[!0-9]*) return 0 ;;
+    esac
+    if [ "$android_sdk" -ge 31 ]; then
+        echo "NOTE: Android 12+ may terminate large PRoot desktop process trees with signal 9." >&2
+        echo "      Use the Alpine notification's Acquire wakelock action and allow the" >&2
+        echo "      battery-optimization exemption. If signal 9 continues, open" >&2
+        echo "      Alpine Settings -> Debugging -> Android process protection." >&2
+    fi
+}
+
+warn_phosh_support_packages() {
+    if ! apk info -e pulseaudio-utils >/dev/null 2>&1; then
+        echo "NOTE: Phosh support package pulseaudio-utils is missing." >&2
+        echo "      Run 'install-desktop phosh' once after this app update to add it." >&2
+    fi
+}
+
+prepare_phosh_runtime() {
+    # Phosh pulls in a broad GNOME session intended for a full Linux phone. In
+    # Android/PRoot several autostarts can never work (systemd/logind/hardware
+    # daemons) and each extra child also counts toward Android's phantom-process
+    # budget. Mask only those helpers for this session, in XDG_RUNTIME_DIR, so
+    # neither /etc nor the user's persistent GNOME configuration is modified.
+    phosh_xdg_dir="$XDG_RUNTIME_DIR/alpine-phosh-xdg"
+    phosh_autostart_dir="$phosh_xdg_dir/autostart"
+    rm -rf "$phosh_xdg_dir" || return 1
+    mkdir -p "$phosh_autostart_dir" || return 1
+
+    for desktop_file in         org.gnome.Evolution-alarm-notify.desktop         org.gnome.SettingsDaemon.Color.desktop         org.gnome.SettingsDaemon.Datetime.desktop         org.gnome.SettingsDaemon.Power.desktop         org.gnome.SettingsDaemon.PrintNotifications.desktop         org.gnome.SettingsDaemon.Rfkill.desktop         org.gnome.SettingsDaemon.ScreensaverProxy.desktop         org.gnome.SettingsDaemon.Sharing.desktop         org.gnome.SettingsDaemon.Smartcard.desktop         org.gnome.SettingsDaemon.UsbProtection.desktop         org.gnome.SettingsDaemon.Wacom.desktop         org.gnome.SettingsDaemon.Wwan.desktop         org.gnome.SettingsDaemon.XSettings.desktop
+    do
+        [ -f "/etc/xdg/autostart/$desktop_file" ] || continue
+        cat > "$phosh_autostart_dir/$desktop_file" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Disabled by Alpine-on-Android nested Phosh
+Hidden=true
+EOF
+    done
+
+    export XDG_CONFIG_DIRS="$phosh_xdg_dir:${XDG_CONFIG_DIRS:-/etc/xdg}"
+}
+
 case "$desktop" in
     xfce)
         command -v startxfce4 >/dev/null 2>&1 || {
@@ -152,20 +252,52 @@ case "$desktop" in
         run_session mate-session
         ;;
     plasma)
-        if command -v startplasma-x11 >/dev/null 2>&1; then
-            echo "Starting Plasma X11..."
-            run_session startplasma-x11
-        fi
-
-        if command -v kwin_x11 >/dev/null 2>&1 && command -v plasmashell >/dev/null 2>&1; then
-            echo "WARNING: Alpine 3.23 has no standard Plasma X11 session launcher."
-            echo "Starting the experimental kwin_x11 + plasmashell fallback."
-            # shellcheck disable=SC2016 # Expanded by the nested session shell, not this launcher.
-            run_session_shell 'command -v kded6 >/dev/null 2>&1 && kded6 >/tmp/alpine-plasma-kded.log 2>&1 & kwin_x11 --replace >/tmp/alpine-plasma-kwin.log 2>&1 & kwin_pid=$!; trap "kill $kwin_pid 2>/dev/null || true" EXIT HUP INT TERM; plasmashell; status=$?; kill "$kwin_pid" 2>/dev/null || true; wait "$kwin_pid" 2>/dev/null || true; exit "$status"'
-        fi
-
-        echo "ERROR: Plasma was installed, but this Alpine build has no usable X11 Plasma launcher." >&2
-        echo "The integrated Alpine Display is X11; Plasma Wayland cannot use it directly." >&2
-        exit 1
+        command -v startplasma-wayland >/dev/null 2>&1 || {
+            echo "ERROR: Plasma is not installed. Run: install-desktop plasma" >&2
+            exit 1
+        }
+        prepare_plasma_wayland || exit 1
+        warn_plasma_support_packages
+        warn_android_process_limits
+        echo "Starting Plasma Desktop (nested Wayland on $DISPLAY)..."
+        run_session startplasma-wayland
+        ;;
+    lxde)
+        command -v openbox-session >/dev/null 2>&1 || {
+            echo "ERROR: LXDE compatibility session is not installed. Run: install-desktop lxde" >&2
+            exit 1
+        }
+        echo "Starting LXDE compatibility session..."
+        run_session_shell 'if command -v lxsettings-daemon >/dev/null 2>&1; then lxsettings-daemon >/tmp/alpine-lxde-settings.log 2>&1 & fi; if command -v pcmanfm >/dev/null 2>&1; then pcmanfm --desktop >/tmp/alpine-lxde-pcmanfm.log 2>&1 & fi; if command -v tint2 >/dev/null 2>&1; then tint2 >/tmp/alpine-lxde-tint2.log 2>&1 & fi; exec openbox-session'
+        ;;
+    plasma-mobile)
+        command -v startplasmamobile >/dev/null 2>&1 || {
+            echo "ERROR: Plasma Mobile is not installed. Run: install-desktop plasma-mobile" >&2
+            exit 1
+        }
+        prepare_plasma_wayland || exit 1
+        warn_plasma_support_packages
+        warn_android_process_limits
+        echo "Starting Plasma Mobile (nested Wayland on $DISPLAY)..."
+        run_session startplasmamobile
+        ;;
+    phosh)
+        command -v phosh-session >/dev/null 2>&1 || {
+            echo "ERROR: Phosh is not installed. Run: install-desktop phosh" >&2
+            exit 1
+        }
+        prepare_nested_wayland || exit 1
+        prepare_phosh_runtime || exit 1
+        warn_phosh_support_packages
+        warn_android_process_limits
+        export WLR_BACKENDS=x11
+        export WLR_LIBINPUT_NO_DEVICES=1
+        # Termux:X11 does not expose DRI3/DRM FDs to the nested compositor.
+        # Force wlroots' CPU renderer instead of letting phoc enter the EGL path
+        # and abort after DMA-BUF/DRI3 probing fails.
+        export WLR_RENDERER=pixman
+        export WLR_RENDERER_ALLOW_SOFTWARE=1
+        echo "Starting Phosh (nested Wayland + pixman on $DISPLAY)..."
+        run_session phosh-session
         ;;
 esac

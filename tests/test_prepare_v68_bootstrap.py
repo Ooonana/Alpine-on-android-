@@ -47,7 +47,7 @@ class PrepareV68BootstrapTest(unittest.TestCase):
             prefix + "etc/alpine-release": (b"3.23.6\n", False, 0o644),
             prefix + "usr/lib/os-release": (b"VERSION_ID=3.23.6\n", False, 0o644),
             prefix + "etc/apk/repositories": (prepare.v68_rootfs.OFFICIAL_REPOSITORIES, False, 0o644),
-            prefix + "etc/alpine-bootstrap-version": (b"v68.4\n", False, 0o644),
+            prefix + "etc/alpine-bootstrap-version": (b"v69.3\n", False, 0o644),
             prefix + "sbin/apk": (b"fake-stock-apk", False, 0o755),
             prefix + "usr/share/X11/xkb/rules/base": (b"xkb", False, 0o644),
         }
@@ -114,7 +114,7 @@ class PrepareV68BootstrapTest(unittest.TestCase):
         prefix = prepare.ROOTFS_PREFIX
         with zipfile.ZipFile(self.zip_path) as z:
             self.assertEqual(z.read("etc/bash.bashrc"), b"#!/bin/sh\necho v68\n")
-            self.assertEqual(z.read("etc/alpine-bootstrap-version"), b"v68.4\n")
+            self.assertEqual(z.read("etc/alpine-bootstrap-version"), b"v69.3\n")
             self.assertEqual(z.read(prefix + "etc/alpine-release"), b"3.23.6\n")
             self.assertEqual(z.read(prefix + "etc/nsswitch.conf"), b"hosts: files dns\n")
             self.assertNotIn(prefix + "old-stale-file", z.namelist())

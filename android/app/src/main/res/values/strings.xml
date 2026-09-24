@@ -163,6 +163,30 @@
                 <string name="alpine_crash_report_notifications_enabled_on">Show notifications for crash reports. (Default)</string>
 
 
+            <!-- Android Process Protection -->
+            <string name="alpine_process_protection_header">Android process protection</string>
+            <string name="alpine_process_protection_title">Desktop process protection</string>
+            <string name="alpine_process_protection_summary">Check battery optimization and Android 12+ phantom-process limits for long-running Linux desktops.</string>
+            <string name="alpine_process_protection_dialog_title">Android process protection</string>
+            <string name="alpine_process_protection_dialog_message">Battery optimization exemption: %1$s
+Phantom-process monitor: %2$s
+Maximum phantom processes: %3$s
+
+Alpine already runs terminal sessions through a foreground service. For long-running desktops, use the Alpine notification’s Acquire wakelock action.
+
+If Android 12+ still ends a PRoot session with signal 9, the device may be enforcing phantom child-process limits. Where supported, use Developer options → Disable child process restrictions. Another established ADB workaround is:
+
+adb shell settings put global settings_enable_monitor_phantom_procs false
+
+This screen never changes that global setting automatically.</string>
+            <string name="alpine_process_protection_battery_exempt">granted</string>
+            <string name="alpine_process_protection_battery_not_exempt">not granted</string>
+            <string name="alpine_process_protection_unknown">unknown</string>
+            <string name="alpine_process_protection_request_battery">Request battery exemption</string>
+            <string name="alpine_process_protection_copy_adb">Copy ADB command</string>
+            <string name="alpine_process_protection_adb_copied">ADB command copied</string>
+
+
         <!-- Terminal IO Preferences -->
         <string name="alpine_terminal_io_preferences_title">Terminal I/O</string>
         <string name="alpine_terminal_io_preferences_summary">Preferences for terminal I/O</string>

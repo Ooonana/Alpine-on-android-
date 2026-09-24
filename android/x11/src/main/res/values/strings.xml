@@ -30,7 +30,7 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="lorie_notification_exit">Back to terminal</string>
     <string name="lorie_notification_restart_activity">Restart display</string>
     <string name="lorie_notification_toggle_soft_keyboard">Toggle IME</string>
-    <string name="lorie_notification_toggle_additional_key_bar">Toggle additional keyboard</string>
+    <string name="lorie_notification_toggle_additional_key_bar">Toggle input dock</string>
     <string name="lorie_notification_release_pointer_and_keyboard_capture">Release captures</string>
     <string name="lorie_notification_toggle_fullscreen">Toggle fullscreen</string>
 
@@ -123,4 +123,12 @@ E.g. <b>META</b> for <i>META key</i>, \n
     <string name="lorie_pref_summary_requiresExactOrCustom">Requires "display resolution mode" to be "exact" or "custom"</string>
     <string name="lorie_pref_summary_requiresIntercepting">Requires intercepting system shortcuts with Dex mode or with Accessibility service</string>
     <string name="lorie_pref_summary_requiresTrackpadAndNative">Requires "Touchscreen input mode" to be "Trackpad" and "Display resolution mode" to be not "native"</string>
+    <string name="input_dock_keyboard_description">Toggle software keyboard</string>
+    <string name="input_dock_right_click_description">Right click at current pointer position</string>
+    <string name="input_dock_left_description">Left arrow</string>
+    <string name="input_dock_up_description">Up arrow</string>
+    <string name="input_dock_down_description">Down arrow</string>
+    <string name="input_dock_right_description">Right arrow</string>
+    <string name="input_dock_hide_description">Hide input dock</string>
+    <string name="input_dock_show_description">Show input dock</string>
 </resources>

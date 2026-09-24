@@ -16,6 +16,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -67,6 +68,8 @@ import com.termux.x11.utils.KeyInterceptor;
 import com.termux.x11.utils.SamsungDexUtils;
 import com.termux.x11.utils.TermuxX11ExtraKeys;
 
+import java.nio.charset.StandardCharsets;
+
 
 @SuppressLint("ApplySharedPref")
 @SuppressWarnings({"deprecation", "unused"})
@@ -93,6 +96,13 @@ public class MainActivity extends AppCompatActivity {
     private boolean isInPictureInPictureMode = false;
     private boolean receiverRegistered = false;
     private boolean displayUiReady = false;
+    private Button dockCtrlButton;
+    private Button dockAltButton;
+    private Button dockMetaButton;
+    private boolean dockCtrlDown = false;
+    private boolean dockAltDown = false;
+    private boolean dockMetaDown = false;
+    private boolean inputDockCollapsed = false;
 
     public static Prefs prefs = null;
 
@@ -208,6 +218,7 @@ public class MainActivity extends AppCompatActivity {
             lorieParent.setOnCapturedPointerListener((v, e) -> mInputHandler.handleTouchEvent(lorieView, lorieView, e));
         }
         lorieView.setOnKeyListener(mLorieKeyListener);
+        initAlpineInputDock();
 
         lorieView.setCallback((surfaceWidth, surfaceHeight, screenWidth, screenHeight) -> {
             String name;
@@ -554,6 +565,133 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void initAlpineInputDock() {
+        dockCtrlButton = findViewById(R.id.dock_ctrl);
+        dockAltButton = findViewById(R.id.dock_alt);
+        dockMetaButton = findViewById(R.id.dock_meta);
+
+        findViewById(R.id.dock_keyboard).setOnClickListener(v -> {
+            getLorieView().requestFocus();
+            toggleKeyboardVisibility(this);
+        });
+        findViewById(R.id.dock_right_click).setOnClickListener(v -> sendDockRightClick());
+        setDockKeyButton(R.id.dock_escape, KEYCODE_ESCAPE);
+        setDockKeyButton(R.id.dock_tab, KEYCODE_TAB);
+        setDockKeyButton(R.id.dock_left, KEYCODE_DPAD_LEFT);
+        setDockKeyButton(R.id.dock_up, KEYCODE_DPAD_UP);
+        setDockKeyButton(R.id.dock_down, KEYCODE_DPAD_DOWN);
+        setDockKeyButton(R.id.dock_right, KEYCODE_DPAD_RIGHT);
+
+        dockCtrlButton.setOnClickListener(v -> toggleDockModifier(KEYCODE_CTRL_LEFT));
+        dockAltButton.setOnClickListener(v -> toggleDockModifier(KEYCODE_ALT_LEFT));
+        dockMetaButton.setOnClickListener(v -> toggleDockModifier(KEYCODE_META_LEFT));
+        findViewById(R.id.dock_paste).setOnClickListener(v -> pasteClipboardToDisplay());
+        findViewById(R.id.dock_toggle).setOnClickListener(v -> setInputDockCollapsed(!inputDockCollapsed));
+
+        updateDockModifierButtons();
+        setInputDockCollapsed(false);
+        updateAlpineInputDockVisibility();
+    }
+
+    private void setDockKeyButton(int viewId, int keyCode) {
+        findViewById(viewId).setOnClickListener(v -> sendDockKey(keyCode));
+    }
+
+    private void sendDockKey(int keyCode) {
+        if (!LorieView.connected()) return;
+        LorieView view = getLorieView();
+        view.sendKeyEvent(0, keyCode, true);
+        view.sendKeyEvent(0, keyCode, false);
+        view.requestFocus();
+    }
+
+    private void sendDockRightClick() {
+        if (!LorieView.connected()) return;
+        LorieView view = getLorieView();
+        view.sendMouseEvent(0, 0, InputStub.BUTTON_RIGHT, true, true);
+        view.sendMouseEvent(0, 0, InputStub.BUTTON_RIGHT, false, true);
+        view.requestFocus();
+    }
+
+    private void toggleDockModifier(int keyCode) {
+        if (!LorieView.connected()) return;
+
+        boolean pressed;
+        if (keyCode == KEYCODE_CTRL_LEFT) {
+            dockCtrlDown = !dockCtrlDown;
+            pressed = dockCtrlDown;
+        } else if (keyCode == KEYCODE_ALT_LEFT) {
+            dockAltDown = !dockAltDown;
+            pressed = dockAltDown;
+        } else if (keyCode == KEYCODE_META_LEFT) {
+            dockMetaDown = !dockMetaDown;
+            pressed = dockMetaDown;
+        } else {
+            return;
+        }
+
+        getLorieView().sendKeyEvent(0, keyCode, pressed);
+        updateDockModifierButtons();
+        getLorieView().requestFocus();
+    }
+
+    private void updateDockModifierButtons() {
+        updateDockModifierButton(dockCtrlButton, dockCtrlDown);
+        updateDockModifierButton(dockAltButton, dockAltDown);
+        updateDockModifierButton(dockMetaButton, dockMetaDown);
+    }
+
+    private void updateDockModifierButton(Button button, boolean active) {
+        if (button == null) return;
+        button.setSelected(active);
+        button.setTextColor(getColor(active ? R.color.alpine_display_black : R.color.alpine_display_white));
+    }
+
+    private void releaseDockModifiers() {
+        LorieView view = displayUiReady ? getLorieView() : null;
+        boolean connected = view != null && LorieView.connected();
+        if (connected && dockCtrlDown) view.sendKeyEvent(0, KEYCODE_CTRL_LEFT, false);
+        if (connected && dockAltDown) view.sendKeyEvent(0, KEYCODE_ALT_LEFT, false);
+        if (connected && dockMetaDown) view.sendKeyEvent(0, KEYCODE_META_LEFT, false);
+        dockCtrlDown = false;
+        dockAltDown = false;
+        dockMetaDown = false;
+        updateDockModifierButtons();
+    }
+
+    private void pasteClipboardToDisplay() {
+        if (!LorieView.connected()) return;
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clipData = clipboard == null ? null : clipboard.getPrimaryClip();
+        if (clipData == null || clipData.getItemCount() == 0) return;
+
+        CharSequence text = clipData.getItemAt(0).coerceToText(this);
+        if (text == null || text.length() == 0) return;
+        getLorieView().sendTextEvent(text.toString().getBytes(StandardCharsets.UTF_8));
+        getLorieView().requestFocus();
+    }
+
+    private void setInputDockCollapsed(boolean collapsed) {
+        inputDockCollapsed = collapsed;
+        View scroll = findViewById(R.id.alpine_input_dock_scroll);
+        Button toggle = findViewById(R.id.dock_toggle);
+        scroll.setVisibility(collapsed ? View.GONE : View.VISIBLE);
+        toggle.setText(collapsed ? "⌃" : "⌄");
+        toggle.setContentDescription(getString(collapsed
+            ? R.string.input_dock_show_description
+            : R.string.input_dock_hide_description));
+        if (collapsed) releaseDockModifiers();
+        if (displayUiReady) getLorieView().requestFocus();
+    }
+
+    private void updateAlpineInputDockVisibility() {
+        View dock = findViewById(R.id.alpine_input_dock);
+        if (dock == null) return;
+        boolean visible = displayUiReady && LorieView.connected() && !isInPictureInPictureMode;
+        dock.setVisibility(visible ? View.VISIBLE : View.GONE);
+        if (!visible) releaseDockModifiers();
+    }
+
     private void setMouseButtonListener(Button button, int mouseButton) {
         button.setOnTouchListener((__, e) -> {
             switch(e.getAction()) {
@@ -700,6 +838,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onPause() {
+        if (displayUiReady) releaseDockModifiers();
         if (displayUiReady && inputMethodManager != null)
             inputMethodManager.hideSoftInputFromWindow(getWindow().getDecorView().getRootView().getWindowToken(), 0);
 
@@ -750,7 +889,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void toggleExtraKeys() {
-        toggleExtraKeys(getTerminalToolbarViewPager().getVisibility() != View.VISIBLE, true);
+        // Keep the upstream user-action preference compatible, but make it useful
+        // in Alpine Display: the legacy extra-key pager is disabled, so toggle the
+        // compact V69 input dock instead.
+        if (!displayUiReady || !LorieView.connected()) return;
+        setInputDockCollapsed(!inputDockCollapsed);
     }
 
     public boolean handleKey(KeyEvent e) {
@@ -909,6 +1052,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         this.isInPictureInPictureMode = isInPictureInPictureMode;
+        updateAlpineInputDockVisibility();
         final ViewPager pager = getTerminalToolbarViewPager();
         pager.setAlpha(isInPictureInPictureMode ? 0.f : ((float) prefs.opacityEKBar.get())/100);
         findViewById(R.id.mouse_buttons).setAlpha(isInPictureInPictureMode ? 0.f : 0.7f);
@@ -939,6 +1083,7 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(()-> {
             boolean connected = LorieView.connected();
             setTerminalToolbarView();
+            updateAlpineInputDockVisibility();
             findViewById(R.id.mouse_buttons).setVisibility(prefs.showMouseHelper.get() && "1".equals(prefs.touchMode.get()) && connected ? View.VISIBLE : View.GONE);
             findViewById(R.id.stub).setVisibility(connected?View.INVISIBLE:View.VISIBLE);
             getLorieView().setVisibility(connected?View.VISIBLE:View.INVISIBLE);

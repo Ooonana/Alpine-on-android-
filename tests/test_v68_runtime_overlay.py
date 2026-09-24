@@ -1,6 +1,7 @@
 from pathlib import Path
 import hashlib
 import unittest
+import xml.etree.ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -44,6 +45,9 @@ X11_NATIVE_LIB = ROOT / "android/x11/src/main/jniLibs/arm64-v8a/libXlorie.so"
 JITPACK = ROOT / "android/jitpack.yml"
 ROOTFS_BUILDER = ROOT / "scripts/v68_rootfs.py"
 PREPARE = ROOT / "scripts/prepare-v68-bootstrap.py"
+DEBUG_PREFS_FRAGMENT = ROOT / "android/app/src/main/java/com/alpine/app/fragments/settings/alpine/DebuggingPreferencesFragment.java"
+DEBUG_PREFS_XML = ROOT / "android/app/src/main/res/xml/alpine_debugging_preferences.xml"
+APP_STRINGS = ROOT / "android/app/src/main/res/values/strings.xml"
 
 
 class V68RuntimeOverlayTest(unittest.TestCase):
@@ -82,12 +86,12 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         build = APP_BUILD.read_text(encoding="utf-8")
         builder = ROOTFS_BUILDER.read_text(encoding="utf-8")
         prepare = PREPARE.read_text(encoding="utf-8")
-        self.assertIn('BOOTSTRAP_VERSION = "v68.4"', installer)
-        self.assertIn("versionCode 140", build)
-        self.assertIn('versionName "0.135.4-v68-dev"', build)
+        self.assertIn('BOOTSTRAP_VERSION = "v69.3"', installer)
+        self.assertIn("versionCode 144", build)
+        self.assertIn('versionName "0.136.3-v69-dev"', build)
         self.assertIn('ALPINE_VERSION = "3.23.6"', builder)
-        self.assertIn('b"v68.4\\n"', builder)
-        self.assertIn('b"v68.4\\n"', prepare)
+        self.assertIn('b"v69.3\\n"', builder)
+        self.assertIn('b"v69.3\\n"', prepare)
 
     def test_v68_build_toolchain_defaults_match_validated_build(self):
         properties = GRADLE_PROPERTIES.read_text(encoding="utf-8")
@@ -157,13 +161,15 @@ class V68RuntimeOverlayTest(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             self.assertNotIn("@RequiresApi(Build.VERSION_CODES.O)", text, path)
 
-    def test_v68_4_hotfix_migrates_v68_1_v68_2_and_v68_3_in_place(self):
+    def test_v69_3_migrates_v68_1_through_v69_2_in_place(self):
         installer = INSTALLER.read_text(encoding="utf-8")
-        self.assertIn('PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2", "v68.3" }', installer)
+        self.assertIn('PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2", "v68.3", "v68.4", "v69", "v69.1", "v69.2" }', installer)
         self.assertIn("V68_HOTFIX_PATCH_FILES", installer)
         for path in (
             '"etc/bash.bashrc"',
             'ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11"',
+            'ROOTFS_RELATIVE_PATH + "/usr/local/bin/install-desktop"',
+            'ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-desktop"',
             '"etc/motd"',
             'ROOTFS_RELATIVE_PATH + "/etc/motd"',
             'ROOTFS_RELATIVE_PATH + "/etc/alpine-bootstrap-version"',
@@ -181,7 +187,20 @@ class V68RuntimeOverlayTest(unittest.TestCase):
             installer.index('deletePathOrThrow("staging", ALPINE_STAGING_PREFIX_DIR_PATH, true)'),
         )
 
-    def test_v68_4_startup_banner_and_gui_hint_are_tracked(self):
+    def test_v69_3_android_process_protection_is_user_controlled(self):
+        fragment = DEBUG_PREFS_FRAGMENT.read_text(encoding="utf-8")
+        prefs = DEBUG_PREFS_XML.read_text(encoding="utf-8")
+        strings = APP_STRINGS.read_text(encoding="utf-8")
+        self.assertIn('app:key="android_process_protection"', prefs)
+        self.assertIn("PermissionUtils.checkIfBatteryOptimizationsDisabled", fragment)
+        self.assertIn("PhantomProcessUtils.getFeatureFlagMonitorPhantomProcsValueString", fragment)
+        self.assertIn("PhantomProcessUtils.getActivityManagerMaxPhantomProcesses", fragment)
+        self.assertIn("PermissionUtils.requestDisableBatteryOptimizations", fragment)
+        self.assertIn("settings put global settings_enable_monitor_phantom_procs false", fragment)
+        self.assertNotIn("Settings.Global.put", fragment)
+        self.assertIn("This screen never changes that global setting automatically", strings)
+
+    def test_v69_startup_banner_and_gui_hint_are_tracked(self):
         host = HOST_MOTD.read_text(encoding="utf-8")
         rootfs = ROOTFS_MOTD.read_text(encoding="utf-8")
         self.assertEqual(host, rootfs)
@@ -318,6 +337,65 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertNotIn("View.VISIBLE", method)
         self.assertNotIn("X11ToolbarViewPager", method)
 
+    def test_v69_compact_input_dock_is_below_display_and_wired(self):
+        activity = X11_MAIN_ACTIVITY.read_text(encoding="utf-8")
+        layout = X11_LAYOUT.read_text(encoding="utf-8")
+        styles = X11_STYLES.read_text(encoding="utf-8")
+
+        tree = ET.parse(X11_LAYOUT)
+        root = tree.getroot()
+        android_id = "{http://schemas.android.com/apk/res/android}id"
+        display_column = next(
+            child for child in root
+            if child.attrib.get(android_id) == "@+id/display_column"
+        )
+        direct_ids = [child.attrib.get(android_id) for child in display_column]
+        self.assertEqual(direct_ids[:2], ["@+id/frame", "@+id/alpine_input_dock"])
+        self.assertIn('android:layout_height="0dp"', layout)
+        self.assertIn('android:layout_weight="1"', layout)
+        self.assertIn('android:layout_height="38dp"', layout)
+        self.assertIn('@style/AlpineDisplay.DockButton', layout)
+        for control in (
+            "dock_keyboard", "dock_right_click", "dock_escape", "dock_tab",
+            "dock_ctrl", "dock_alt", "dock_left", "dock_up", "dock_down",
+            "dock_right", "dock_meta", "dock_paste", "dock_toggle",
+        ):
+            self.assertIn(f'@+id/{control}', layout)
+
+        self.assertIn('private void initAlpineInputDock()', activity)
+        self.assertIn('toggleKeyboardVisibility(this)', activity)
+        self.assertIn('InputStub.BUTTON_RIGHT', activity)
+        self.assertIn('KEYCODE_ESCAPE', activity)
+        self.assertIn('KEYCODE_TAB', activity)
+        self.assertIn('KEYCODE_DPAD_LEFT', activity)
+        self.assertIn('KEYCODE_DPAD_UP', activity)
+        self.assertIn('KEYCODE_DPAD_DOWN', activity)
+        self.assertIn('KEYCODE_DPAD_RIGHT', activity)
+        self.assertIn('KEYCODE_CTRL_LEFT', activity)
+        self.assertIn('KEYCODE_ALT_LEFT', activity)
+        self.assertIn('KEYCODE_META_LEFT', activity)
+        self.assertIn('ClipboardManager', activity)
+        self.assertIn('sendTextEvent(text.toString().getBytes(StandardCharsets.UTF_8))', activity)
+        self.assertIn('releaseDockModifiers()', activity)
+        self.assertIn('setInputDockCollapsed(!inputDockCollapsed)', activity)
+        touch_input = (ROOT / "android/x11/src/main/java/com/termux/x11/input/TouchInputHandler.java").read_text(encoding="utf-8")
+        actions = (ROOT / "android/x11/src/main/res/values/arrays.xml").read_text(encoding="utf-8")
+        preferences_xml = (ROOT / "android/x11/src/main/res/xml/preferences.xml").read_text(encoding="utf-8")
+        self.assertIn("toggle input dock", actions)
+        self.assertIn('app:defaultValue="toggle input dock"', preferences_xml)
+        self.assertIn('case "toggle input dock":', touch_input)
+        self.assertIn('case "toggle additional key bar":', touch_input)
+        zero_arg_toggle = activity[activity.index("public void toggleExtraKeys()") : activity.index("public boolean handleKey")]
+        self.assertIn("setInputDockCollapsed(!inputDockCollapsed)", zero_arg_toggle)
+        self.assertNotIn("getTerminalToolbarViewPager().getVisibility()", zero_arg_toggle)
+        self.assertIn('<style name="AlpineDisplay.DockButton"', styles)
+        self.assertIn('@drawable/alpine_display_dock_button', styles)
+        preferences_xml = (ROOT / "android/x11/src/main/res/xml/preferences.xml").read_text(encoding="utf-8")
+        self.assertIn(
+            'app:key="showAdditionalKbd" app:defaultValue="true" app:isPreferenceVisible="false"',
+            preferences_xml,
+        )
+
     def test_display_preferences_are_crash_hardened(self):
         activity = X11_MAIN_ACTIVITY.read_text(encoding="utf-8")
         view = X11_VIEW.read_text(encoding="utf-8")
@@ -344,14 +422,39 @@ class V68RuntimeOverlayTest(unittest.TestCase):
     def test_desktop_installer_still_supports_all_choices(self):
         installer = INSTALL_DESKTOP.read_text(encoding="utf-8")
         launcher = START_DESKTOP.read_text(encoding="utf-8")
-        for desktop in ("xfce", "lxqt", "openbox", "mate", "plasma"):
+        for desktop in ("xfce", "lxqt", "openbox", "mate", "plasma", "lxde", "plasma-mobile", "phosh"):
             self.assertIn(desktop, installer)
             self.assertIn(desktop, launcher)
-        self.assertNotIn("lxde", installer)
-        self.assertNotIn("lxde", launcher)
+        self.assertIn("Choose a desktop [1-8, q to cancel]", installer)
+        self.assertIn('packages="lxsession openbox pcmanfm lxterminal tint2"', installer)
+        self.assertIn('packages="plasma-mobile konsole breeze breeze-cursors xdg-desktop-portal-kde pulseaudio-utils xwayland"', installer)
+        self.assertIn('packages="phosh phoc pulseaudio-utils xwayland"', installer)
         self.assertIn('start-x11 "$DISPLAY"', launcher)
+        start_x11 = START_X11.read_text(encoding="utf-8")
+        self.assertIn('chmod 1777 "$socket_dir"', start_x11)
+        self.assertIn('ERROR: X11 socket was not created at $socket_path', start_x11)
+        self.assertIn('tail -n 80 "$log_file" 2>/dev/null || true\n    exit 1', start_x11)
         self.assertIn("dbus-run-session", launcher)
         self.assertIn("LIBGL_ALWAYS_SOFTWARE", launcher)
+        self.assertIn("prepare_nested_wayland", launcher)
+        self.assertIn("prepare_plasma_wayland", launcher)
+        self.assertIn('chmod 1777 "$x11_socket_dir"', launcher)
+        self.assertIn("export XDG_CURRENT_DESKTOP=KDE", launcher)
+        self.assertIn("warn_plasma_support_packages", launcher)
+        self.assertIn("run_session startplasma-wayland", launcher)
+        self.assertIn("run_session startplasmamobile", launcher)
+        self.assertIn("export WLR_BACKENDS=x11", launcher)
+        self.assertIn("export WLR_RENDERER=pixman", launcher)
+        self.assertIn("prepare_nested_wayland || exit 1", launcher)
+        self.assertIn("prepare_phosh_runtime || exit 1", launcher)
+        self.assertIn("org.gnome.Evolution-alarm-notify.desktop", launcher)
+        self.assertIn("org.gnome.SettingsDaemon.Power.desktop", launcher)
+        self.assertIn('export XDG_CONFIG_DIRS="$phosh_xdg_dir:${XDG_CONFIG_DIRS:-/etc/xdg}"', launcher)
+        self.assertIn("Android 12+ may terminate large PRoot desktop process trees with signal 9", launcher)
+        self.assertIn("run_session phosh-session", launcher)
+        self.assertIn("Starting LXDE compatibility session", launcher)
+        self.assertNotIn("startplasma-x11", launcher)
+        self.assertNotIn("kwin_x11", launcher)
 
     def test_launcher_keeps_proot_compatibility_without_package_manager_shim(self):
         text = BASHRC.read_text(encoding="utf-8")

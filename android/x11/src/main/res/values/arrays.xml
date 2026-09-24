@@ -63,7 +63,7 @@
     <string-array name="userActionsValues">
         <item>no action</item>
         <item>toggle soft keyboard</item>
-        <item>toggle additional key bar</item>
+        <item>toggle input dock</item>
         <item>open preferences</item>
         <item>release pointer and keyboard capture</item>
         <item>toggle fullscreen</item>

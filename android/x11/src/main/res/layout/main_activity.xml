@@ -5,10 +5,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <LinearLayout
+        android:id="@+id/display_column"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
     <FrameLayout
         android:id="@+id/frame"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:clipToPadding="false"
         android:layoutDirection="ltr"
         android:background="@color/alpine_display_black">
@@ -144,6 +151,155 @@
             </LinearLayout>
         </ScrollView>
     </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/alpine_input_dock"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/alpine_display_black"
+        android:gravity="end|center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="2dp"
+        android:paddingTop="2dp"
+        android:paddingRight="2dp"
+        android:paddingBottom="2dp"
+        android:visibility="gone">
+
+        <HorizontalScrollView
+            android:id="@+id/alpine_input_dock_scroll"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_weight="1"
+            android:fillViewport="false"
+            android:scrollbars="none"
+            android:overScrollMode="never">
+
+            <LinearLayout
+                android:id="@+id/alpine_input_dock_row"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/dock_keyboard"
+                    style="@style/AlpineDisplay.DockButton"
+                    android:layout_width="40dp"
+                    android:layout_height="34dp"
+                    android:contentDescription="@string/input_dock_keyboard_description"
+                    android:text="⌨"
+                    tools:ignore="HardcodedText,TouchTargetSizeCheck" />
+
+                <Button
+                    android:id="@+id/dock_right_click"
+                    style="@style/AlpineDisplay.DockButton"
+                    android:layout_width="52dp"
+                    android:layout_height="34dp"
+                    android:contentDescription="@string/input_dock_right_click_description"
+                    android:text="RMB"
+                    tools:ignore="HardcodedText,TouchTargetSizeCheck" />
+
+                <Button
+                    android:id="@+id/dock_escape"
+                    style="@style/AlpineDisplay.DockButton"
+                    android:layout_width="48dp"
+                    android:layout_height="34dp"
+                    android:text="Esc"
+                    tools:ignore="HardcodedText,TouchTargetSizeCheck" />
+
+                <Button
+                    android:id="@+id/dock_tab"
+                    style="@style/AlpineDisplay.DockButton"
+                    android:layout_width="46dp"
+                    android:layout_height="34dp"
+                    android:text="Tab"
+                    tools:ignore="HardcodedText,TouchTargetSizeCheck" />
+
+                <Button
+                    android:id="@+id/dock_ctrl"
+                    style="@style/AlpineDisplay.DockButton"
+                    android:layout_width="50dp"
+                    android:layout_height="34dp"
+                    android:text="Ctrl"
+                    tools:ignore="HardcodedText,TouchTargetSizeCheck" />
+
+                <Button
+                    android:id="@+id/dock_alt"
+                    style="@style/AlpineDisplay.DockButton"
+                    android:layout_width="46dp"
+                    android:layout_height="34dp"
+                    android:text="Alt"
+                    tools:ignore="HardcodedText,TouchTargetSizeCheck" />
+
+                <Button
+                    android:id="@+id/dock_left"
+                    style="@style/AlpineDisplay.DockButton"
+                    android:layout_width="38dp"
+                    android:layout_height="34dp"
+                    android:contentDescription="@string/input_dock_left_description"
+                    android:text="←"
+                    tools:ignore="HardcodedText,TouchTargetSizeCheck" />
+
+                <Button
+                    android:id="@+id/dock_up"
+                    style="@style/AlpineDisplay.DockButton"
+                    android:layout_width="38dp"
+                    android:layout_height="34dp"
+                    android:contentDescription="@string/input_dock_up_description"
+                    android:text="↑"
+                    tools:ignore="HardcodedText,TouchTargetSizeCheck" />
+
+                <Button
+                    android:id="@+id/dock_down"
+                    style="@style/AlpineDisplay.DockButton"
+                    android:layout_width="38dp"
+                    android:layout_height="34dp"
+                    android:contentDescription="@string/input_dock_down_description"
+                    android:text="↓"
+                    tools:ignore="HardcodedText,TouchTargetSizeCheck" />
+
+                <Button
+                    android:id="@+id/dock_right"
+                    style="@style/AlpineDisplay.DockButton"
+                    android:layout_width="38dp"
+                    android:layout_height="34dp"
+                    android:contentDescription="@string/input_dock_right_description"
+                    android:text="→"
+                    tools:ignore="HardcodedText,TouchTargetSizeCheck" />
+
+                <Button
+                    android:id="@+id/dock_meta"
+                    style="@style/AlpineDisplay.DockButton"
+                    android:layout_width="54dp"
+                    android:layout_height="34dp"
+                    android:text="Meta"
+                    tools:ignore="HardcodedText,TouchTargetSizeCheck" />
+
+                <Button
+                    android:id="@+id/dock_paste"
+                    style="@style/AlpineDisplay.DockButton"
+                    android:layout_width="58dp"
+                    android:layout_height="34dp"
+                    android:text="Paste"
+                    tools:ignore="HardcodedText,TouchTargetSizeCheck" />
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <Button
+            android:id="@+id/dock_toggle"
+            style="@style/AlpineDisplay.DockButton"
+            android:layout_width="34dp"
+            android:layout_height="24dp"
+            android:contentDescription="@string/input_dock_hide_description"
+            android:minHeight="24dp"
+            android:minWidth="34dp"
+            android:padding="0dp"
+            android:text="⌄"
+            android:textSize="11sp"
+            tools:ignore="HardcodedText,TouchTargetSizeCheck" />
+    </LinearLayout>
+
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/mouse_helper_visibility"
