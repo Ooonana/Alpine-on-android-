@@ -15,4 +15,5 @@ Working with Alpine packages (apk):
  - Update:  apk update
  - Upgrade: apk upgrade
 
-GUI desktop: run install-desktop to install one, then start-desktop to launch it.
+GUI desktops: run desktop-manager to install/remove/switch; start-desktop launches the default.
+Network: Android passthrough; run android-network-settings to open Android network controls.

@@ -1,3 +1,5 @@
+#include "bootstrap-input.h"
+
      .global blob
      .global blob_size
      .section .rodata

@@ -117,7 +117,9 @@ start_x11_bridge() {
     bridge_pid_file="$TMPDIR/alpine-x11-bridge.pid"
     server_pid_file="$TMPDIR/alpine-x11-server.pid"
     request_file="$TMPDIR/alpine-x11-request"
+    network_request_file="$TMPDIR/alpine-android-network-request"
     log_file="$TMPDIR/termux-x11.log"
+    network_log_file="$TMPDIR/alpine-android-network.log"
 
     if pid_identity_file_alive "$bridge_pid_file"; then
         return 0
@@ -129,7 +131,56 @@ start_x11_bridge() {
         export PATH="/system/bin:/system/xbin:$PREFIX/bin:$PATH"
         cd "$TMPDIR" 2>/dev/null || cd "$PREFIX/tmp" 2>/dev/null || cd / 2>/dev/null || exit 0
 
+        open_android_network_settings() {
+            network_action="$1"
+            case "$network_action" in
+                wifi) intent_action="android.settings.WIFI_SETTINGS" ;;
+                wireless) intent_action="android.settings.WIRELESS_SETTINGS" ;;
+                settings) intent_action="android.settings.SETTINGS" ;;
+                internet)
+                    case "${ALPINE_ANDROID_SDK:-}" in
+                        ''|*[!0-9]*|2[0-8]) intent_action="android.settings.WIRELESS_SETTINGS" ;;
+                        *) intent_action="android.settings.panel.action.INTERNET_CONNECTIVITY" ;;
+                    esac
+                    ;;
+                *)
+                    echo "Ignoring invalid Android network-settings request: $network_action" >> "$network_log_file"
+                    return 1
+                    ;;
+            esac
+
+            # Android's stock /system/bin/am is restricted for untrusted app UIDs
+            # on modern Android. Use the bundled TermuxAm-compatible wrapper,
+            # already package-rewritten for com.alpine, so the request is issued
+            # from the application context instead of pretending to be adb shell.
+            if [ -x "$PREFIX/bin/am" ]; then
+                android_am="$PREFIX/bin/am"
+            elif [ -x /system/bin/am ]; then
+                # Old-device fallback only. This can be rejected on newer Android.
+                android_am="/system/bin/am"
+            else
+                echo "Android activity manager is unavailable; cannot open $intent_action" >> "$network_log_file"
+                return 1
+            fi
+
+            echo "Opening Android network settings: $intent_action via $android_am" >> "$network_log_file"
+            if "$android_am" start -a "$intent_action" >> "$network_log_file" 2>&1; then
+                return 0
+            fi
+            if [ "$intent_action" != "android.settings.WIRELESS_SETTINGS" ]; then
+                echo "Primary settings intent failed; trying android.settings.WIRELESS_SETTINGS" >> "$network_log_file"
+                "$android_am" start -a android.settings.WIRELESS_SETTINGS >> "$network_log_file" 2>&1 && return 0
+            fi
+            return 1
+        }
+
         while :; do
+            if [ -s "$network_request_file" ]; then
+                network_action="$(sed -n '1p' "$network_request_file" 2>/dev/null)"
+                rm -f "$network_request_file" 2>/dev/null || true
+                open_android_network_settings "$network_action" || true
+            fi
+
             if [ -s "$request_file" ]; then
                 display="$(sed -n '1p' "$request_file" 2>/dev/null)"
                 rm -f "$request_file"

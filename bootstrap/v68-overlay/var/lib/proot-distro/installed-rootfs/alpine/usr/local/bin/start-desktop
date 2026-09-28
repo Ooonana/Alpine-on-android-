@@ -33,7 +33,7 @@ Usage:
   start-desktop
   start-desktop <xfce|lxqt|openbox|mate|plasma|lxde|plasma-mobile|phosh>
 
-Without an argument, starts the desktop selected by install-desktop.
+Without an argument, starts the default selected by desktop-manager/install-desktop.
 Set ALPINE_DESKTOP_DISPLAY=:N to choose another X11 display.
 EOF
 }
@@ -51,13 +51,14 @@ else
     desktop=""
     if [ -r "$CONFIG_FILE" ]; then
         IFS= read -r configured < "$CONFIG_FILE" || true
+        configured="${configured%$(printf '\r')}"
         desktop="$(normalize_choice "${configured:-}" 2>/dev/null || true)"
     fi
 fi
 
 if [ -z "$desktop" ]; then
     echo "No desktop is selected."
-    echo "Run install-desktop first."
+    echo "Run desktop-manager to install/select a desktop."
     exit 2
 fi
 
@@ -85,6 +86,10 @@ export GDK_BACKEND="${GDK_BACKEND:-x11}"
 export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
 export QT_X11_NO_MITSHM="${QT_X11_NO_MITSHM:-1}"
 export LIBGL_ALWAYS_SOFTWARE="${LIBGL_ALWAYS_SOFTWARE:-1}"
+# Android owns the real Wi-Fi/cellular interface. Force GIO to observe the
+# inherited kernel route instead of preferring a NetworkManager daemon that is
+# intentionally absent inside PRoot.
+export GIO_USE_NETWORK_MONITOR="${GIO_USE_NETWORK_MONITOR:-netlink}"
 
 uid="$(id -u 2>/dev/null || echo 0)"
 if [ -z "${XDG_RUNTIME_DIR:-}" ] || [ "$XDG_RUNTIME_DIR" = "/tmp" ]; then
@@ -186,11 +191,34 @@ warn_android_process_limits() {
     fi
 }
 
+warn_android_network_passthrough() {
+    echo "NOTE: Networking is inherited from Android; Phosh/Plasma do not own the device Wi-Fi interface." >&2
+    echo "      Use 'android-network-settings' (also available in the app grid) to change Android network settings." >&2
+}
+
 warn_phosh_support_packages() {
-    if ! apk info -e pulseaudio-utils >/dev/null 2>&1; then
-        echo "NOTE: Phosh support package pulseaudio-utils is missing." >&2
-        echo "      Run 'install-desktop phosh' once after this app update to add it." >&2
+    missing=""
+    for pkg in pulseaudio-utils xrandr wlr-randr; do
+        if ! apk info -e "$pkg" >/dev/null 2>&1; then
+            missing="$missing $pkg"
+        fi
+    done
+    if [ -n "$missing" ]; then
+        echo "NOTE: Phosh support packages are missing:$missing" >&2
+        echo "      Run 'install-desktop phosh' once after this app update to add them." >&2
     fi
+}
+
+warn_mobile_desktop_password() {
+    case "$desktop" in
+        plasma-mobile|phosh)
+            if command -v set-desktop-password >/dev/null 2>&1 \
+                    && ! set-desktop-password --check >/dev/null 2>&1; then
+                echo "NOTE: There is no default Alpine desktop password." >&2
+                echo "      Run 'set-desktop-password' to choose one before using the lock screen." >&2
+            fi
+            ;;
+    esac
 }
 
 prepare_phosh_runtime() {
@@ -258,6 +286,7 @@ case "$desktop" in
         }
         prepare_plasma_wayland || exit 1
         warn_plasma_support_packages
+        warn_android_network_passthrough
         warn_android_process_limits
         echo "Starting Plasma Desktop (nested Wayland on $DISPLAY)..."
         run_session startplasma-wayland
@@ -277,7 +306,9 @@ case "$desktop" in
         }
         prepare_plasma_wayland || exit 1
         warn_plasma_support_packages
+        warn_android_network_passthrough
         warn_android_process_limits
+        warn_mobile_desktop_password
         echo "Starting Plasma Mobile (nested Wayland on $DISPLAY)..."
         run_session startplasmamobile
         ;;
@@ -289,7 +320,9 @@ case "$desktop" in
         prepare_nested_wayland || exit 1
         prepare_phosh_runtime || exit 1
         warn_phosh_support_packages
+        warn_android_network_passthrough
         warn_android_process_limits
+        warn_mobile_desktop_password
         export WLR_BACKENDS=x11
         export WLR_LIBINPUT_NO_DEVICES=1
         # Termux:X11 does not expose DRI3/DRM FDs to the nested compositor.
@@ -297,7 +330,7 @@ case "$desktop" in
         # and abort after DMA-BUF/DRI3 probing fails.
         export WLR_RENDERER=pixman
         export WLR_RENDERER_ALLOW_SOFTWARE=1
-        echo "Starting Phosh (nested Wayland + pixman on $DISPLAY)..."
-        run_session phosh-session
+        echo "Starting Phosh (nested Wayland + pixman + live resize on $DISPLAY)..."
+        run_session start-phosh-nested
         ;;
 esac

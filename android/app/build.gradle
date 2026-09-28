@@ -42,8 +42,8 @@ android {
     defaultConfig {
         minSdkVersion project.properties.minSdkVersion.toInteger()
         targetSdkVersion project.properties.targetSdkVersion.toInteger()
-        versionCode 144
-        versionName "0.136.3-v69-dev"
+        versionCode 147
+        versionName "0.136.6-v69-dev"
 
         if (appVersionName) versionName = appVersionName
         validateVersionName(versionName)
@@ -159,13 +159,48 @@ clean {
     }
 }
 
+def preparedBootstrap = file("src/main/cpp/bootstrap-aarch64.zip")
+def bootstrapNativeStamp = file("${layout.buildDirectory.get().asFile}/generated/bootstrap/bootstrap-input.h")
+
 task verifyBootstrap() {
     doLast {
-        def bootstrap = file("src/main/cpp/bootstrap-aarch64.zip")
-        if (!bootstrap.isFile() || bootstrap.length() == 0) {
+        if (!preparedBootstrap.isFile() || preparedBootstrap.length() == 0) {
             throw new GradleException("Prepared arm64 bootstrap is missing. From the repository root run: python scripts/fetch-assets.py --bootstrap && python scripts/prepare-v68-bootstrap.py")
         }
-        logger.lifecycle("Using prepared bootstrap: ${bootstrap.name} (${bootstrap.length()} bytes)")
+        logger.lifecycle("Using prepared bootstrap: ${preparedBootstrap.name} (${preparedBootstrap.length()} bytes)")
+    }
+}
+
+// alpine-bootstrap-zip.S uses .incbin, which clang's normal dependency file does
+// not track. Generate a tiny header from the ZIP content and include it from the
+// assembly source so both Gradle and ndk-build invalidate libalpine-bootstrap.so
+// whenever the prepared bootstrap changes.
+task prepareBootstrapNativeInput(dependsOn: verifyBootstrap) {
+    inputs.file(preparedBootstrap)
+    outputs.file(bootstrapNativeStamp)
+    doLast {
+        def digest = java.security.MessageDigest.getInstance("SHA-256")
+        preparedBootstrap.withInputStream { input ->
+            byte[] buffer = new byte[1024 * 1024]
+            int count
+            while ((count = input.read(buffer)) > 0) {
+                digest.update(buffer, 0, count)
+            }
+        }
+        def sha256 = digest.digest().encodeHex().toString()
+        def stampText = "#define ALPINE_BOOTSTRAP_SHA256 \"${sha256}\"\n"
+        bootstrapNativeStamp.parentFile.mkdirs()
+        if (!bootstrapNativeStamp.isFile() || bootstrapNativeStamp.getText("UTF-8") != stampText) {
+            bootstrapNativeStamp.setText(stampText, "UTF-8")
+        }
+    }
+}
+
+tasks.configureEach { t ->
+    if (t.name.startsWith("configureNdkBuild") || t.name.startsWith("buildNdkBuild")) {
+        t.dependsOn prepareBootstrapNativeInput
+        t.inputs.file(preparedBootstrap)
+        t.inputs.file(bootstrapNativeStamp)
     }
 }
 

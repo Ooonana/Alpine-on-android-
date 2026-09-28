@@ -44,8 +44,13 @@ SYMLINKS_NAME = "SYMLINKS.txt"
 MODES_NAME = "MODES.txt"
 SYMLINK_DELIMITER = "←"
 
-TEXT_OVERLAY_SUFFIXES = {".sh", ".conf", ".rc"}
-TEXT_OVERLAY_NAMES = {"bash.bashrc", "proot-distro", "nsswitch.conf", "motd", "start-x11", "install-desktop", "start-desktop"}
+TEXT_OVERLAY_SUFFIXES = {".sh", ".conf", ".rc", ".desktop"}
+TEXT_OVERLAY_NAMES = {
+    "bash.bashrc", "proot-distro", "nsswitch.conf", "motd",
+    "start-x11", "install-desktop", "start-desktop", "desktop-manager",
+    "set-desktop-password", "phosh-resize-sync", "start-phosh-nested",
+    "android-network-settings",
+}
 FIXED_ZIP_TIME = (2026, 6, 13, 0, 0, 0)
 
 
@@ -69,7 +74,7 @@ def overlay_entries() -> dict[str, bytes]:
     for path in sorted(OVERLAY.rglob("*")):
         if path.is_file():
             result[path.relative_to(OVERLAY).as_posix()] = overlay_bytes(path)
-    result[TOP_VERSION_MARKER] = b"v69.3\n"
+    result[TOP_VERSION_MARKER] = b"v69.6\n"
     return result
 
 
@@ -166,16 +171,12 @@ def _prepared_payload() -> tuple[dict[str, tuple[bytes | None, bool, int]], dict
             existing = rootfs.get(name)
             if existing is not None:
                 mode = existing[2]
-            elif (
-                name.endswith("/usr/local/bin/start-x11")
-                or name.endswith("/usr/local/bin/install-desktop")
-                or name.endswith("/usr/local/bin/start-desktop")
-            ):
+            elif name.startswith(ROOTFS_PREFIX + "usr/local/bin/"):
                 mode = 0o755
             else:
                 mode = 0o644
             rootfs[name] = (data, False, mode)
-    rootfs[ROOTFS_VERSION_MARKER] = (b"v69.3\n", False, 0o644)
+    rootfs[ROOTFS_VERSION_MARKER] = (b"v69.6\n", False, 0o644)
     return rootfs, overlays, v68_rootfs.rootfs_symlink_lines(rootfs_symlinks)
 
 
@@ -387,7 +388,7 @@ def verify_prepared(path: Path) -> None:
             raise RuntimeError("Alpine RUNPATH not found in libandroid-shmem.so")
 
         for name, expected in overlays.items():
-            if (name.endswith(".sh") or Path(name).name in TEXT_OVERLAY_NAMES) and b"\r\n" in expected:
+            if (Path(name).suffix in TEXT_OVERLAY_SUFFIXES or Path(name).name in TEXT_OVERLAY_NAMES) and b"\r\n" in expected:
                 raise RuntimeError(f"CRLF remained in text overlay entry: {name}")
 
 

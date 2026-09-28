@@ -1,0 +1,73 @@
+#!/bin/sh
+
+set -u
+
+request_file="${TMPDIR:-/tmp}/alpine-android-network-request"
+
+usage() {
+    cat <<'EOF'
+Usage:
+  android-network-settings [wifi|internet|wireless|settings]
+  android-network-settings status
+
+Alpine-on-Android inherits its network connection from Android. The guest does
+not own the phone/tablet Wi-Fi or cellular interface, so NetworkManager inside
+Phosh/Plasma cannot safely configure it. This command asks the Android host to
+open the real system network settings.
+EOF
+}
+
+show_status() {
+    echo "Alpine-on-Android network mode: Android passthrough"
+    echo "Network interfaces, Wi-Fi/cellular selection, VPN and metering are owned by Android."
+    echo "Desktop applications use the inherited Android connection; desktop Wi-Fi controls may be unavailable."
+    echo
+    echo "/etc/resolv.conf:"
+    if [ -r /etc/resolv.conf ]; then
+        sed 's/^/  /' /etc/resolv.conf
+    else
+        echo "  unavailable"
+    fi
+    echo
+    if command -v ip >/dev/null 2>&1; then
+        echo "Default route(s):"
+        ip route show default 2>/dev/null | sed 's/^/  /' || true
+    elif [ -r /proc/net/route ]; then
+        echo "Kernel route table is available at /proc/net/route."
+    fi
+    echo
+    echo "Open Android internet settings with: android-network-settings"
+}
+
+case "${1:-internet}" in
+    --help|-h|help)
+        usage
+        exit 0
+        ;;
+    status)
+        show_status
+        exit 0
+        ;;
+    wifi|internet|wireless|settings)
+        action="${1:-internet}"
+        ;;
+    *)
+        echo "ERROR: unknown network-settings action: $1" >&2
+        usage >&2
+        exit 2
+        ;;
+esac
+
+request_tmp="${request_file}.tmp.$$"
+if ! printf '%s\n' "$action" > "$request_tmp"; then
+    echo "ERROR: could not create Android network-settings request." >&2
+    exit 1
+fi
+if ! mv -f "$request_tmp" "$request_file"; then
+    rm -f "$request_tmp" 2>/dev/null || true
+    echo "ERROR: could not submit Android network-settings request." >&2
+    exit 1
+fi
+
+echo "Requested Android $action network settings."
+echo "The settings UI opens on the Android side because Android owns the actual network device."

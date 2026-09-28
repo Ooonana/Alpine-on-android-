@@ -29,8 +29,8 @@ import static com.alpine.shared.alpine.AlpineConstants.*;
 
 final class AlpineInstaller {
     private static final String LOG_TAG = "AlpineInstaller";
-    private static final String BOOTSTRAP_VERSION = "v69.3";
-    private static final String[] PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2", "v68.3", "v68.4", "v69", "v69.1", "v69.2" };
+    private static final String BOOTSTRAP_VERSION = "v69.6";
+    private static final String[] PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2", "v68.3", "v68.4", "v69", "v69.1", "v69.2", "v69.3", "v69.4", "v69.5" };
     private static final String BOOTSTRAP_VERSION_FILE_PATH = ALPINE_PREFIX_DIR_PATH + "/etc/alpine-bootstrap-version";
     private static final String BOOTSTRAP_BACKUP_DIR_PATH = ALPINE_PREFIX_DIR_PATH + "-backup";
     private static final File BOOTSTRAP_BACKUP_DIR = new File(BOOTSTRAP_BACKUP_DIR_PATH);
@@ -54,7 +54,13 @@ final class AlpineInstaller {
         ROOTFS_RELATIVE_PATH + "/sbin/apk",
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11",
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/install-desktop",
-        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-desktop"
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-desktop",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/desktop-manager",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/set-desktop-password",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/phosh-resize-sync",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-phosh-nested",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/android-network-settings",
+        ROOTFS_RELATIVE_PATH + "/usr/share/applications/alpine-android-network.desktop"
     };
     private static final String[] REQUIRED_EXECUTABLE_FILES = {
         "bin/proot",
@@ -64,9 +70,14 @@ final class AlpineInstaller {
         ROOTFS_RELATIVE_PATH + "/sbin/apk",
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11",
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/install-desktop",
-        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-desktop"
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-desktop",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/desktop-manager",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/set-desktop-password",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/phosh-resize-sync",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-phosh-nested",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/android-network-settings"
     };
-    // V69.3 upgrades V68.1/V68.2/V68.3/V68.4/V69/V69.1/V69.2 installations non-destructively. Only
+    // V69.6 upgrades V68.1/V68.2/V68.3/V68.4/V69/V69.1/V69.2/V69.3/V69.4/V69.5 installations non-destructively. Only
     // bootstrap-owned launch/display/banner files and version markers are replaced;
     // packages, user configuration, and /root data inside Alpine stay untouched.
     // Runtime files are committed before markers so interrupted migrations retry safely.
@@ -75,12 +86,18 @@ final class AlpineInstaller {
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11",
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/install-desktop",
         ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-desktop",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/desktop-manager",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/set-desktop-password",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/phosh-resize-sync",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-phosh-nested",
+        ROOTFS_RELATIVE_PATH + "/usr/local/bin/android-network-settings",
+        ROOTFS_RELATIVE_PATH + "/usr/share/applications/alpine-android-network.desktop",
         "etc/motd",
         ROOTFS_RELATIVE_PATH + "/etc/motd",
         ROOTFS_RELATIVE_PATH + "/etc/alpine-bootstrap-version",
         "etc/alpine-bootstrap-version"
     };
-    private static final int[] V68_HOTFIX_PATCH_MODES = { 0600, 0755, 0755, 0755, 0600, 0644, 0644, 0600 };
+    private static final int[] V68_HOTFIX_PATCH_MODES = { 0600, 0755, 0755, 0755, 0755, 0755, 0755, 0755, 0755, 0644, 0600, 0644, 0644, 0600 };
 
     static void setupBootstrapIfNeeded(final Activity activity, final Runnable whenDone) {
         if (FileUtils.directoryFileExists(ALPINE_PREFIX_DIR_PATH, true) &&
@@ -103,7 +120,7 @@ final class AlpineInstaller {
                         AlpineShellEnvironment.writeEnvironmentToFile(activity);
                         File environmentFile = new File(AlpineConstants.ALPINE_ENV_FILE_PATH);
                         if (!environmentFile.isFile() || environmentFile.length() == 0)
-                            throw new IOException("Could not write Alpine shell environment after V69.3 migration");
+                            throw new IOException("Could not write Alpine shell environment after V69.6 migration");
                         validateBootstrapDirectory(ALPINE_PREFIX_DIR, true);
                         cleanupV68HotfixPatchArtifacts();
                         cleanupStaleBackupAsync();
@@ -492,7 +509,7 @@ final class AlpineInstaller {
             return;
         }
         if (ALPINE_PREFIX_DIR.exists() && BOOTSTRAP_BACKUP_DIR.exists()) {
-            // V68.1/V68.2/V68.3/V68.4/V69/V69.1/V69.2 prefixes are intentionally patchable by V69.3. Do not discard them
+            // V68.1/V68.2/V68.3/V68.4/V69/V69.1/V69.2/V69.3/V69.4/V69.5 prefixes are intentionally patchable by V69.6. Do not discard them
             // merely because its marker is older than BOOTSTRAP_VERSION; doing so
             // could restore an even older stale full-install backup and lose user data.
             if (installedBootstrapLooksUsable() || isV68HotfixInPlacePatchCandidate()) {

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Android Network Settings
+Comment=Manage Wi-Fi, mobile data, VPN and internet in Android
+Exec=android-network-settings internet
+Icon=network-wireless
+Terminal=false
+Categories=Settings;Network;
+Keywords=network;wifi;wireless;internet;mobile;vpn;android;
+X-Purism-FormFactor=Workstation;Mobile;

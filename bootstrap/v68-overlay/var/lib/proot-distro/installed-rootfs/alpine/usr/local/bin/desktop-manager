@@ -1,0 +1,836 @@
+#!/bin/sh
+
+set -u
+
+CONFIG_FILE="${ALPINE_DESKTOP_CONFIG_FILE:-/etc/alpine-desktop}"
+WORLD_FILE="${ALPINE_APK_WORLD_FILE:-/etc/apk/world}"
+APK_CMD="${APK_CMD:-/sbin/apk}"
+LOCK_DIR="${ALPINE_DESKTOP_MANAGER_LOCK_DIR:-${TMPDIR:-/tmp}/alpine-desktop-manager.lock}"
+PROFILES="xfce lxqt openbox mate plasma lxde plasma-mobile phosh"
+FALLBACK_PROFILES="xfce lxqt mate plasma lxde openbox plasma-mobile phosh"
+COMMON_PACKAGES="dbus dbus-x11 font-dejavu mesa-dri-gallium mesa-egl mesa-gl"
+lock_held=0
+
+normalize_choice() {
+    case "${1:-}" in
+        1|xfce|XFCE|Xfce) printf '%s\n' xfce ;;
+        2|lxqt|LXQT|LXQt) printf '%s\n' lxqt ;;
+        3|openbox|Openbox|OPENBOX) printf '%s\n' openbox ;;
+        4|mate|MATE|Mate) printf '%s\n' mate ;;
+        5|plasma|PLASMA|Plasma|kde|KDE) printf '%s\n' plasma ;;
+        6|lxde|LXDE|Lxde) printf '%s\n' lxde ;;
+        7|plasma-mobile|plasmamobile|PLASMA-MOBILE|Plasma-Mobile|kde-mobile|KDE-Mobile) printf '%s\n' plasma-mobile ;;
+        8|phosh|PHOSH|Phosh) printf '%s\n' phosh ;;
+        *) return 1 ;;
+    esac
+}
+
+profile_label() {
+    case "$1" in
+        xfce) printf '%s\n' 'XFCE' ;;
+        lxqt) printf '%s\n' 'LXQt' ;;
+        openbox) printf '%s\n' 'Openbox' ;;
+        mate) printf '%s\n' 'MATE' ;;
+        plasma) printf '%s\n' 'Plasma Desktop' ;;
+        lxde) printf '%s\n' 'LXDE compatibility' ;;
+        plasma-mobile) printf '%s\n' 'Plasma Mobile' ;;
+        phosh) printf '%s\n' 'Phosh' ;;
+        *) return 1 ;;
+    esac
+}
+
+profile_description() {
+    case "$1" in
+        xfce) printf '%s\n' 'light, mature X11 desktop' ;;
+        lxqt) printf '%s\n' 'light Qt X11 desktop' ;;
+        openbox) printf '%s\n' 'minimal X11 window manager' ;;
+        mate) printf '%s\n' 'traditional full X11 desktop' ;;
+        plasma) printf '%s\n' 'nested Wayland; heavy/experimental' ;;
+        lxde) printf '%s\n' 'LXDE-style compatibility session' ;;
+        plasma-mobile) printf '%s\n' 'KDE mobile shell; nested Wayland' ;;
+        phosh) printf '%s\n' 'GNOME mobile shell; nested Wayland' ;;
+        *) return 1 ;;
+    esac
+}
+
+profile_packages() {
+    case "$1" in
+        xfce) printf '%s\n' 'xfce4 xfce4-terminal' ;;
+        lxqt) printf '%s\n' 'lxqt-desktop qterminal qt6-qtbase-x11' ;;
+        openbox) printf '%s\n' 'openbox pcmanfm lxterminal tint2' ;;
+        mate) printf '%s\n' 'mate-desktop-environment mate-terminal' ;;
+        plasma) printf '%s\n' 'plasma-desktop plasma-workspace kwin konsole breeze breeze-cursors breeze-icons xdg-desktop-portal-kde pulseaudio-utils xwayland' ;;
+        lxde) printf '%s\n' 'lxsession openbox pcmanfm lxterminal tint2' ;;
+        plasma-mobile) printf '%s\n' 'plasma-mobile konsole breeze breeze-cursors xdg-desktop-portal-kde pulseaudio-utils xwayland' ;;
+        phosh) printf '%s\n' 'phosh phoc pulseaudio-utils xrandr wlr-randr xwayland' ;;
+        *) return 1 ;;
+    esac
+}
+
+profile_signature() {
+    case "$1" in
+        xfce) printf '%s\n' xfce4 ;;
+        lxqt) printf '%s\n' lxqt-desktop ;;
+        openbox) printf '%s\n' openbox ;;
+        mate) printf '%s\n' mate-desktop-environment ;;
+        plasma) printf '%s\n' plasma-desktop ;;
+        lxde) printf '%s\n' lxsession ;;
+        plasma-mobile) printf '%s\n' plasma-mobile ;;
+        phosh) printf '%s\n' phosh ;;
+        *) return 1 ;;
+    esac
+}
+
+virtual_name() {
+    printf '.alpine-desktop-%s\n' "$1"
+}
+
+is_valid_virtual_name() {
+    case "$1" in
+        .alpine-desktop-xfce|.alpine-desktop-lxqt|.alpine-desktop-openbox|.alpine-desktop-mate|.alpine-desktop-plasma|.alpine-desktop-lxde|.alpine-desktop-plasma-mobile|.alpine-desktop-phosh)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+world_entry_name() {
+    entry="$1"
+    entry="${entry%%@*}"
+    printf '%s\n' "$entry" | sed 's/[<>=~].*$//'
+}
+
+cleanup_invalid_virtual_groups() (
+    [ -r "$WORLD_FILE" ] || return 0
+    invalid=""
+    while IFS= read -r world_line; do
+        name="$(world_entry_name "$world_line")"
+        case "$name" in
+            .alpine-desktop-*)
+                if ! is_valid_virtual_name "$name"; then
+                    case " $invalid " in
+                        *" $name "*) ;;
+                        *) invalid="$invalid $name" ;;
+                    esac
+                fi
+                ;;
+        esac
+    done < "$WORLD_FILE"
+    invalid="${invalid# }"
+    [ -n "$invalid" ] || return 0
+
+    acquire_lock || return 1
+    echo "Cleaning malformed V69.5 desktop package groups..." >&2
+    for pkg in $invalid; do
+        echo "  removing $pkg" >&2
+        if ! "$APK_CMD" del "$pkg"; then
+            echo "WARNING: could not remove malformed desktop group: $pkg" >&2
+        fi
+    done
+    cleanup_lock
+)
+
+ensure_root_and_apk() {
+    if [ "$(id -u 2>/dev/null || echo 1)" != "0" ]; then
+        echo "ERROR: desktop-manager must run as root inside Alpine." >&2
+        exit 1
+    fi
+    if [ ! -x "$APK_CMD" ]; then
+        APK_CMD="$(command -v apk 2>/dev/null || true)"
+    fi
+    if [ -z "$APK_CMD" ] || [ ! -x "$APK_CMD" ]; then
+        echo "ERROR: Alpine apk command was not found." >&2
+        exit 1
+    fi
+}
+
+cleanup_lock() {
+    if [ "$lock_held" -eq 1 ]; then
+        rm -rf "$LOCK_DIR" 2>/dev/null || true
+        lock_held=0
+    fi
+}
+
+acquire_lock() {
+    if mkdir "$LOCK_DIR" 2>/dev/null; then
+        printf '%s\n' "$$" > "$LOCK_DIR/pid" 2>/dev/null || true
+        lock_held=1
+        trap 'cleanup_lock' EXIT HUP INT TERM
+        return 0
+    fi
+
+    stale_pid=""
+    if [ -r "$LOCK_DIR/pid" ]; then
+        IFS= read -r stale_pid < "$LOCK_DIR/pid" || stale_pid=""
+    fi
+    case "$stale_pid" in
+        ''|*[!0-9]*) ;;
+        *)
+            if kill -0 "$stale_pid" 2>/dev/null; then
+                echo "ERROR: another desktop-manager operation is already running (PID $stale_pid)." >&2
+                return 1
+            fi
+            ;;
+    esac
+
+    rm -rf "$LOCK_DIR" 2>/dev/null || {
+        echo "ERROR: could not clear stale desktop-manager lock: $LOCK_DIR" >&2
+        return 1
+    }
+    if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+        echo "ERROR: could not acquire desktop-manager lock." >&2
+        return 1
+    fi
+    printf '%s\n' "$$" > "$LOCK_DIR/pid" 2>/dev/null || true
+    lock_held=1
+    trap 'cleanup_lock' EXIT HUP INT TERM
+}
+
+current_default() {
+    configured=""
+    if [ -r "$CONFIG_FILE" ]; then
+        IFS= read -r configured < "$CONFIG_FILE" || configured=""
+        # Be tolerant of a config file copied through a CRLF-producing editor.
+        configured="${configured%$(printf '\r')}"
+    fi
+    normalize_choice "$configured" 2>/dev/null || true
+}
+
+write_default() {
+    desktop="$1"
+    tmp="${CONFIG_FILE}.tmp.$$"
+    if ! printf '%s\n' "$desktop" > "$tmp"; then
+        rm -f "$tmp" 2>/dev/null || true
+        echo "ERROR: could not stage default desktop selection." >&2
+        return 1
+    fi
+    chmod 0644 "$tmp" 2>/dev/null || true
+    if ! mv -f "$tmp" "$CONFIG_FILE"; then
+        rm -f "$tmp" 2>/dev/null || true
+        echo "ERROR: could not save default desktop selection to $CONFIG_FILE" >&2
+        return 1
+    fi
+}
+
+is_managed() {
+    "$APK_CMD" info -e "$(virtual_name "$1")" >/dev/null 2>&1
+}
+
+is_signature_present() {
+    sig="$(profile_signature "$1")" || return 1
+    "$APK_CMD" info -e "$sig" >/dev/null 2>&1
+}
+
+world_has_package() {
+    pkg="$1"
+    [ -r "$WORLD_FILE" ] || return 1
+    while IFS= read -r world_line; do
+        case "$world_line" in
+            "$pkg"|"$pkg"@*|"$pkg"\<*|"$pkg"\>*|"$pkg"=*|"$pkg"~*) return 0 ;;
+        esac
+    done < "$WORLD_FILE"
+    return 1
+}
+
+external_profile_world_refs() {
+    desktop="$1"
+    refs=""
+    for pkg in $(profile_packages "$desktop"); do
+        if world_has_package "$pkg"; then
+            refs="$refs $pkg"
+        fi
+    done
+    printf '%s\n' "${refs# }"
+}
+
+profile_state() {
+    desktop="$1"
+    if is_managed "$desktop"; then
+        refs="$(external_profile_world_refs "$desktop")"
+        if [ -n "$refs" ]; then
+            printf '%s\n' 'managed+external'
+        else
+            printf '%s\n' managed
+        fi
+        return
+    fi
+    if is_signature_present "$desktop"; then
+        if [ "$desktop" = openbox ] && "$APK_CMD" info -e lxsession >/dev/null 2>&1; then
+            # LXDE contains the complete Openbox profile. Treat Openbox as a
+            # standalone legacy install only when old explicit world entries
+            # exist and it was already the selected desktop. This prevents a
+            # removed managed Openbox group from being resurrected merely
+            # because LXDE still depends on the same packages.
+            refs="$(external_profile_world_refs openbox)"
+            if [ -n "$refs" ] && [ "$(current_default)" = openbox ]; then
+                printf '%s\n' legacy
+            else
+                printf '%s\n' component
+            fi
+        else
+            printf '%s\n' legacy
+        fi
+        return
+    fi
+    printf '%s\n' absent
+}
+
+is_selectable_profile() {
+    state="$(profile_state "$1")"
+    case "$state" in
+        managed|managed+external|legacy) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+print_status() {
+    default="$(current_default)"
+    echo "Installed desktop state:"
+    printf '%-3s %-20s %-18s %s\n' '#' 'Desktop' 'State' 'Default'
+    n=1
+    for desktop in $PROFILES; do
+        label="$(profile_label "$desktop")"
+        state="$(profile_state "$desktop")"
+        marker=""
+        [ "$desktop" = "$default" ] && marker='*'
+        printf '%-3s %-20s %-18s %s\n' "$n" "$label" "$state" "$marker"
+        n=$((n + 1))
+    done
+    echo
+    echo "managed          = installed through the V69.5+ package group"
+    echo "managed+external = managed, but matching packages are also explicit in /etc/apk/world"
+    echo "legacy           = desktop detected from the older installer"
+    echo "component        = package is present as part of another desktop"
+}
+
+print_choices() {
+    n=1
+    for desktop in $PROFILES; do
+        printf '  %s) %-16s - %s\n' "$n" "$(profile_label "$desktop")" "$(profile_description "$desktop")"
+        n=$((n + 1))
+    done
+}
+
+normalize_many() {
+    result=""
+    for raw in "$@"; do
+        desktop="$(normalize_choice "$raw" 2>/dev/null || true)"
+        if [ -z "$desktop" ]; then
+            echo "ERROR: unknown desktop choice: $raw" >&2
+            return 2
+        fi
+        case " $result " in
+            *" $desktop "*) ;;
+            *) result="$result $desktop" ;;
+        esac
+    done
+    printf '%s\n' "${result# }"
+}
+
+read_many_interactive() {
+    prompt="$1"
+    # This function is used inside command substitution. Keep all UI on stderr
+    # so stdout contains only the normalized desktop names returned below.
+    print_choices >&2
+    echo >&2
+    printf '%s' "$prompt" >&2
+    IFS= read -r line || return 1
+    case "$line" in
+        q|Q|quit|QUIT) return 1 ;;
+    esac
+    # Intentional shell splitting: choices are whitespace-separated names/numbers.
+    # shellcheck disable=SC2086
+    normalize_many $line
+}
+
+maybe_desktop_note() {
+    case "$1" in
+        plasma|plasma-mobile|phosh)
+            echo "NOTE: $(profile_label "$1") is Wayland-based and runs nested inside Alpine Display."
+            ;;
+        lxde)
+            echo "NOTE: Alpine 3.23 uses an LXDE-style compatibility session rather than the historical full LXDE stack."
+            ;;
+    esac
+}
+
+maybe_setup_mobile_password() {
+    profiles="$1"
+    case " $profiles " in
+        *' plasma-mobile '*|*' phosh '*) ;;
+        *) return 0 ;;
+    esac
+    if ! command -v set-desktop-password >/dev/null 2>&1; then
+        return 0
+    fi
+    if set-desktop-password --check >/dev/null 2>&1; then
+        return 0
+    fi
+    echo
+    echo "NOTE: Alpine-on-Android has no default desktop password."
+    echo "      A password is needed for mobile desktop lock screens."
+    if [ -t 0 ] && [ -t 1 ]; then
+        printf "Set it now? [Y/n]: "
+        IFS= read -r answer || answer=n
+        case "$answer" in
+            n|N|no|NO|No) echo "Set it later with: set-desktop-password" ;;
+            *) set-desktop-password || echo "WARNING: password setup did not complete." >&2 ;;
+        esac
+    else
+        echo "      Set one later with: set-desktop-password"
+    fi
+}
+
+install_profiles() (
+    profiles="$1"
+    [ -n "$profiles" ] || {
+        echo "ERROR: no desktops selected." >&2
+        return 2
+    }
+    acquire_lock || return 1
+
+    # Defense in depth: never turn presentation text or arbitrary input into an
+    # apk virtual package name even if a future caller mishandles its input.
+    for desktop in $profiles; do
+        if ! normalize_choice "$desktop" >/dev/null 2>&1; then
+            echo "ERROR: refusing invalid desktop profile: $desktop" >&2
+            return 2
+        fi
+    done
+
+    echo "Refreshing Alpine package indexes..."
+    "$APK_CMD" update || {
+        echo "ERROR: apk update failed. Check network/DNS and retry." >&2
+        return 1
+    }
+
+    last=""
+    for desktop in $profiles; do
+        label="$(profile_label "$desktop")"
+        virtual="$(virtual_name "$desktop")"
+        packages="$(profile_packages "$desktop")"
+        maybe_desktop_note "$desktop"
+        echo
+        echo "Installing/updating $label as managed group $virtual..."
+        # shellcheck disable=SC2086
+        if ! "$APK_CMD" add --virtual "$virtual" $COMMON_PACKAGES $packages; then
+            echo "ERROR: $label installation failed; already-completed desktop installs were left intact." >&2
+            return 1
+        fi
+        refs="$(external_profile_world_refs "$desktop")"
+        if [ -n "$refs" ]; then
+            echo "NOTE: pre-existing explicit packages will remain user-owned on removal: $refs"
+        fi
+        last="$desktop"
+    done
+
+    if [ -n "$last" ]; then
+        write_default "$last" || return 1
+    fi
+    maybe_setup_mobile_password "$profiles"
+    echo
+    echo "Installed: $profiles"
+    [ -n "$last" ] && echo "Default desktop: $last"
+    echo "Start the default with: start-desktop"
+    echo "Manage desktops with: desktop-manager"
+)
+
+package_list_contains() {
+    list="$1"
+    needle="$2"
+    case " $list " in
+        *" $needle "*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+packages_used_by_other_present_profiles() {
+    target="$1"
+    shared=""
+    for other in $PROFILES; do
+        [ "$other" = "$target" ] && continue
+        other_state="$(profile_state "$other")"
+        case "$other_state" in
+            managed|managed+external|legacy) ;;
+            *) continue ;;
+        esac
+        for other_pkg in $(profile_packages "$other"); do
+            case " $shared " in
+                *" $other_pkg "*) ;;
+                *) shared="$shared $other_pkg" ;;
+            esac
+        done
+    done
+    printf '%s\n' "${shared# }"
+}
+
+confirm_legacy_removal() {
+    desktop="$1"
+    assume_yes="$2"
+    [ "$assume_yes" -eq 1 ] && return 0
+    if [ ! -t 0 ] || [ ! -t 1 ]; then
+        echo "ERROR: $desktop is a legacy install. Re-run with --legacy to confirm removal of old installer package entries." >&2
+        return 1
+    fi
+    echo "WARNING: $(profile_label "$desktop") predates managed package groups."
+    echo "         The manager cannot prove whether every explicit package was originally"
+    echo "         installed by Alpine-on-Android or manually by you. Shared desktop"
+    echo "         packages will be retained, but unique listed packages may be removed."
+    printf "Remove this legacy desktop anyway? [y/N]: "
+    IFS= read -r answer || answer=n
+    case "$answer" in
+        y|Y|yes|YES|Yes) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+remove_legacy_profile() {
+    desktop="$1"
+    assume_yes="$2"
+    confirm_legacy_removal "$desktop" "$assume_yes" || return 2
+
+    removable=""
+    kept_shared=""
+    shared_packages="$(packages_used_by_other_present_profiles "$desktop")"
+    for pkg in $(profile_packages "$desktop"); do
+        world_has_package "$pkg" || continue
+        if package_list_contains "$shared_packages" "$pkg"; then
+            kept_shared="$kept_shared $pkg"
+        else
+            removable="$removable $pkg"
+        fi
+    done
+    removable="${removable# }"
+    kept_shared="${kept_shared# }"
+
+    if [ -n "$removable" ]; then
+        echo "Removing legacy package entries for $(profile_label "$desktop"): $removable"
+        # shellcheck disable=SC2086
+        "$APK_CMD" del $removable || return 1
+    else
+        echo "No safely removable legacy world entries found for $(profile_label "$desktop")."
+    fi
+    if [ -n "$kept_shared" ]; then
+        echo "Retained because another detected desktop uses them: $kept_shared"
+    fi
+    return 0
+}
+
+choose_fallback_default() {
+    old="$1"
+    for candidate in $FALLBACK_PROFILES; do
+        [ "$candidate" = "$old" ] && continue
+        state="$(profile_state "$candidate")"
+        case "$state" in
+            managed|managed+external|legacy)
+                write_default "$candidate" || return 1
+                echo "Default desktop changed to: $candidate"
+                return 0
+                ;;
+        esac
+    done
+    rm -f "$CONFIG_FILE" 2>/dev/null || true
+    echo "No desktop remains selected as default."
+}
+
+remove_profiles() (
+    profiles="$1"
+    assume_legacy="$2"
+    [ -n "$profiles" ] || {
+        echo "ERROR: no desktops selected." >&2
+        return 2
+    }
+    acquire_lock || return 1
+
+    for desktop in $profiles; do
+        state="$(profile_state "$desktop")"
+        label="$(profile_label "$desktop")"
+        case "$state" in
+            managed|managed+external)
+                virtual="$(virtual_name "$desktop")"
+                echo "Removing managed $label group $virtual..."
+                "$APK_CMD" del "$virtual" || return 1
+                if is_signature_present "$desktop"; then
+                    refs="$(external_profile_world_refs "$desktop")"
+                    if [ -n "$refs" ]; then
+                        if [ "$assume_legacy" -eq 1 ]; then
+                            echo "Also removing confirmed legacy/user-owned desktop entries: $refs"
+                            remove_legacy_profile "$desktop" 1 || return $?
+                        else
+                            echo "NOTE: $label packages remain because these are explicit/user-owned world entries: $refs"
+                            echo "      Run 'desktop-manager remove --legacy $desktop' if you also want those old explicit entries removed."
+                        fi
+                    fi
+                fi
+                ;;
+            legacy)
+                remove_legacy_profile "$desktop" "$assume_legacy" || return $?
+                ;;
+            component)
+                echo "Refusing to remove $label as a standalone legacy desktop because it is currently detected only as a component of another desktop." >&2
+                return 2
+                ;;
+            absent)
+                echo "$label is not installed; nothing to remove."
+                ;;
+        esac
+
+        # Keep the selection valid even when a later item in a multi-remove fails.
+        # If legacy/user-owned entries still provide the selected desktop, leave
+        # the default alone because the desktop is still actually launchable.
+        if [ "$(current_default)" = "$desktop" ] && ! is_selectable_profile "$desktop"; then
+            choose_fallback_default "$desktop" || return 1
+        fi
+    done
+
+    echo "Desktop removal finished. User home/config files were not deleted."
+)
+
+set_default_profile() (
+    desktop="$1"
+    if ! is_selectable_profile "$desktop"; then
+        echo "ERROR: $(profile_label "$desktop") is not installed as a selectable desktop." >&2
+        return 1
+    fi
+    acquire_lock || return 1
+    write_default "$desktop" || return 1
+    echo "Default desktop: $desktop"
+)
+
+repair_profiles() (
+    profiles="$1"
+    [ -n "$profiles" ] || {
+        echo "ERROR: no desktops selected." >&2
+        return 2
+    }
+    acquire_lock || return 1
+    echo "Refreshing Alpine package indexes..."
+    "$APK_CMD" update || return 1
+    for desktop in $profiles; do
+        label="$(profile_label "$desktop")"
+        if is_managed "$desktop"; then
+            virtual="$(virtual_name "$desktop")"
+            packages="$(profile_packages "$desktop")"
+            echo "Refreshing managed package group for $label..."
+            # shellcheck disable=SC2086
+            "$APK_CMD" add --virtual "$virtual" $COMMON_PACKAGES $packages || return 1
+        elif is_signature_present "$desktop"; then
+            packages="$(profile_packages "$desktop")"
+            echo "Repairing legacy $label packages without changing manager ownership..."
+            # Legacy installs already use direct world entries, so apk add is the
+            # compatible way to restore missing support packages from newer app versions.
+            # shellcheck disable=SC2086
+            "$APK_CMD" add $COMMON_PACKAGES $packages || return 1
+        else
+            echo "ERROR: $label is not installed. Use 'desktop-manager install $desktop'." >&2
+            return 1
+        fi
+    done
+)
+
+start_profile() {
+    desktop="$1"
+    if ! is_selectable_profile "$desktop"; then
+        echo "ERROR: $(profile_label "$desktop") is not installed as a selectable desktop." >&2
+        return 1
+    fi
+    exec start-desktop "$desktop"
+}
+
+usage() {
+    cat <<'EOF'
+Usage:
+  desktop-manager
+  desktop-manager list
+  desktop-manager available
+  desktop-manager cleanup
+  desktop-manager install <desktop> [desktop ...]
+  desktop-manager remove [--legacy] <desktop> [desktop ...]
+  desktop-manager default <desktop>
+  desktop-manager repair <desktop> [desktop ...]
+  desktop-manager start <desktop>
+  desktop-manager help
+
+Desktop names: xfce lxqt openbox mate plasma lxde plasma-mobile phosh
+Numbers 1-8 are also accepted.
+
+New V69.5+ installs are tracked as separate apk virtual package groups, so
+multiple desktops may coexist and removing one keeps dependencies required by
+other groups or by packages you installed explicitly yourself.
+
+Older installs are shown as legacy. Interactive removal asks for confirmation;
+non-interactive legacy removal requires --legacy.
+EOF
+}
+
+interactive_install() {
+    echo "Install one or more desktops. Separate choices with spaces."
+    profiles="$(read_many_interactive 'Choices [1-8 ...; q to cancel]: ' || true)"
+    [ -n "$profiles" ] || return 0
+    install_profiles "$profiles"
+}
+
+interactive_remove() {
+    print_status
+    echo "Remove one or more desktops. Separate choices with spaces."
+    profiles="$(read_many_interactive 'Choices [1-8 ...; q to cancel]: ' || true)"
+    [ -n "$profiles" ] || return 0
+    remove_profiles "$profiles" 0
+}
+
+interactive_default() {
+    print_status
+    printf 'New default [1-8; q to cancel]: '
+    IFS= read -r raw || return 0
+    case "$raw" in q|Q|quit|QUIT) return 0 ;; esac
+    desktop="$(normalize_choice "$raw" 2>/dev/null || true)"
+    [ -n "$desktop" ] || {
+        echo "Unknown desktop: $raw" >&2
+        return 2
+    }
+    set_default_profile "$desktop"
+}
+
+interactive_repair() {
+    print_status
+    profiles="$(read_many_interactive 'Repair choices [1-8 ...; q to cancel]: ' || true)"
+    [ -n "$profiles" ] || return 0
+    repair_profiles "$profiles"
+}
+
+interactive_menu() {
+    while true; do
+        echo
+        echo "Alpine-on-Android desktop manager"
+        echo
+        print_status
+        cat <<'EOF'
+Actions:
+  i) Install/add one or more desktops
+  r) Remove desktop(s)
+  d) Change default desktop
+  p) Repair/update desktop package group(s)
+  s) Start a desktop
+  q) Quit
+EOF
+        printf 'Action: '
+        IFS= read -r action || return 0
+        case "$action" in
+            i|I) interactive_install ;;
+            r|R) interactive_remove ;;
+            d|D) interactive_default ;;
+            p|P) interactive_repair ;;
+            s|S)
+                print_status
+                printf 'Desktop to start [1-8; q to cancel]: '
+                IFS= read -r raw || continue
+                case "$raw" in q|Q|quit|QUIT) continue ;; esac
+                desktop="$(normalize_choice "$raw" 2>/dev/null || true)"
+                [ -n "$desktop" ] || { echo "Unknown desktop: $raw" >&2; continue; }
+                start_profile "$desktop"
+                ;;
+            q|Q|quit|QUIT) return 0 ;;
+            *) echo "Unknown action: $action" >&2 ;;
+        esac
+    done
+}
+
+ensure_root_and_apk
+# V69.5's first interactive installer accidentally captured its printed menu
+# into the profile list. Remove only malformed groups in our reserved namespace.
+cleanup_invalid_virtual_groups
+
+command="${1:-}"
+if [ -z "$command" ]; then
+    interactive_menu
+    exit $?
+fi
+shift || true
+
+case "$command" in
+    list|status)
+        print_status
+        ;;
+    available|choices)
+        print_choices
+        ;;
+    cleanup)
+        cleanup_invalid_virtual_groups
+        ;;
+    install|add)
+        if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+            echo "Usage: desktop-manager install <desktop> [desktop ...]"
+            print_choices
+            exit 0
+        fi
+        if [ "$#" -eq 0 ]; then
+            interactive_install
+        else
+            profiles="$(normalize_many "$@")" || exit $?
+            install_profiles "$profiles"
+        fi
+        ;;
+    remove|del|uninstall)
+        assume_legacy=0
+        raw_profiles=""
+        while [ "$#" -gt 0 ]; do
+            case "$1" in
+                --legacy|--yes|-y) assume_legacy=1 ;;
+                --help|-h)
+                    echo "Usage: desktop-manager remove [--legacy] <desktop> [desktop ...]"
+                    echo "--legacy confirms removal of explicit package entries from pre-V69.5 installs."
+                    exit 0
+                    ;;
+                *) raw_profiles="$raw_profiles $1" ;;
+            esac
+            shift
+        done
+        raw_profiles="${raw_profiles# }"
+        if [ -z "$raw_profiles" ]; then
+            interactive_remove
+        else
+            # shellcheck disable=SC2086
+            profiles="$(normalize_many $raw_profiles)" || exit $?
+            remove_profiles "$profiles" "$assume_legacy"
+        fi
+        ;;
+    default|set-default)
+        if [ "$#" -eq 0 ]; then
+            interactive_default
+        elif [ "$#" -eq 1 ]; then
+            desktop="$(normalize_choice "$1" 2>/dev/null || true)"
+            [ -n "$desktop" ] || { echo "ERROR: unknown desktop: $1" >&2; exit 2; }
+            set_default_profile "$desktop"
+        else
+            echo "Usage: desktop-manager default <desktop>" >&2
+            exit 2
+        fi
+        ;;
+    repair|fix)
+        if [ "$#" -eq 0 ]; then
+            interactive_repair
+        else
+            profiles="$(normalize_many "$@")" || exit $?
+            repair_profiles "$profiles"
+        fi
+        ;;
+    start)
+        if [ "$#" -ne 1 ]; then
+            echo "Usage: desktop-manager start <desktop>" >&2
+            exit 2
+        fi
+        desktop="$(normalize_choice "$1" 2>/dev/null || true)"
+        [ -n "$desktop" ] || { echo "ERROR: unknown desktop: $1" >&2; exit 2; }
+        start_profile "$desktop"
+        ;;
+    help|--help|-h)
+        usage
+        ;;
+    *)
+        echo "ERROR: unknown desktop-manager command: $command" >&2
+        usage >&2
+        exit 2
+        ;;
+esac

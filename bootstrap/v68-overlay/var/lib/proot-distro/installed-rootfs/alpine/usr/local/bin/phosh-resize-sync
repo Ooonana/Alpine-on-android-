@@ -1,0 +1,93 @@
+#!/bin/sh
+
+set -u
+
+session_pid="${1:-}"
+case "$session_pid" in
+    ''|*[!0-9]*)
+        echo "Usage: phosh-resize-sync <phosh-session-pid>" >&2
+        exit 2
+        ;;
+esac
+
+if ! command -v xrandr >/dev/null 2>&1 || ! command -v wlr-randr >/dev/null 2>&1; then
+    echo "Phosh resize sync disabled: xrandr and/or wlr-randr is missing." >&2
+    exit 0
+fi
+if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+    echo "Phosh resize sync disabled: XDG_RUNTIME_DIR is unset." >&2
+    exit 0
+fi
+
+outer_display="${ALPINE_PHOSH_OUTER_DISPLAY:-${DISPLAY:-:1}}"
+interval="${ALPINE_PHOSH_RESIZE_INTERVAL:-1}"
+last_geometry=""
+wayland_display=""
+nested_output=""
+
+outer_geometry() {
+    DISPLAY="$outer_display" xrandr --current 2>/dev/null | awk '
+        /^Screen / {
+            for (i = 1; i <= NF; i++) {
+                if ($i == "current") {
+                    width = $(i + 1)
+                    height = $(i + 3)
+                    gsub(/[^0-9]/, "", width)
+                    gsub(/[^0-9]/, "", height)
+                    if (width + 0 > 0 && height + 0 > 0) {
+                        print width "x" height
+                        exit
+                    }
+                }
+            }
+        }
+    '
+}
+
+find_nested_output() {
+    for socket in "$XDG_RUNTIME_DIR"/wayland-*; do
+        [ -S "$socket" ] || continue
+        candidate="${socket##*/}"
+        listing="$(WAYLAND_DISPLAY="$candidate" wlr-randr 2>/dev/null || true)"
+        output="$(printf '%s\n' "$listing" | awk '/^[^[:space:]]/ { print $1; exit }')"
+        case "$output" in
+            X11-*)
+                wayland_display="$candidate"
+                nested_output="$output"
+                return 0
+                ;;
+        esac
+    done
+    return 1
+}
+
+while kill -0 "$session_pid" 2>/dev/null; do
+    geometry="$(outer_geometry || true)"
+    case "$geometry" in
+        [0-9]*x[0-9]*) ;;
+        *) sleep "$interval"; continue ;;
+    esac
+
+    if [ -z "$wayland_display" ] || [ -z "$nested_output" ]; then
+        find_nested_output || {
+            sleep "$interval"
+            continue
+        }
+    fi
+
+    if [ "$geometry" != "$last_geometry" ]; then
+        if WAYLAND_DISPLAY="$wayland_display" wlr-randr \
+                --output "$nested_output" --custom-mode "$geometry" \
+                >/tmp/alpine-phosh-resize-last.log 2>&1; then
+            echo "Phosh resize: $nested_output -> $geometry"
+            last_geometry="$geometry"
+        else
+            # The compositor may have restarted and chosen a new Wayland socket.
+            wayland_display=""
+            nested_output=""
+        fi
+    fi
+    sleep "$interval"
+done
+
+exit 0

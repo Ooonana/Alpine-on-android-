@@ -1,0 +1,32 @@
+#!/bin/sh
+
+set -u
+
+if ! command -v phosh-session >/dev/null 2>&1; then
+    echo "ERROR: phosh-session is not installed." >&2
+    exit 1
+fi
+
+phosh-session &
+session_pid=$!
+resize_pid=""
+
+if command -v phosh-resize-sync >/dev/null 2>&1; then
+    phosh-resize-sync "$session_pid" >>/tmp/alpine-phosh-resize.log 2>&1 &
+    resize_pid=$!
+fi
+
+forward_signal() {
+    kill -TERM "$session_pid" 2>/dev/null || true
+}
+trap forward_signal HUP INT TERM
+
+wait "$session_pid"
+status=$?
+
+if [ -n "$resize_pid" ]; then
+    kill "$resize_pid" 2>/dev/null || true
+    wait "$resize_pid" 2>/dev/null || true
+fi
+trap - HUP INT TERM
+exit "$status"

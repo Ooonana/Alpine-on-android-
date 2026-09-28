@@ -12,6 +12,12 @@ ROOTFS = OVERLAY / "var/lib/proot-distro/installed-rootfs/alpine"
 START_X11 = ROOTFS / "usr/local/bin/start-x11"
 INSTALL_DESKTOP = ROOTFS / "usr/local/bin/install-desktop"
 START_DESKTOP = ROOTFS / "usr/local/bin/start-desktop"
+DESKTOP_MANAGER = ROOTFS / "usr/local/bin/desktop-manager"
+SET_DESKTOP_PASSWORD = ROOTFS / "usr/local/bin/set-desktop-password"
+PHOSH_RESIZE_SYNC = ROOTFS / "usr/local/bin/phosh-resize-sync"
+START_PHOSH_NESTED = ROOTFS / "usr/local/bin/start-phosh-nested"
+ANDROID_NETWORK_SETTINGS = ROOTFS / "usr/local/bin/android-network-settings"
+ANDROID_NETWORK_DESKTOP = ROOTFS / "usr/share/applications/alpine-android-network.desktop"
 NSSWITCH = ROOTFS / "etc/nsswitch.conf"
 HOST_MOTD = OVERLAY / "etc/motd"
 ROOTFS_MOTD = ROOTFS / "etc/motd"
@@ -52,14 +58,14 @@ APP_STRINGS = ROOT / "android/app/src/main/res/values/strings.xml"
 
 class V68RuntimeOverlayTest(unittest.TestCase):
     def test_shell_sources_are_lf_only(self):
-        for path in (BASHRC, PROOT_DISTRO, START_X11, INSTALL_DESKTOP, START_DESKTOP, NSSWITCH):
+        for path in (BASHRC, PROOT_DISTRO, START_X11, INSTALL_DESKTOP, START_DESKTOP, DESKTOP_MANAGER, SET_DESKTOP_PASSWORD, PHOSH_RESIZE_SYNC, START_PHOSH_NESTED, ANDROID_NETWORK_SETTINGS, NSSWITCH):
             data = path.read_bytes()
             self.assertNotIn(b"\r", data, path)
             self.assertTrue(data.endswith(b"\n"), path)
 
     def test_v68_uses_stock_alpine_apk(self):
         installer = INSTALLER.read_text(encoding="utf-8")
-        desktop = INSTALL_DESKTOP.read_text(encoding="utf-8")
+        desktop = DESKTOP_MANAGER.read_text(encoding="utf-8")
         launcher = BASHRC.read_text(encoding="utf-8")
         builder = ROOTFS_BUILDER.read_text(encoding="utf-8")
         prepare = PREPARE.read_text(encoding="utf-8")
@@ -86,12 +92,13 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         build = APP_BUILD.read_text(encoding="utf-8")
         builder = ROOTFS_BUILDER.read_text(encoding="utf-8")
         prepare = PREPARE.read_text(encoding="utf-8")
-        self.assertIn('BOOTSTRAP_VERSION = "v69.3"', installer)
-        self.assertIn("versionCode 144", build)
-        self.assertIn('versionName "0.136.3-v69-dev"', build)
+        self.assertIn('BOOTSTRAP_VERSION = "v69.6"', installer)
+        self.assertIn('"v69.5"', installer)
+        self.assertIn("versionCode 147", build)
+        self.assertIn('versionName "0.136.6-v69-dev"', build)
         self.assertIn('ALPINE_VERSION = "3.23.6"', builder)
-        self.assertIn('b"v69.3\\n"', builder)
-        self.assertIn('b"v69.3\\n"', prepare)
+        self.assertIn('b"v69.6\\n"', builder)
+        self.assertIn('b"v69.6\\n"', prepare)
 
     def test_v68_build_toolchain_defaults_match_validated_build(self):
         properties = GRADLE_PROPERTIES.read_text(encoding="utf-8")
@@ -107,6 +114,18 @@ class V68RuntimeOverlayTest(unittest.TestCase):
             "b3a875ddc1f044746e1b1a55f645584505f4a10438c1afea9f15e92a7c42ec13",
         )
         self.assertIn('JITPACK_NDK_VERSION: "27.1.12297006"', jitpack)
+
+    def test_bootstrap_bytes_invalidate_native_embedding(self):
+        build = APP_BUILD.read_text(encoding="utf-8")
+        android_mk = (ROOT / "android/app/src/main/cpp/Android.mk").read_text(encoding="utf-8")
+        bootstrap_asm = (ROOT / "android/app/src/main/cpp/alpine-bootstrap-zip.S").read_text(encoding="utf-8")
+        self.assertIn("prepareBootstrapNativeInput", build)
+        self.assertIn("inputs.file(preparedBootstrap)", build)
+        self.assertIn("inputs.file(bootstrapNativeStamp)", build)
+        self.assertIn("t.dependsOn prepareBootstrapNativeInput", build)
+        self.assertIn("MessageDigest.getInstance(\"SHA-256\")", build)
+        self.assertIn("../../../build/generated/bootstrap", android_mk)
+        self.assertIn('#include "bootstrap-input.h"', bootstrap_asm)
 
     def test_security_sensitive_dependencies_and_report_deserialization_are_hardened(self):
         app_build = APP_BUILD.read_text(encoding="utf-8")
@@ -161,15 +180,21 @@ class V68RuntimeOverlayTest(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             self.assertNotIn("@RequiresApi(Build.VERSION_CODES.O)", text, path)
 
-    def test_v69_3_migrates_v68_1_through_v69_2_in_place(self):
+    def test_v69_6_migrates_v68_1_through_v69_5_in_place(self):
         installer = INSTALLER.read_text(encoding="utf-8")
-        self.assertIn('PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2", "v68.3", "v68.4", "v69", "v69.1", "v69.2" }', installer)
+        self.assertIn('PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2", "v68.3", "v68.4", "v69", "v69.1", "v69.2", "v69.3", "v69.4", "v69.5" }', installer)
         self.assertIn("V68_HOTFIX_PATCH_FILES", installer)
         for path in (
             '"etc/bash.bashrc"',
             'ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-x11"',
             'ROOTFS_RELATIVE_PATH + "/usr/local/bin/install-desktop"',
             'ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-desktop"',
+            'ROOTFS_RELATIVE_PATH + "/usr/local/bin/desktop-manager"',
+            'ROOTFS_RELATIVE_PATH + "/usr/local/bin/set-desktop-password"',
+            'ROOTFS_RELATIVE_PATH + "/usr/local/bin/phosh-resize-sync"',
+            'ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-phosh-nested"',
+            'ROOTFS_RELATIVE_PATH + "/usr/local/bin/android-network-settings"',
+            'ROOTFS_RELATIVE_PATH + "/usr/share/applications/alpine-android-network.desktop"',
             '"etc/motd"',
             'ROOTFS_RELATIVE_PATH + "/etc/motd"',
             'ROOTFS_RELATIVE_PATH + "/etc/alpine-bootstrap-version"',
@@ -206,11 +231,8 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertEqual(host, rootfs)
         self.assertIn("Alpine on Android by Ooonana", rootfs)
         self.assertIn("Made with Gemini 3 (base) + GPT-5.5 + GPT-5.6 Sol (final touches)", rootfs)
-        self.assertTrue(
-            rootfs.rstrip().endswith(
-                "GUI desktop: run install-desktop to install one, then start-desktop to launch it."
-            )
-        )
+        self.assertIn("GUI desktops: run desktop-manager to install/remove/switch; start-desktop launches the default.", rootfs)
+        self.assertTrue(rootfs.rstrip().endswith("Network: Android passthrough; run android-network-settings to open Android network controls."))
 
     def test_display_shell_matches_terminal_and_has_startup_fallback(self):
         activity = X11_MAIN_ACTIVITY.read_text(encoding="utf-8")
@@ -421,14 +443,18 @@ class V68RuntimeOverlayTest(unittest.TestCase):
 
     def test_desktop_installer_still_supports_all_choices(self):
         installer = INSTALL_DESKTOP.read_text(encoding="utf-8")
+        manager = DESKTOP_MANAGER.read_text(encoding="utf-8")
         launcher = START_DESKTOP.read_text(encoding="utf-8")
         for desktop in ("xfce", "lxqt", "openbox", "mate", "plasma", "lxde", "plasma-mobile", "phosh"):
-            self.assertIn(desktop, installer)
+            self.assertIn(desktop, manager)
             self.assertIn(desktop, launcher)
-        self.assertIn("Choose a desktop [1-8, q to cancel]", installer)
-        self.assertIn('packages="lxsession openbox pcmanfm lxterminal tint2"', installer)
-        self.assertIn('packages="plasma-mobile konsole breeze breeze-cursors xdg-desktop-portal-kde pulseaudio-utils xwayland"', installer)
-        self.assertIn('packages="phosh phoc pulseaudio-utils xwayland"', installer)
+        self.assertIn('exec desktop-manager install "$@"', installer)
+        self.assertIn('exec desktop-manager available', installer)
+        self.assertIn("available|choices", manager)
+        self.assertIn("Install one or more desktops", manager)
+        self.assertIn("lxsession openbox pcmanfm lxterminal tint2", manager)
+        self.assertIn("plasma-mobile konsole breeze breeze-cursors xdg-desktop-portal-kde pulseaudio-utils xwayland", manager)
+        self.assertIn("phosh phoc pulseaudio-utils xrandr wlr-randr xwayland", manager)
         self.assertIn('start-x11 "$DISPLAY"', launcher)
         start_x11 = START_X11.read_text(encoding="utf-8")
         self.assertIn('chmod 1777 "$socket_dir"', start_x11)
@@ -447,14 +473,101 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertIn("export WLR_RENDERER=pixman", launcher)
         self.assertIn("prepare_nested_wayland || exit 1", launcher)
         self.assertIn("prepare_phosh_runtime || exit 1", launcher)
+        self.assertIn("warn_mobile_desktop_password", launcher)
         self.assertIn("org.gnome.Evolution-alarm-notify.desktop", launcher)
         self.assertIn("org.gnome.SettingsDaemon.Power.desktop", launcher)
         self.assertIn('export XDG_CONFIG_DIRS="$phosh_xdg_dir:${XDG_CONFIG_DIRS:-/etc/xdg}"', launcher)
         self.assertIn("Android 12+ may terminate large PRoot desktop process trees with signal 9", launcher)
-        self.assertIn("run_session phosh-session", launcher)
+        self.assertIn("run_session start-phosh-nested", launcher)
         self.assertIn("Starting LXDE compatibility session", launcher)
         self.assertNotIn("startplasma-x11", launcher)
         self.assertNotIn("kwin_x11", launcher)
+
+    def test_v69_4_phosh_live_resize_bridge_and_password_setup(self):
+        resize = PHOSH_RESIZE_SYNC.read_text(encoding="utf-8")
+        wrapper = START_PHOSH_NESTED.read_text(encoding="utf-8")
+        password = SET_DESKTOP_PASSWORD.read_text(encoding="utf-8")
+        manager = DESKTOP_MANAGER.read_text(encoding="utf-8")
+        launcher = START_DESKTOP.read_text(encoding="utf-8")
+
+        self.assertIn('xrandr --current', resize)
+        self.assertIn('wlr-randr', resize)
+        self.assertIn('--custom-mode "$geometry"', resize)
+        self.assertIn('kill -0 "$session_pid"', resize)
+        self.assertIn('phosh-resize-sync "$session_pid"', wrapper)
+        self.assertIn('wait "$session_pid"', wrapper)
+        self.assertIn('run_session start-phosh-nested', launcher)
+
+        self.assertIn('Alpine-on-Android does not use a default desktop password.', password)
+        self.assertIn('exec passwd root', password)
+        self.assertNotIn('echo root:', password)
+        self.assertIn('set-desktop-password --check', manager)
+        self.assertIn('There is no default Alpine desktop password.', launcher)
+
+    def test_v69_5_desktop_manager_supports_safe_multi_install_and_removal(self):
+        manager = DESKTOP_MANAGER.read_text(encoding="utf-8")
+        installer = INSTALL_DESKTOP.read_text(encoding="utf-8")
+
+        self.assertIn(".alpine-desktop-%s", manager)
+        self.assertIn('add --virtual "$virtual"', manager)
+        self.assertIn('"$APK_CMD" del "$virtual"', manager)
+        self.assertIn("packages_used_by_other_present_profiles", manager)
+        self.assertIn("external_profile_world_refs", manager)
+        self.assertIn("is_selectable_profile", manager)
+        self.assertNotIn("is_profile_present()", manager)
+        self.assertIn('if [ "$desktop" = openbox ] && "$APK_CMD" info -e lxsession', manager)
+        self.assertIn('refs="$(external_profile_world_refs openbox)"', manager)
+        self.assertIn("managed+external", manager)
+        self.assertIn("--legacy", manager)
+        self.assertIn("Also removing confirmed legacy/user-owned desktop entries", manager)
+        self.assertIn("write_default()", manager)
+        self.assertIn('mv -f "$tmp" "$CONFIG_FILE"', manager)
+        self.assertIn("another desktop-manager operation is already running", manager)
+        self.assertIn("desktop-manager install <desktop> [desktop ...]", manager)
+        self.assertIn("desktop-manager remove [--legacy] <desktop> [desktop ...]", manager)
+        self.assertIn("desktop-manager default <desktop>", manager)
+        self.assertIn("desktop-manager repair <desktop> [desktop ...]", manager)
+        self.assertIn('exec desktop-manager install "$@"', installer)
+        self.assertNotIn('"$APK_CMD" add $COMMON_PACKAGES', installer)
+        self.assertIn('ALPINE_DESKTOP_CONFIG_FILE', manager)
+        self.assertIn('ALPINE_APK_WORLD_FILE', manager)
+        self.assertIn('ALPINE_DESKTOP_MANAGER_LOCK_DIR', manager)
+        self.assertIn("return 0\n}", manager)
+        launcher = START_DESKTOP.read_text(encoding="utf-8")
+        self.assertIn('configured="${configured%$(printf \'\\r\')}"', launcher)
+
+    def test_v69_6_desktop_parser_cleanup_and_android_network_passthrough(self):
+        manager = DESKTOP_MANAGER.read_text(encoding="utf-8")
+        launcher = START_DESKTOP.read_text(encoding="utf-8")
+        host = BASHRC.read_text(encoding="utf-8")
+        helper = ANDROID_NETWORK_SETTINGS.read_text(encoding="utf-8")
+        desktop_entry = ANDROID_NETWORK_DESKTOP.read_text(encoding="utf-8")
+        installer = INSTALLER.read_text(encoding="utf-8")
+
+        # The V69.5 bug came from UI output being captured by command substitution.
+        self.assertIn("print_choices >&2", manager)
+        self.assertIn("printf '%s' \"$prompt\" >&2", manager)
+        self.assertIn("ERROR: refusing invalid desktop profile", manager)
+        self.assertIn("cleanup_invalid_virtual_groups", manager)
+        self.assertIn('"$APK_CMD" del "$pkg"', manager)
+        for valid in ("xfce", "lxqt", "openbox", "mate", "plasma", "lxde", "plasma-mobile", "phosh"):
+            self.assertIn(f".alpine-desktop-{valid}", manager)
+
+        # Android owns the physical network. The guest observes inherited
+        # connectivity and hands network-setting requests back to the host app.
+        self.assertIn('GIO_USE_NETWORK_MONITOR="${GIO_USE_NETWORK_MONITOR:-netlink}"', launcher)
+        self.assertIn("warn_android_network_passthrough", launcher)
+        self.assertIn("alpine-android-network-request", host)
+        self.assertIn('android_am="$PREFIX/bin/am"', host)
+        self.assertIn("android.settings.panel.action.INTERNET_CONNECTIVITY", host)
+        self.assertIn("android.settings.WIRELESS_SETTINGS", host)
+        self.assertIn('request_file="${TMPDIR:-/tmp}/alpine-android-network-request"', helper)
+        self.assertIn('action="${1:-internet}"', helper)
+        self.assertIn("Exec=android-network-settings internet", desktop_entry)
+        self.assertIn("X-Purism-FormFactor=Workstation;Mobile;", desktop_entry)
+
+        self.assertIn('ROOTFS_RELATIVE_PATH + "/usr/local/bin/android-network-settings"', installer)
+        self.assertIn('ROOTFS_RELATIVE_PATH + "/usr/share/applications/alpine-android-network.desktop"', installer)
 
     def test_launcher_keeps_proot_compatibility_without_package_manager_shim(self):
         text = BASHRC.read_text(encoding="utf-8")

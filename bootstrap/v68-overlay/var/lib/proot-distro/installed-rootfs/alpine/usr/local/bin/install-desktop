@@ -2,178 +2,28 @@
 
 set -u
 
-CONFIG_FILE="/etc/alpine-desktop"
-APK_CMD="${APK_CMD:-/sbin/apk}"
+if ! command -v desktop-manager >/dev/null 2>&1; then
+    echo "ERROR: desktop-manager is missing from this Alpine installation." >&2
+    exit 1
+fi
 
-print_help() {
-    cat <<'EOF'
+case "${1:-}" in
+    --help|-h)
+        cat <<'EOF'
 Usage:
   install-desktop
-  install-desktop <xfce|lxqt|openbox|mate|plasma|lxde|plasma-mobile|phosh>
+  install-desktop <desktop> [desktop ...]
   install-desktop --list
-  install-desktop --help
 
-Installs one desktop environment for the Alpine-on-Android integrated display.
-Only the selected desktop is installed. Installing another desktop later keeps the
-previous desktop packages but changes the default used by start-desktop.
+Compatibility wrapper for `desktop-manager install`.
+Multiple desktops can be installed at once. The last successfully installed
+selection becomes the default used by start-desktop.
 EOF
-}
-
-print_choices() {
-    cat <<'EOF'
-Available desktops:
-  1) XFCE           - recommended; light, mature, full X11 desktop
-  2) LXQt           - light Qt X11 desktop
-  3) Openbox        - minimal X11 window manager + panel/file manager
-  4) MATE           - traditional full X11 desktop
-  5) Plasma         - KDE Plasma Desktop; nested Wayland, heavy/experimental
-  6) LXDE           - LXDE-style compatibility session; very light X11 desktop
-  7) Plasma Mobile  - KDE phone/tablet shell; nested Wayland, experimental
-  8) Phosh          - GNOME phone shell; nested Wayland, experimental
-EOF
-}
-
-normalize_choice() {
-    case "${1:-}" in
-        1|xfce|XFCE|Xfce) printf '%s
-' xfce ;;
-        2|lxqt|LXQT|LXQt) printf '%s
-' lxqt ;;
-        3|openbox|Openbox|OPENBOX) printf '%s
-' openbox ;;
-        4|mate|MATE|Mate) printf '%s
-' mate ;;
-        5|plasma|PLASMA|Plasma|kde|KDE) printf '%s
-' plasma ;;
-        6|lxde|LXDE|Lxde) printf '%s
-' lxde ;;
-        7|plasma-mobile|plasmamobile|PLASMA-MOBILE|Plasma-Mobile|kde-mobile|KDE-Mobile) printf '%s
-' plasma-mobile ;;
-        8|phosh|PHOSH|Phosh) printf '%s
-' phosh ;;
-        *) return 1 ;;
-    esac
-}
-
-if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
-    print_help
-    exit 0
-fi
-
-if [ "${1:-}" = "--list" ]; then
-    print_choices
-    exit 0
-fi
-
-if [ "$(id -u 2>/dev/null || echo 1)" != "0" ]; then
-    echo "ERROR: install-desktop must run as root inside Alpine." >&2
-    exit 1
-fi
-
-if [ ! -x "$APK_CMD" ]; then
-    APK_CMD="$(command -v apk 2>/dev/null || true)"
-fi
-if [ -z "$APK_CMD" ] || [ ! -x "$APK_CMD" ]; then
-    echo "ERROR: Alpine apk command was not found." >&2
-    exit 1
-fi
-
-choice="${1:-}"
-if [ -z "$choice" ]; then
-    echo "Alpine-on-Android desktop installer"
-    echo
-    print_choices
-    echo
-    printf "Choose a desktop [1-8, q to cancel]: "
-    IFS= read -r choice || exit 1
-    case "$choice" in
-        q|Q|quit|QUIT) exit 0 ;;
-    esac
-fi
-
-desktop="$(normalize_choice "$choice" 2>/dev/null || true)"
-if [ -z "$desktop" ]; then
-    echo "ERROR: unknown desktop choice: $choice" >&2
-    print_choices >&2
-    exit 2
-fi
-
-COMMON_PACKAGES="dbus dbus-x11 font-dejavu mesa-dri-gallium mesa-egl mesa-gl"
-
-case "$desktop" in
-    xfce)
-        label="XFCE"
-        packages="xfce4 xfce4-terminal"
+        exit 0
         ;;
-    lxqt)
-        label="LXQt"
-        packages="lxqt-desktop qterminal qt6-qtbase-x11"
-        ;;
-    openbox)
-        label="Openbox"
-        packages="openbox pcmanfm lxterminal tint2"
-        ;;
-    mate)
-        label="MATE"
-        packages="mate-desktop-environment mate-terminal"
-        ;;
-    plasma)
-        label="Plasma Desktop"
-        packages="plasma-desktop plasma-workspace kwin konsole breeze breeze-cursors breeze-icons xdg-desktop-portal-kde pulseaudio-utils xwayland"
-        ;;
-    lxde)
-        label="LXDE compatibility session"
-        packages="lxsession openbox pcmanfm lxterminal tint2"
-        ;;
-    plasma-mobile)
-        label="Plasma Mobile"
-        packages="plasma-mobile konsole breeze breeze-cursors xdg-desktop-portal-kde pulseaudio-utils xwayland"
-        ;;
-    phosh)
-        label="Phosh"
-        packages="phosh phoc pulseaudio-utils xwayland"
+    --list)
+        exec desktop-manager available
         ;;
 esac
 
-echo
-echo "Selected: $label"
-case "$desktop" in
-    plasma|plasma-mobile|phosh)
-        echo "NOTE: This desktop is Wayland-based. Alpine-on-Android runs it nested"
-        echo "      inside the integrated X11 display. This path is experimental."
-        ;;
-    lxde)
-        echo "NOTE: Alpine 3.23 no longer ships the complete historical LXDE stack."
-        echo "      This choice uses LXDE components with Openbox, PCManFM and tint2."
-        ;;
-esac
-echo
-echo "Refreshing Alpine package indexes..."
-if ! "$APK_CMD" update; then
-    echo "ERROR: apk update failed. Check network/DNS and retry." >&2
-    exit 1
-fi
-
-echo
-echo "Installing $label..."
-# shellcheck disable=SC2086
-if ! "$APK_CMD" add $COMMON_PACKAGES $packages; then
-    echo "ERROR: $label installation failed. No desktop selection was changed." >&2
-    exit 1
-fi
-
-printf '%s
-' "$desktop" > "$CONFIG_FILE" || {
-    echo "ERROR: could not save desktop selection to $CONFIG_FILE" >&2
-    exit 1
-}
-chmod 0644 "$CONFIG_FILE" 2>/dev/null || true
-
-echo
-echo "$label installation finished."
-echo "Default desktop: $desktop"
-echo "Start it with:"
-echo
-echo "  start-desktop"
-echo
-echo "To install/switch to another desktop later, run install-desktop again."
+exec desktop-manager install "$@"
