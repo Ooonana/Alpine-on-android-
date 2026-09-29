@@ -3,7 +3,9 @@ PREFIX="/data/data/com.alpine/files/usr"
 ROOTFS="$PREFIX/var/lib/proot-distro/installed-rootfs/alpine"
 REPOSITORIES="$ROOTFS/etc/apk/repositories"
 RESOLV_CONF="$ROOTFS/etc/resolv.conf"
+HOST_RESOLV_CONF="$PREFIX/etc/resolv.conf"
 PROOT_WORK_DIR="$PREFIX/tmp/proot"
+DNS_MANAGED_MARKER="# Managed by Alpine-on-Android V69.7"
 
 export HOME="/data/data/com.alpine/files/home"
 export TMPDIR="$PREFIX/tmp"
@@ -21,6 +23,79 @@ export LD_LIBRARY_PATH="$PREFIX/lib"
 export PATH="$PREFIX/bin:$PATH"
 export MAGIC="$PREFIX/share/file/magic.mgc"
 
+resolver_is_legacy_managed() {
+    [ -r "$RESOLV_CONF" ] || return 1
+    resolver_payload="$(
+        sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' "$RESOLV_CONF" 2>/dev/null
+    )"
+    [ "$resolver_payload" = "$(printf 'nameserver 8.8.8.8\nnameserver 8.8.4.4')" ]
+}
+
+resolver_should_be_managed() {
+    if [ -n "${ALPINE_DNS_SERVERS:-}" ] || [ "${ALPINE_DNS_FORCE:-0}" = "1" ]; then
+        return 0
+    fi
+    [ "${ALPINE_DNS_PRESERVE:-0}" = "1" ] && return 1
+    [ ! -s "$RESOLV_CONF" ] && return 0
+    grep -qxF "$DNS_MANAGED_MARKER" "$RESOLV_CONF" 2>/dev/null && return 0
+    # V69.6 used this exact unmarked fallback when Android did not expose DNS
+    # properties. Adopt only that known generated form; preserve every other
+    # unmarked, non-empty resolver as user-owned configuration.
+    resolver_is_legacy_managed
+}
+
+android_dns_candidates() {
+    if [ -n "${ALPINE_DNS_SERVERS:-}" ]; then
+        printf '%s\n' "$ALPINE_DNS_SERVERS"
+        return 0
+    fi
+
+    getprop_bin=""
+    if [ -x "$PREFIX/bin/getprop" ]; then
+        getprop_bin="$PREFIX/bin/getprop"
+    elif [ -x /system/bin/getprop ]; then
+        getprop_bin="/system/bin/getprop"
+    fi
+    if [ -n "$getprop_bin" ]; then
+        "$getprop_bin" 2>/dev/null |
+            sed -n 's/^\[[^]]*\.dns[1-4]\]: \[\([^]]*\)\]$/\1/p'
+    fi
+
+    # Termux's host resolver remains useful on Android releases where net.*.dns
+    # properties are hidden. It is read only as an input; Alpine keeps its own
+    # resolver so PRoot package/user changes are not tied to a bind mount.
+    if [ -r "$HOST_RESOLV_CONF" ]; then
+        sed -n 's/^[[:space:]]*nameserver[[:space:]][[:space:]]*\([^[:space:]#]*\).*$/\1/p' "$HOST_RESOLV_CONF" 2>/dev/null
+    fi
+}
+
+sync_alpine_dns() {
+    resolver_should_be_managed || return 0
+
+    resolver_tmp="$TMPDIR/alpine-resolv.conf.${BASHPID:-$PPID}"
+    : > "$resolver_tmp" 2>/dev/null || return 0
+    printf '%s\n' "$DNS_MANAGED_MARKER" >> "$resolver_tmp"
+
+    dns_candidates="$(android_dns_candidates | tr '\n' ' ')"
+    for dns in $dns_candidates; do
+        case "$dns" in
+            ""|*[!0-9A-Fa-f:.]*) continue ;;
+        esac
+        if ! grep -qxF "nameserver $dns" "$resolver_tmp" 2>/dev/null; then
+            echo "nameserver $dns" >> "$resolver_tmp"
+        fi
+    done
+
+    if ! grep -q '^nameserver ' "$resolver_tmp" 2>/dev/null; then
+        # Last-resort public resolvers keep fresh installs usable when Android
+        # exposes neither link DNS nor a readable Termux resolver.
+        echo "nameserver 8.8.8.8" >> "$resolver_tmp"
+        echo "nameserver 8.8.4.4" >> "$resolver_tmp"
+    fi
+    cat "$resolver_tmp" > "$RESOLV_CONF" 2>/dev/null || true
+    rm -f "$resolver_tmp" 2>/dev/null || true
+}
+
 ensure_alpine_runtime() {
     mkdir -p "$TMPDIR" "$TMPDIR/alpine-runtime-0" "$PROOT_WORK_DIR" "$ROOTFS/etc" "$ROOTFS/etc/apk" \
         "$ROOTFS/run/dbus" "$ROOTFS/var/empty" "$ROOTFS/var/run/pulse" \
@@ -33,44 +108,10 @@ ensure_alpine_runtime() {
     chmod 600 "$ROOTFS/etc/environment" 2>/dev/null || true
     rm -f "$ROOTFS/run/dbus/pid" 2>/dev/null || true
 
-    # Seed DNS on first launch, or refresh it only when explicitly requested.
-    # Preserve a user's non-empty resolv.conf during normal subsequent launches.
-    if [ ! -s "$RESOLV_CONF" ] || [ -n "${ALPINE_DNS_SERVERS:-}" ] || [ "${ALPINE_DNS_FORCE:-0}" = "1" ]; then
-        resolver_tmp="$TMPDIR/alpine-resolv.conf.${BASHPID:-$PPID}"
-        : > "$resolver_tmp" 2>/dev/null || resolver_tmp=""
-        if [ -n "$resolver_tmp" ]; then
-            if [ -n "${ALPINE_DNS_SERVERS:-}" ]; then
-                dns_candidates="$ALPINE_DNS_SERVERS"
-            elif [ -x /system/bin/getprop ]; then
-                dns_candidates="$(
-                    /system/bin/getprop 2>/dev/null |
-                        sed -n 's/^\[[^]]*\.dns[1-4]\]: \[\([^]]*\)\]$/\1/p' |
-                        tr '\n' ' '
-                )"
-            else
-                dns_candidates=""
-            fi
-
-            for dns in $dns_candidates; do
-                case "$dns" in
-                    ""|*[!0-9A-Fa-f:.]*) continue ;;
-                esac
-                if ! grep -qxF "nameserver $dns" "$resolver_tmp" 2>/dev/null; then
-                    echo "nameserver $dns" >> "$resolver_tmp"
-                fi
-            done
-
-            if [ -s "$resolver_tmp" ]; then
-                cat "$resolver_tmp" > "$RESOLV_CONF" 2>/dev/null || true
-            elif [ ! -s "$RESOLV_CONF" ]; then
-                {
-                    echo "nameserver 8.8.8.8"
-                    echo "nameserver 8.8.4.4"
-                } > "$RESOLV_CONF" 2>/dev/null || true
-            fi
-            rm -f "$resolver_tmp" 2>/dev/null || true
-        fi
-    fi
+    # Refresh only Alpine-on-Android-managed DNS. User-created non-empty
+    # resolv.conf files remain untouched unless ALPINE_DNS_FORCE=1 or explicit
+    # ALPINE_DNS_SERVERS are supplied.
+    sync_alpine_dns
 
     # V68 uses Alpine's stock apk and normal remote repositories. Only repair
     # an empty repository file; do not overwrite a user's chosen mirror.
@@ -133,6 +174,11 @@ start_x11_bridge() {
 
         open_android_network_settings() {
             network_action="$1"
+            if [ "$network_action" = "refresh-dns" ]; then
+                sync_alpine_dns >> "$network_log_file" 2>&1 || true
+                echo "Refreshed Alpine DNS from Android host state" >> "$network_log_file"
+                return 0
+            fi
             case "$network_action" in
                 wifi) intent_action="android.settings.WIFI_SETTINGS" ;;
                 wireless) intent_action="android.settings.WIRELESS_SETTINGS" ;;

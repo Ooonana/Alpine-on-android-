@@ -1,16 +1,40 @@
 package com.alpine.shared.data;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.util.Arrays;
 
 public class IntentUtils {
 
     private static final String LOG_TAG = "IntentUtils";
+
+    /**
+     * Safely read a parcelable extra supplied by another component/process.
+     *
+     * Raw {@link Intent#getParcelableExtra(String)} calls can throw while unparcelling malformed
+     * extras and, before API 33, rely on an unchecked caller-side cast.  External intent entry
+     * points should fail closed instead of crashing the receiving Activity/Service.
+     */
+    @Nullable
+    public static <T extends Parcelable> T getParcelableExtraIfSet(@NonNull Intent intent,
+                                                                    @NonNull String key,
+                                                                    @NonNull Class<T> clazz) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                return intent.getParcelableExtra(key, clazz);
+
+            Parcelable value = intent.getParcelableExtra(key);
+            return clazz.isInstance(value) ? clazz.cast(value) : null;
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
 
 
     /**

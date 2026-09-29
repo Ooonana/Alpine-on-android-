@@ -154,6 +154,16 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
     }
 
     @Override
+    protected void onDestroy() {
+        // These observers retain this Activity through accessibilityObserver.  Settings may be
+        // recreated repeatedly (configuration changes, display changes, etc.), so leaving them
+        // registered would keep destroyed LoriePreferences instances alive and continue routing
+        // callbacks into stale UI objects.
+        getContentResolver().unregisterContentObserver(accessibilityObserver);
+        super.onDestroy();
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
@@ -680,7 +690,7 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
                     if (!line.contains("="))
                         help();
 
-                    v = line.split("=");
+                    v = line.split("=", 2);
                     if (v[0].startsWith("\"") && v[0].endsWith("\""))
                         v[0] = v[0].substring(1, v[0].length() - 1);
                     if (v[1].startsWith("\"") && v[1].endsWith("\""))
@@ -693,7 +703,7 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
                 if ("list".equals(a)) {
                     i.putExtra("list", "");
                 } else if (a != null && a.contains(":")) {
-                    String[] v = a.split(":");
+                    String[] v = a.split(":", 2);
                     i.putExtra(v[0], v[1]);
                 } else
                     help();

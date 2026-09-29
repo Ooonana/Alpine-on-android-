@@ -70,6 +70,9 @@ public class LocalSocketManager {
     public synchronized Error start() {
         Logger.logDebugExtended(LOG_TAG, "start\n" + mLocalSocketRunConfig);
 
+        if (mIsRunning)
+            return null;
+
         if (!localSocketLibraryLoaded) {
             try {
                 Logger.logDebug(LOG_TAG, "Loading \"" + LOCAL_SOCKET_LIBRARY + "\" library");
@@ -82,8 +85,9 @@ public class LocalSocketManager {
             }
         }
 
-        mIsRunning = true;
-        return mServerSocket.start();
+        Error error = mServerSocket.start();
+        mIsRunning = error == null;
+        return error;
     }
 
     /**
@@ -323,19 +327,27 @@ public class LocalSocketManager {
 
     /** Wrapper to call {@link ILocalSocketManager#onClientAccepted(LocalSocketManager, LocalClientSocket)} in a new thread. */
     public void onClientAccepted(@NonNull LocalClientSocket clientSocket) {
-        startLocalSocketManagerClientThread(() ->
-            mLocalSocketManagerClient.onClientAccepted(this, clientSocket));
+        if (!startLocalSocketManagerClientThread(() ->
+            mLocalSocketManagerClient.onClientAccepted(this, clientSocket))) {
+            clientSocket.closeClientSocket(true);
+        }
     }
 
     /** All client accept logic must be run on separate threads so that incoming client acceptance is not blocked. */
-    public void startLocalSocketManagerClientThread(@NonNull Runnable runnable) {
+    public boolean startLocalSocketManagerClientThread(@NonNull Runnable runnable) {
         Thread thread = new Thread(runnable);
         thread.setUncaughtExceptionHandler(getLocalSocketManagerClientThreadUEH());
         try {
             thread.start();
-        } catch (Exception e) {
+            return true;
+        } catch (Throwable e) {
             Logger.logStackTraceWithMessage(LOG_TAG, "LocalSocketManagerClientThread start failed", e);
+            return false;
         }
+    }
+
+    synchronized void onServerStopped() {
+        mIsRunning = false;
     }
 
 

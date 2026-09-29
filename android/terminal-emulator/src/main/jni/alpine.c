@@ -1,4 +1,5 @@
 #include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <jni.h>
 #include <signal.h>
@@ -17,9 +18,65 @@
 
 static int throw_runtime_exception(JNIEnv* env, char const* message)
 {
+    if ((*env)->ExceptionCheck(env)) return -1;
     jclass exClass = (*env)->FindClass(env, "java/lang/RuntimeException");
+    if (exClass == NULL) return -1;
     (*env)->ThrowNew(env, exClass, message);
+    (*env)->DeleteLocalRef(env, exClass);
     return -1;
+}
+
+static void free_string_array(char** values)
+{
+    if (values == NULL) return;
+    for (char** value = values; *value != NULL; ++value) free(*value);
+    free(values);
+}
+
+static char** copy_java_string_array(JNIEnv* env, jobjectArray source, char const* label)
+{
+    if (source == NULL) return NULL;
+
+    jsize size = (*env)->GetArrayLength(env, source);
+    if ((*env)->ExceptionCheck(env)) return NULL;
+
+    char** result = (char**) calloc((size_t) size + 1, sizeof(char*));
+    if (result == NULL) {
+        throw_runtime_exception(env, "Couldn't allocate native string array");
+        return NULL;
+    }
+
+    for (jsize i = 0; i < size; ++i) {
+        jstring java_string = (jstring) (*env)->GetObjectArrayElement(env, source, i);
+        if ((*env)->ExceptionCheck(env)) {
+            free_string_array(result);
+            return NULL;
+        }
+        if (java_string == NULL) {
+            free_string_array(result);
+            throw_runtime_exception(env, label);
+            return NULL;
+        }
+
+        char const* utf8 = (*env)->GetStringUTFChars(env, java_string, NULL);
+        if (utf8 == NULL) {
+            (*env)->DeleteLocalRef(env, java_string);
+            free_string_array(result);
+            if (!(*env)->ExceptionCheck(env)) throw_runtime_exception(env, "GetStringUTFChars() failed");
+            return NULL;
+        }
+
+        result[i] = strdup(utf8);
+        (*env)->ReleaseStringUTFChars(env, java_string, utf8);
+        (*env)->DeleteLocalRef(env, java_string);
+        if (result[i] == NULL) {
+            free_string_array(result);
+            throw_runtime_exception(env, "Couldn't duplicate native string");
+            return NULL;
+        }
+    }
+
+    return result;
 }
 
 static int create_subprocess(JNIEnv* env,
@@ -48,15 +105,22 @@ static int create_subprocess(JNIEnv* env,
             ptsname_r(ptm, devname, sizeof(devname))
 #endif
        ) {
+        close(ptm);
         return throw_runtime_exception(env, "Cannot grantpt()/unlockpt()/ptsname_r() on /dev/ptmx");
     }
 
     // Enable UTF-8 mode and disable flow control to prevent Ctrl+S from locking up the display.
-    struct termios tios;
-    tcgetattr(ptm, &tios);
+    struct termios tios = {0};
+    if (tcgetattr(ptm, &tios) != 0) {
+        close(ptm);
+        return throw_runtime_exception(env, "tcgetattr() failed for /dev/ptmx");
+    }
     tios.c_iflag |= IUTF8;
     tios.c_iflag &= ~(IXON | IXOFF);
-    tcsetattr(ptm, TCSANOW, &tios);
+    if (tcsetattr(ptm, TCSANOW, &tios) != 0) {
+        close(ptm);
+        return throw_runtime_exception(env, "tcsetattr() failed for /dev/ptmx");
+    }
 
     /** Set initial winsize. */
     struct winsize sz = { .ws_row = (unsigned short) rows, .ws_col = (unsigned short) columns, .ws_xpixel = (unsigned short) (columns * cell_width), .ws_ypixel = (unsigned short) (rows * cell_height)};
@@ -64,6 +128,7 @@ static int create_subprocess(JNIEnv* env,
 
     pid_t pid = fork();
     if (pid < 0) {
+        close(ptm);
         return throw_runtime_exception(env, "Fork failed");
     } else if (pid > 0) {
         *pProcessId = (int) pid;
@@ -75,14 +140,20 @@ static int create_subprocess(JNIEnv* env,
         sigprocmask(SIG_UNBLOCK, &signals_to_unblock, 0);
 
         close(ptm);
-        setsid();
+        if (setsid() < 0) {
+            perror("setsid()");
+            _exit(1);
+        }
 
         int pts = open(devname, O_RDWR);
         if (pts < 0) exit(-1);
 
-        dup2(pts, 0);
-        dup2(pts, 1);
-        dup2(pts, 2);
+        if (dup2(pts, STDIN_FILENO) < 0 ||
+            dup2(pts, STDOUT_FILENO) < 0 ||
+            dup2(pts, STDERR_FILENO) < 0) {
+            perror("dup2()");
+            _exit(1);
+        }
 
         DIR* self_dir = opendir("/proc/self/fd");
         if (self_dir != NULL) {
@@ -127,57 +198,64 @@ JNIEXPORT jint JNICALL Java_com_alpine_terminal_JNI_createSubprocess(
         jint cell_width,
         jint cell_height)
 {
-    jsize size = args ? (*env)->GetArrayLength(env, args) : 0;
-    char** argv = NULL;
-    if (size > 0) {
-        argv = (char**) malloc((size + 1) * sizeof(char*));
-        if (!argv) return throw_runtime_exception(env, "Couldn't allocate argv array");
-        for (int i = 0; i < size; ++i) {
-            jstring arg_java_string = (jstring) (*env)->GetObjectArrayElement(env, args, i);
-            char const* arg_utf8 = (*env)->GetStringUTFChars(env, arg_java_string, NULL);
-            if (!arg_utf8) return throw_runtime_exception(env, "GetStringUTFChars() failed for argv");
-            argv[i] = strdup(arg_utf8);
-            (*env)->ReleaseStringUTFChars(env, arg_java_string, arg_utf8);
-        }
-        argv[size] = NULL;
+    if (cmd == NULL || cwd == NULL || args == NULL || processIdArray == NULL) {
+        return throw_runtime_exception(env, "createSubprocess() received null required input");
+    }
+    jsize args_size = (*env)->GetArrayLength(env, args);
+    if ((*env)->ExceptionCheck(env)) return -1;
+    if (args_size < 1) {
+        return throw_runtime_exception(env, "createSubprocess() requires at least argv[0]");
+    }
+    jsize process_id_size = (*env)->GetArrayLength(env, processIdArray);
+    if ((*env)->ExceptionCheck(env)) return -1;
+    if (process_id_size < 1) {
+        return throw_runtime_exception(env, "createSubprocess() requires a processId output slot");
     }
 
-    size = envVars ? (*env)->GetArrayLength(env, envVars) : 0;
+    char const* cmd_utf8 = (*env)->GetStringUTFChars(env, cmd, NULL);
+    if (cmd_utf8 == NULL) return -1;
+    char const* cmd_cwd = (*env)->GetStringUTFChars(env, cwd, NULL);
+    if (cmd_cwd == NULL) {
+        (*env)->ReleaseStringUTFChars(env, cmd, cmd_utf8);
+        return -1;
+    }
+
+    char** argv = copy_java_string_array(env, args, "createSubprocess() argv contains null");
+    if (argv == NULL) {
+        (*env)->ReleaseStringUTFChars(env, cwd, cmd_cwd);
+        (*env)->ReleaseStringUTFChars(env, cmd, cmd_utf8);
+        return -1;
+    }
     char** envp = NULL;
-    if (size > 0) {
-        envp = (char**) malloc((size + 1) * sizeof(char *));
-        if (!envp) return throw_runtime_exception(env, "malloc() for envp array failed");
-        for (int i = 0; i < size; ++i) {
-            jstring env_java_string = (jstring) (*env)->GetObjectArrayElement(env, envVars, i);
-            char const* env_utf8 = (*env)->GetStringUTFChars(env, env_java_string, 0);
-            if (!env_utf8) return throw_runtime_exception(env, "GetStringUTFChars() failed for env");
-            envp[i] = strdup(env_utf8);
-            (*env)->ReleaseStringUTFChars(env, env_java_string, env_utf8);
+    if (envVars != NULL) {
+        envp = copy_java_string_array(env, envVars, "createSubprocess() env contains null");
+        if (envp == NULL) {
+            free_string_array(argv);
+            (*env)->ReleaseStringUTFChars(env, cwd, cmd_cwd);
+            (*env)->ReleaseStringUTFChars(env, cmd, cmd_utf8);
+            return -1;
         }
-        envp[size] = NULL;
     }
 
     int procId = 0;
-    char const* cmd_cwd = (*env)->GetStringUTFChars(env, cwd, NULL);
-    char const* cmd_utf8 = (*env)->GetStringUTFChars(env, cmd, NULL);
     int ptm = create_subprocess(env, cmd_utf8, cmd_cwd, argv, envp, &procId, rows, columns, cell_width, cell_height);
     (*env)->ReleaseStringUTFChars(env, cmd, cmd_utf8);
-    (*env)->ReleaseStringUTFChars(env, cmd, cmd_cwd);
+    (*env)->ReleaseStringUTFChars(env, cwd, cmd_cwd);
+    free_string_array(argv);
+    free_string_array(envp);
 
-    if (argv) {
-        for (char** tmp = argv; *tmp; ++tmp) free(*tmp);
-        free(argv);
+    if (ptm < 0 || (*env)->ExceptionCheck(env)) return ptm;
+
+    jint javaProcId = (jint) procId;
+    (*env)->SetIntArrayRegion(env, processIdArray, 0, 1, &javaProcId);
+    if ((*env)->ExceptionCheck(env)) {
+        close(ptm);
+        if (procId > 0) {
+            kill(procId, SIGKILL);
+            while (waitpid(procId, NULL, 0) < 0 && errno == EINTR) {}
+        }
+        return -1;
     }
-    if (envp) {
-        for (char** tmp = envp; *tmp; ++tmp) free(*tmp);
-        free(envp);
-    }
-
-    int* pProcId = (int*) (*env)->GetPrimitiveArrayCritical(env, processIdArray, NULL);
-    if (!pProcId) return throw_runtime_exception(env, "JNI call GetPrimitiveArrayCritical(processIdArray, &isCopy) failed");
-
-    *pProcId = procId;
-    (*env)->ReleasePrimitiveArrayCritical(env, processIdArray, pProcId, 0);
 
     return ptm;
 }
@@ -190,18 +268,22 @@ JNIEXPORT void JNICALL Java_com_alpine_terminal_JNI_setPtyWindowSize(JNIEnv* ALP
 
 JNIEXPORT void JNICALL Java_com_alpine_terminal_JNI_setPtyUTF8Mode(JNIEnv* ALPINE_UNUSED(env), jclass ALPINE_UNUSED(clazz), jint fd)
 {
-    struct termios tios;
-    tcgetattr(fd, &tios);
+    struct termios tios = {0};
+    if (tcgetattr(fd, &tios) != 0) return;
     if ((tios.c_iflag & IUTF8) == 0) {
         tios.c_iflag |= IUTF8;
         tcsetattr(fd, TCSANOW, &tios);
     }
 }
 
-JNIEXPORT jint JNICALL Java_com_alpine_terminal_JNI_waitFor(JNIEnv* ALPINE_UNUSED(env), jclass ALPINE_UNUSED(clazz), jint pid)
+JNIEXPORT jint JNICALL Java_com_alpine_terminal_JNI_waitFor(JNIEnv* env, jclass ALPINE_UNUSED(clazz), jint pid)
 {
     int status;
-    waitpid(pid, &status, 0);
+    pid_t result;
+    do {
+        result = waitpid(pid, &status, 0);
+    } while (result < 0 && errno == EINTR);
+    if (result < 0) return throw_runtime_exception(env, "waitpid() failed");
     if (WIFEXITED(status)) {
         return WEXITSTATUS(status);
     } else if (WIFSIGNALED(status)) {

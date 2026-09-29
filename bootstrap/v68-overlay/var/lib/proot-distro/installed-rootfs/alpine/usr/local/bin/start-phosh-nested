@@ -7,6 +7,38 @@ if ! command -v phosh-session >/dev/null 2>&1; then
     exit 1
 fi
 
+ALPINE_BACKGROUND_URI="file:///usr/share/backgrounds/alpine-on-android.svg"
+
+repair_missing_default_background() {
+    schema="$1"
+    key="$2"
+    command -v gsettings >/dev/null 2>&1 || return 0
+    current="$(gsettings get "$schema" "$key" 2>/dev/null || true)"
+    case "$current" in
+        "'file:///usr/share/backgrounds/gnome/"*"'")
+            uri="${current#\'}"
+            uri="${uri%\'}"
+            path="${uri#file://}"
+            if [ ! -r "$path" ]; then
+                gsettings set "$schema" "$key" "$ALPINE_BACKGROUND_URI" >/dev/null 2>&1 || true
+            fi
+            ;;
+    esac
+}
+
+prepare_phosh_preferences() {
+    repair_missing_default_background org.gnome.desktop.background picture-uri
+    repair_missing_default_background org.gnome.desktop.background picture-uri-dark
+    repair_missing_default_background org.gnome.desktop.screensaver picture-uri
+    if command -v gsettings >/dev/null 2>&1; then
+        # Keep the GNOME touch-keyboard preference enabled. phosh-session owns
+        # sm.puri.OSK0 and must be the only Squeekboard launcher; V69.7's second
+        # manual launcher raced that required component and caused respawn loops.
+        gsettings set org.gnome.desktop.a11y.applications screen-keyboard-enabled true >/dev/null 2>&1 || true
+    fi
+}
+
+prepare_phosh_preferences
 phosh-session &
 session_pid=$!
 resize_pid=""

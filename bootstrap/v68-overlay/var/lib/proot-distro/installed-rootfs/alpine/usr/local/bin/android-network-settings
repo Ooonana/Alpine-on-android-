@@ -9,6 +9,7 @@ usage() {
 Usage:
   android-network-settings [wifi|internet|wireless|settings]
   android-network-settings status
+  android-network-settings refresh
 
 Alpine-on-Android inherits its network connection from Android. The guest does
 not own the phone/tablet Wi-Fi or cellular interface, so NetworkManager inside
@@ -36,7 +37,46 @@ show_status() {
         echo "Kernel route table is available at /proc/net/route."
     fi
     echo
+    echo "DNS lookup check:"
+    if command -v getent >/dev/null 2>&1 && getent hosts dl-cdn.alpinelinux.org >/dev/null 2>&1; then
+        echo "  OK (dl-cdn.alpinelinux.org resolves)"
+    elif command -v nslookup >/dev/null 2>&1 && nslookup dl-cdn.alpinelinux.org >/dev/null 2>&1; then
+        echo "  OK (dl-cdn.alpinelinux.org resolves)"
+    else
+        echo "  FAILED or unavailable; run: android-network-settings refresh"
+    fi
+    echo
     echo "Open Android internet settings with: android-network-settings"
+}
+
+submit_request() {
+    action="$1"
+    request_tmp="${request_file}.tmp.$$"
+    if ! printf '%s\n' "$action" > "$request_tmp"; then
+        echo "ERROR: could not create Android network request." >&2
+        return 1
+    fi
+    if ! mv -f "$request_tmp" "$request_file"; then
+        rm -f "$request_tmp" 2>/dev/null || true
+        echo "ERROR: could not submit Android network request." >&2
+        return 1
+    fi
+}
+
+refresh_dns() {
+    submit_request refresh-dns || return 1
+    # The host bridge checks requests once per second. Wait briefly so a desktop
+    # launched immediately after this command sees the refreshed resolver.
+    waited=0
+    while [ -e "$request_file" ] && [ "$waited" -lt 4 ]; do
+        sleep 1
+        waited=$((waited + 1))
+    done
+    if [ -e "$request_file" ]; then
+        [ "${ALPINE_NETWORK_QUIET:-0}" = "1" ] || echo "WARNING: Android host bridge did not acknowledge the DNS refresh yet." >&2
+        return 1
+    fi
+    [ "${ALPINE_NETWORK_QUIET:-0}" = "1" ] || echo "Refreshed Alpine DNS from Android host state."
 }
 
 case "${1:-internet}" in
@@ -48,6 +88,10 @@ case "${1:-internet}" in
         show_status
         exit 0
         ;;
+    refresh|refresh-dns)
+        refresh_dns
+        exit $?
+        ;;
     wifi|internet|wireless|settings)
         action="${1:-internet}"
         ;;
@@ -58,16 +102,7 @@ case "${1:-internet}" in
         ;;
 esac
 
-request_tmp="${request_file}.tmp.$$"
-if ! printf '%s\n' "$action" > "$request_tmp"; then
-    echo "ERROR: could not create Android network-settings request." >&2
-    exit 1
-fi
-if ! mv -f "$request_tmp" "$request_file"; then
-    rm -f "$request_tmp" 2>/dev/null || true
-    echo "ERROR: could not submit Android network-settings request." >&2
-    exit 1
-fi
+submit_request "$action" || exit 1
 
 echo "Requested Android $action network settings."
 echo "The settings UI opens on the Android side because Android owns the actual network device."

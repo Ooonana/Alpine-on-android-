@@ -27,7 +27,7 @@ public class LocalServerSocket implements Closeable {
     @NonNull protected final ILocalSocketManager mLocalSocketManagerClient;
 
     /** The {@link ClientSocketListener} {@link Thread} for the {@link LocalServerSocket}. */
-    @NonNull protected final Thread mClientSocketListener;
+    protected Thread mClientSocketListener;
 
     /**
      * The required permissions for server socket file parent directory.
@@ -45,7 +45,7 @@ public class LocalServerSocket implements Closeable {
         mLocalSocketManager = localSocketManager;
         mLocalSocketRunConfig = localSocketManager.getLocalSocketRunConfig();
         mLocalSocketManagerClient = mLocalSocketRunConfig.getLocalSocketManagerClient();
-        mClientSocketListener = new Thread(new ClientSocketListener());
+        mClientSocketListener = null;
     }
 
     /** Start server by creating server socket. */
@@ -63,7 +63,7 @@ public class LocalServerSocket implements Closeable {
         // On Linux, sun_path is 108 bytes (UNIX_PATH_MAX) in size, so do an early check here to
         // prevent useless parent directory creation since createServerSocket() call will fail since
         // there is a native check as well.
-        if (path.getBytes(StandardCharsets.UTF_8).length > 108) {
+        if (path.getBytes(StandardCharsets.UTF_8).length >= 108) {
             return LocalSocketErrno.ERRNO_SERVER_SOCKET_PATH_TOO_LONG.getError(mLocalSocketRunConfig.getTitle(), path);
         }
 
@@ -111,6 +111,7 @@ public class LocalServerSocket implements Closeable {
         // Update fd to signify that server socket has been created successfully
         mLocalSocketRunConfig.setFD(fd);
 
+        mClientSocketListener = new Thread(new ClientSocketListener());
         mClientSocketListener.setUncaughtExceptionHandler(mLocalSocketManager.getLocalSocketManagerClientThreadUEH());
 
         try {
@@ -118,6 +119,12 @@ public class LocalServerSocket implements Closeable {
             mClientSocketListener.start();
         } catch (Exception e) {
             Logger.logStackTraceWithMessage(LOG_TAG, "mClientSocketListener start failed", e);
+            Error listenerError = LocalSocketErrno.ERRNO_CLIENT_SOCKET_LISTENER_FAILED_WITH_EXCEPTION.getError(
+                e, mLocalSocketRunConfig.getTitle(), e.getMessage());
+            closeServerSocket(true);
+            deleteServerSocketFile();
+            mClientSocketListener = null;
+            return listenerError;
         }
 
         return null;
@@ -129,7 +136,8 @@ public class LocalServerSocket implements Closeable {
 
         try {
             // Stop the LocalClientSocket listener.
-            mClientSocketListener.interrupt();
+            if (mClientSocketListener != null)
+                mClientSocketListener.interrupt();
         } catch (Exception ignored) {}
 
         Error error = closeServerSocket(false);
@@ -293,6 +301,8 @@ public class LocalServerSocket implements Closeable {
                 try {
                     close();
                 } catch (Exception ignored) {}
+                mClientSocketListener = null;
+                mLocalSocketManager.onServerStopped();
             }
 
             Logger.logVerbose(LOG_TAG, "ClientSocketListener end");

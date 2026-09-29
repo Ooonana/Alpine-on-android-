@@ -74,7 +74,7 @@ def overlay_entries() -> dict[str, bytes]:
     for path in sorted(OVERLAY.rglob("*")):
         if path.is_file():
             result[path.relative_to(OVERLAY).as_posix()] = overlay_bytes(path)
-    result[TOP_VERSION_MARKER] = b"v69.6\n"
+    result[TOP_VERSION_MARKER] = b"v70\n"
     return result
 
 
@@ -176,7 +176,7 @@ def _prepared_payload() -> tuple[dict[str, tuple[bytes | None, bool, int]], dict
             else:
                 mode = 0o644
             rootfs[name] = (data, False, mode)
-    rootfs[ROOTFS_VERSION_MARKER] = (b"v69.6\n", False, 0o644)
+    rootfs[ROOTFS_VERSION_MARKER] = (b"v70\n", False, 0o644)
     return rootfs, overlays, v68_rootfs.rootfs_symlink_lines(rootfs_symlinks)
 
 

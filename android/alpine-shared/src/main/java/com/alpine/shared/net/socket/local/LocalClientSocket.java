@@ -227,7 +227,8 @@ public class LocalClientSocket implements Closeable {
 
         OutputStreamWriter outputStreamWriter = getOutputStreamWriter();
 
-        try (BufferedWriter byteStreamWriter = new BufferedWriter(outputStreamWriter)) {
+        BufferedWriter byteStreamWriter = new BufferedWriter(outputStreamWriter);
+        try {
             byteStreamWriter.write(data);
             byteStreamWriter.flush();
         } catch (IOException e) {
@@ -242,7 +243,7 @@ public class LocalClientSocket implements Closeable {
         } finally {
             if (closeStreamOnFinish) {
                 try {
-                    outputStreamWriter.close();
+                    byteStreamWriter.close();
                 } catch (IOException e) {
                     // Ignore
                 }
@@ -274,7 +275,7 @@ public class LocalClientSocket implements Closeable {
             return null;
         }
 
-        JniResult result = LocalSocketManager.available(mLocalSocketRunConfig.getLogTitle() + " (client)", mLocalSocketRunConfig.getFD());
+        JniResult result = LocalSocketManager.available(mLocalSocketRunConfig.getLogTitle() + " (client)", mFD);
         if (result == null || result.retval != 0) {
             return LocalSocketErrno.ERRNO_CHECK_AVAILABLE_DATA_ON_CLIENT_SOCKET_FAILED.getError(
                 mLocalSocketRunConfig.getTitle(), JniResult.getErrorString(result));
@@ -422,7 +423,7 @@ public class LocalClientSocket implements Closeable {
                 return -1;
             }
 
-            return mBytes[0];
+            return mBytes[0] & 0xff;
         }
 
         @Override

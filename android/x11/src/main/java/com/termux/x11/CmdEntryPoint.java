@@ -87,11 +87,15 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
             else
                 Log.e("Broadcast", "Falling back to manual broadcasting, failed to broadcast intent through Context:", e);
 
-            String packageName;
+            String packageName = intent.getPackage();
+            if (packageName == null || packageName.isEmpty())
+                packageName = BuildConfig.APPLICATION_ID;
             try {
-                packageName = android.app.ActivityThread.getPackageManager().getPackagesForUid(getuid())[0];
+                String[] packages = android.app.ActivityThread.getPackageManager().getPackagesForUid(getuid());
+                if (packages != null && packages.length > 0 && packages[0] != null && !packages[0].isEmpty())
+                    packageName = packages[0];
             } catch (RemoteException ex) {
-                throw new RuntimeException(ex);
+                Log.w("Broadcast", "Could not resolve package for uid " + getuid() + "; using target package", ex);
             }
             IActivityManager am;
             try {

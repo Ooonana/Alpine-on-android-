@@ -12,6 +12,7 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // termux-am-library v2.0.0 is published through JitPack despite its com.termux coordinates.
         maven { url = uri("https://jitpack.io") }
     }
 }

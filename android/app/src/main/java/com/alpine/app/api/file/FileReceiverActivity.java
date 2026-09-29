@@ -61,6 +61,21 @@ public class FileReceiverActivity extends AppCompatActivity {
             || Pattern.matches("magnet:\\?xt=urn:btih:.*?", sharedText);
     }
 
+    static boolean isSafeAttachmentFileName(String fileName) {
+        if (DataUtils.isNullOrEmpty(fileName)) return false;
+        if (".".equals(fileName) || "..".equals(fileName) || fileName.indexOf('\0') >= 0) return false;
+        // Received names are file basenames, never relative/absolute paths. Reject both slash
+        // forms so a malicious share provider cannot escape $HOME/downloads with ../ segments.
+        return !fileName.contains("/") && !fileName.contains("\\");
+    }
+
+    private static void closeInputStreamQuietly(InputStream in) {
+        if (in == null) return;
+        try {
+            in.close();
+        } catch (IOException ignored) {}
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -76,7 +91,7 @@ public class FileReceiverActivity extends AppCompatActivity {
 
         if (Intent.ACTION_SEND.equals(action) && type != null) {
             final String sharedText = intent.getStringExtra(Intent.EXTRA_TEXT);
-            final Uri sharedUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+            final Uri sharedUri = IntentUtils.getParcelableExtraIfSet(intent, Intent.EXTRA_STREAM, Uri.class);
 
             if (sharedUri != null) {
                 handleContentUri(sharedUri, sharedTitle);
@@ -152,6 +167,7 @@ public class FileReceiverActivity extends AppCompatActivity {
             if (attachmentFileName == null) attachmentFileName = UriUtils.getUriFileBasename(uri, true);
 
             InputStream in = getContentResolver().openInputStream(uri);
+            if (in == null) throw new IOException("Content provider returned no readable stream");
             promptNameAndSave(in, attachmentFileName);
         } catch (Exception e) {
             showErrorDialogAndQuit("Unable to handle shared content:\n\n" + e.getMessage());
@@ -194,6 +210,7 @@ public class FileReceiverActivity extends AppCompatActivity {
                 finish();
             },
             android.R.string.cancel, text -> finish(), dialog -> {
+                closeInputStreamQuietly(in);
                 if (mFinishOnDismissNameDialog) finish();
             });
     }
@@ -201,8 +218,8 @@ public class FileReceiverActivity extends AppCompatActivity {
     public File saveStreamWithName(InputStream in, String attachmentFileName) {
         File receiveDir = new File(ALPINE_RECEIVEDIR);
 
-        if (DataUtils.isNullOrEmpty(attachmentFileName)) {
-            showErrorDialogAndQuit("File name cannot be null or empty");
+        if (!isSafeAttachmentFileName(attachmentFileName)) {
+            showErrorDialogAndQuit("File name must be a single safe file name without path separators");
             return null;
         }
 
@@ -212,11 +229,16 @@ public class FileReceiverActivity extends AppCompatActivity {
         }
 
         try {
-            final File outFile = new File(receiveDir, attachmentFileName);
-            try (FileOutputStream f = new FileOutputStream(outFile)) {
+            final File canonicalReceiveDir = receiveDir.getCanonicalFile();
+            final File outFile = new File(canonicalReceiveDir, attachmentFileName).getCanonicalFile();
+            final String receiveDirPrefix = canonicalReceiveDir.getPath() + File.separator;
+            if (!outFile.getPath().startsWith(receiveDirPrefix)) {
+                throw new IOException("Refusing received file path outside downloads directory");
+            }
+            try (InputStream source = in; FileOutputStream f = new FileOutputStream(outFile)) {
                 byte[] buffer = new byte[4096];
                 int readBytes;
-                while ((readBytes = in.read(buffer)) > 0) {
+                while ((readBytes = source.read(buffer)) > 0) {
                     f.write(buffer, 0, readBytes);
                 }
             }

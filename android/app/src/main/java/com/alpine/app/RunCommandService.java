@@ -2,6 +2,7 @@ package com.alpine.app;
 
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.net.Uri;
@@ -58,7 +59,7 @@ public class RunCommandService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Logger.logDebug(LOG_TAG, "onStartCommand");
 
-        if (intent == null) return Service.START_NOT_STICKY;
+        if (intent == null) return stopService(startId);
 
         // Run again in case service is already started and onCreate() is not called
         runStartForeground();
@@ -76,7 +77,7 @@ public class RunCommandService extends Service {
             errmsg = this.getString(R.string.error_run_command_service_invalid_intent_action, intent.getAction());
             executionCommand.setStateFailed(Errno.ERRNO_FAILED.getCode(), errmsg);
             AlpinePluginUtils.processPluginExecutionCommandError(this, LOG_TAG, executionCommand, false);
-            return stopService();
+            return stopService(startId);
         }
 
         String executableExtra = executionCommand.executable = IntentUtils.getStringExtraIfSet(intent, RUN_COMMAND_SERVICE.EXTRA_COMMAND_PATH, null);
@@ -111,7 +112,7 @@ public class RunCommandService extends Service {
             errmsg = this.getString(R.string.error_run_command_service_invalid_execution_command_runner, executionCommand.runner);
             executionCommand.setStateFailed(Errno.ERRNO_FAILED.getCode(), errmsg);
             AlpinePluginUtils.processPluginExecutionCommandError(this, LOG_TAG, executionCommand, false);
-            return stopService();
+            return stopService(startId);
         }
 
         executionCommand.backgroundCustomLogLevel = IntentUtils.getIntegerExtraIfSet(intent, RUN_COMMAND_SERVICE.EXTRA_BACKGROUND_CUSTOM_LOG_LEVEL, null);
@@ -122,7 +123,8 @@ public class RunCommandService extends Service {
         executionCommand.commandDescription = IntentUtils.getStringExtraIfSet(intent, RUN_COMMAND_SERVICE.EXTRA_COMMAND_DESCRIPTION, null);
         executionCommand.commandHelp = IntentUtils.getStringExtraIfSet(intent, RUN_COMMAND_SERVICE.EXTRA_COMMAND_HELP, null);
         executionCommand.isPluginExecutionCommand = true;
-        executionCommand.resultConfig.resultPendingIntent = intent.getParcelableExtra(RUN_COMMAND_SERVICE.EXTRA_PENDING_INTENT);
+        executionCommand.resultConfig.resultPendingIntent = IntentUtils.getParcelableExtraIfSet(
+            intent, RUN_COMMAND_SERVICE.EXTRA_PENDING_INTENT, PendingIntent.class);
         executionCommand.resultConfig.resultDirectoryPath = IntentUtils.getStringExtraIfSet(intent, RUN_COMMAND_SERVICE.EXTRA_RESULT_DIRECTORY, null);
         if (executionCommand.resultConfig.resultDirectoryPath != null) {
             executionCommand.resultConfig.resultSingleFile = intent.getBooleanExtra(RUN_COMMAND_SERVICE.EXTRA_RESULT_SINGLE_FILE, false);
@@ -141,7 +143,7 @@ public class RunCommandService extends Service {
         if (errmsg != null) {
             executionCommand.setStateFailed(Errno.ERRNO_FAILED.getCode(), errmsg);
             AlpinePluginUtils.processPluginExecutionCommandError(this, LOG_TAG, executionCommand, true);
-            return stopService();
+            return stopService(startId);
         }
 
 
@@ -151,7 +153,7 @@ public class RunCommandService extends Service {
             errmsg  = this.getString(R.string.error_run_command_service_mandatory_extra_missing, RUN_COMMAND_SERVICE.EXTRA_COMMAND_PATH);
             executionCommand.setStateFailed(Errno.ERRNO_FAILED.getCode(), errmsg);
             AlpinePluginUtils.processPluginExecutionCommandError(this, LOG_TAG, executionCommand, false);
-            return stopService();
+            return stopService(startId);
         }
 
         // Get canonical path of executable
@@ -165,7 +167,7 @@ public class RunCommandService extends Service {
         if (error != null) {
             executionCommand.setStateFailed(error);
             AlpinePluginUtils.processPluginExecutionCommandError(this, LOG_TAG, executionCommand, false);
-            return stopService();
+            return stopService(startId);
         }
 
 
@@ -186,7 +188,7 @@ public class RunCommandService extends Service {
             if (error != null) {
                 executionCommand.setStateFailed(error);
                 AlpinePluginUtils.processPluginExecutionCommandError(this, LOG_TAG, executionCommand, false);
-                return stopService();
+                return stopService(startId);
             }
         }
 
@@ -236,11 +238,14 @@ public class RunCommandService extends Service {
             this.startService(execIntent);
         }
 
-        return stopService();
+        return stopService(startId);
     }
 
-    private int stopService() {
+    private int stopService(int startId) {
         runStopForeground();
+        // This service is only a one-shot validation/forwarding bridge. Use the start id so a
+        // completed older request cannot stop a newer request that arrived in the meantime.
+        stopSelfResult(startId);
         return Service.START_NOT_STICKY;
     }
 

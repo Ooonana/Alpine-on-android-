@@ -186,9 +186,13 @@ public class AlpineDocumentsProvider extends DocumentsProvider {
             // through the whole SD card).
             boolean isInsideHome;
             try {
-                isInsideHome = file.getCanonicalPath().startsWith(AlpineConstants.ALPINE_HOME_DIR_PATH);
+                final String homePath = BASE_DIR.getCanonicalPath();
+                final String filePath = file.getCanonicalPath();
+                isInsideHome = filePath.equals(homePath) || filePath.startsWith(homePath + File.separator);
             } catch (IOException e) {
-                isInsideHome = true;
+                // Search must fail closed if canonicalization fails; otherwise an unreadable
+                // symlink/path could make a search escape $HOME.
+                isInsideHome = false;
             }
             if (isInsideHome) {
                 if (file.isDirectory()) {
@@ -207,7 +211,7 @@ public class AlpineDocumentsProvider extends DocumentsProvider {
 
     @Override
     public boolean isChildDocument(String parentDocumentId, String documentId) {
-        if (parentDocumentId == null || documentId == null) return false;
+        if (!isSafeDocumentId(parentDocumentId) || !isSafeDocumentId(documentId)) return false;
         return documentId.equals(parentDocumentId) || documentId.startsWith(parentDocumentId + File.separator);
     }
 
@@ -225,9 +229,28 @@ public class AlpineDocumentsProvider extends DocumentsProvider {
      * Get the file given a document id (the reverse of {@link #getDocIdForFile(File)}).
      */
     private static File getFileForDocId(String docId) throws FileNotFoundException {
+        if (!isSafeDocumentId(docId)) throw new FileNotFoundException("Document id is outside the Alpine home directory");
         final File f = new File(docId);
         if (!f.exists()) throw new FileNotFoundException(f.getAbsolutePath() + " not found");
         return f;
+    }
+
+    /**
+     * Validate document ids lexically under $HOME while deliberately not resolving symlinks.
+     * The provider historically allows user-created $HOME symlinks such as ~/storage/shared,
+     * but callers must not be able to manufacture an arbitrary absolute path or a ../ escape.
+     */
+    static boolean isSafeDocumentId(String docId) {
+        if (docId == null || docId.isEmpty()) return false;
+        final String basePath = BASE_DIR.getAbsolutePath();
+        if (docId.equals(basePath)) return true;
+        if (!docId.startsWith(basePath + File.separator)) return false;
+        final String relative = docId.substring(basePath.length() + 1);
+        if (relative.isEmpty()) return false;
+        for (String component : relative.split("/", -1)) {
+            if (component.isEmpty() || ".".equals(component) || "..".equals(component)) return false;
+        }
+        return true;
     }
 
     private static String getMimeType(File file) {

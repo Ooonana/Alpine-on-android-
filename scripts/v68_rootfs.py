@@ -29,9 +29,9 @@ OFFICIAL_REPOSITORIES = (
     "https://dl-cdn.alpinelinux.org/alpine/v3.23/main\n"
     "https://dl-cdn.alpinelinux.org/alpine/v3.23/community\n"
 ).encode()
-# Leave DNS empty in the prepared rootfs so the first Android launch can seed
-# it from the device. The launcher then preserves a user's non-empty file unless
-# an explicit ALPINE_DNS_SERVERS/ALPINE_DNS_FORCE override is requested.
+# Leave DNS empty in the prepared rootfs so Android can seed a managed resolver
+# on first launch. V69.7 refreshes only Alpine-on-Android-managed resolver state
+# and preserves an unmarked user-owned non-empty resolv.conf.
 RESOLV_CONF = b""
 ENVIRONMENT = (
     b"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n"
@@ -191,7 +191,7 @@ def build_rootfs() -> tuple[dict[str, tuple[bytes | None, bool, int]], dict[str,
     entries[ROOTFS_PREFIX + "etc/apk/repositories"] = (OFFICIAL_REPOSITORIES, False, 0o644)
     entries[ROOTFS_PREFIX + "etc/resolv.conf"] = (RESOLV_CONF, False, 0o644)
     entries[ROOTFS_PREFIX + "etc/environment"] = (ENVIRONMENT, False, 0o600)
-    entries[ROOTFS_PREFIX + "etc/alpine-bootstrap-version"] = (b"v69.6\n", False, 0o644)
+    entries[ROOTFS_PREFIX + "etc/alpine-bootstrap-version"] = (b"v70\n", False, 0o644)
 
     for name, expected_target in REQUIRED_RUNTIME_SYMLINKS.items():
         if symlinks.get(name) != expected_target:

@@ -6,8 +6,8 @@ CONFIG_FILE="${ALPINE_DESKTOP_CONFIG_FILE:-/etc/alpine-desktop}"
 WORLD_FILE="${ALPINE_APK_WORLD_FILE:-/etc/apk/world}"
 APK_CMD="${APK_CMD:-/sbin/apk}"
 LOCK_DIR="${ALPINE_DESKTOP_MANAGER_LOCK_DIR:-${TMPDIR:-/tmp}/alpine-desktop-manager.lock}"
-PROFILES="xfce lxqt openbox mate plasma lxde plasma-mobile phosh"
-FALLBACK_PROFILES="xfce lxqt mate plasma lxde openbox plasma-mobile phosh"
+PROFILES="xfce lxqt openbox mate plasma lxde plasma-mobile phosh gnome"
+FALLBACK_PROFILES="xfce lxqt mate gnome plasma lxde openbox plasma-mobile phosh"
 COMMON_PACKAGES="dbus dbus-x11 font-dejavu mesa-dri-gallium mesa-egl mesa-gl"
 lock_held=0
 
@@ -21,6 +21,7 @@ normalize_choice() {
         6|lxde|LXDE|Lxde) printf '%s\n' lxde ;;
         7|plasma-mobile|plasmamobile|PLASMA-MOBILE|Plasma-Mobile|kde-mobile|KDE-Mobile) printf '%s\n' plasma-mobile ;;
         8|phosh|PHOSH|Phosh) printf '%s\n' phosh ;;
+        9|gnome|GNOME|Gnome|gnome-x11|GNOME-X11) printf '%s\n' gnome ;;
         *) return 1 ;;
     esac
 }
@@ -35,6 +36,7 @@ profile_label() {
         lxde) printf '%s\n' 'LXDE compatibility' ;;
         plasma-mobile) printf '%s\n' 'Plasma Mobile' ;;
         phosh) printf '%s\n' 'Phosh' ;;
+        gnome) printf '%s\n' 'GNOME' ;;
         *) return 1 ;;
     esac
 }
@@ -49,6 +51,7 @@ profile_description() {
         lxde) printf '%s\n' 'LXDE-style compatibility session' ;;
         plasma-mobile) printf '%s\n' 'KDE mobile shell; nested Wayland' ;;
         phosh) printf '%s\n' 'GNOME mobile shell; nested Wayland' ;;
+        gnome) printf '%s\n' 'GNOME Flashback; native X11 session' ;;
         *) return 1 ;;
     esac
 }
@@ -62,7 +65,8 @@ profile_packages() {
         plasma) printf '%s\n' 'plasma-desktop plasma-workspace kwin konsole breeze breeze-cursors breeze-icons xdg-desktop-portal-kde pulseaudio-utils xwayland' ;;
         lxde) printf '%s\n' 'lxsession openbox pcmanfm lxterminal tint2' ;;
         plasma-mobile) printf '%s\n' 'plasma-mobile konsole breeze breeze-cursors xdg-desktop-portal-kde pulseaudio-utils xwayland' ;;
-        phosh) printf '%s\n' 'phosh phoc pulseaudio-utils xrandr wlr-randr xwayland' ;;
+        phosh) printf '%s\n' 'phosh phoc squeekboard pulseaudio-utils xrandr wlr-randr xwayland' ;;
+        gnome) printf '%s\n' 'gnome-flashback gnome-session metacity gnome-panel gnome-control-center gnome-terminal pulseaudio-utils' ;;
         *) return 1 ;;
     esac
 }
@@ -77,6 +81,7 @@ profile_signature() {
         lxde) printf '%s\n' lxsession ;;
         plasma-mobile) printf '%s\n' plasma-mobile ;;
         phosh) printf '%s\n' phosh ;;
+        gnome) printf '%s\n' gnome-flashback ;;
         *) return 1 ;;
     esac
 }
@@ -87,7 +92,7 @@ virtual_name() {
 
 is_valid_virtual_name() {
     case "$1" in
-        .alpine-desktop-xfce|.alpine-desktop-lxqt|.alpine-desktop-openbox|.alpine-desktop-mate|.alpine-desktop-plasma|.alpine-desktop-lxde|.alpine-desktop-plasma-mobile|.alpine-desktop-phosh)
+        .alpine-desktop-xfce|.alpine-desktop-lxqt|.alpine-desktop-openbox|.alpine-desktop-mate|.alpine-desktop-plasma|.alpine-desktop-lxde|.alpine-desktop-plasma-mobile|.alpine-desktop-phosh|.alpine-desktop-gnome)
             return 0
             ;;
         *)
@@ -352,6 +357,9 @@ maybe_desktop_note() {
             ;;
         lxde)
             echo "NOTE: Alpine 3.23 uses an LXDE-style compatibility session rather than the historical full LXDE stack."
+            ;;
+        gnome)
+            echo "NOTE: GNOME uses Alpine's GNOME Flashback/Metacity X11 session."
             ;;
     esac
 }
@@ -630,6 +638,67 @@ repair_profiles() (
     done
 )
 
+installed_profiles() {
+    result=""
+    for desktop in $PROFILES; do
+        if is_selectable_profile "$desktop"; then
+            result="$result $desktop"
+        fi
+    done
+    printf '%s\n' "${result# }"
+}
+
+normalize_upgrade_many() {
+    if [ "$#" -eq 1 ]; then
+        case "$1" in
+            all|ALL|All)
+                installed_profiles
+                return 0
+                ;;
+        esac
+    fi
+    normalize_many "$@"
+}
+
+upgrade_profiles() (
+    profiles="$1"
+    [ -n "$profiles" ] || {
+        echo "ERROR: no installed desktops selected for upgrade." >&2
+        return 2
+    }
+    acquire_lock || return 1
+    echo "Refreshing Alpine package indexes..."
+    "$APK_CMD" update || return 1
+
+    for desktop in $profiles; do
+        state="$(profile_state "$desktop")"
+        label="$(profile_label "$desktop")"
+        packages="$(profile_packages "$desktop")"
+        case "$state" in
+            managed|managed+external)
+                virtual="$(virtual_name "$desktop")"
+                echo "Upgrading managed $label packages..."
+                # Keep the virtual package ownership model while asking apk to
+                # upgrade only this desktop set and its dependencies.
+                # shellcheck disable=SC2086
+                "$APK_CMD" add --upgrade --virtual "$virtual" $COMMON_PACKAGES $packages || return 1
+                ;;
+            legacy)
+                echo "Upgrading legacy $label packages without changing manager ownership..."
+                # shellcheck disable=SC2086
+                "$APK_CMD" add --upgrade $COMMON_PACKAGES $packages || return 1
+                ;;
+            component)
+                echo "Skipping $label: detected only as a component of another desktop."
+                ;;
+            absent)
+                echo "Skipping $label: not installed."
+                ;;
+        esac
+    done
+    echo "Desktop package upgrade finished."
+)
+
 start_profile() {
     desktop="$1"
     if ! is_selectable_profile "$desktop"; then
@@ -650,11 +719,13 @@ Usage:
   desktop-manager remove [--legacy] <desktop> [desktop ...]
   desktop-manager default <desktop>
   desktop-manager repair <desktop> [desktop ...]
+  desktop-manager upgrade <desktop> [desktop ...]
+  desktop-manager upgrade all
   desktop-manager start <desktop>
   desktop-manager help
 
-Desktop names: xfce lxqt openbox mate plasma lxde plasma-mobile phosh
-Numbers 1-8 are also accepted.
+Desktop names: xfce lxqt openbox mate plasma lxde plasma-mobile phosh gnome
+Numbers 1-9 are also accepted.
 
 New V69.5+ installs are tracked as separate apk virtual package groups, so
 multiple desktops may coexist and removing one keeps dependencies required by
@@ -667,7 +738,7 @@ EOF
 
 interactive_install() {
     echo "Install one or more desktops. Separate choices with spaces."
-    profiles="$(read_many_interactive 'Choices [1-8 ...; q to cancel]: ' || true)"
+    profiles="$(read_many_interactive 'Choices [1-9 ...; q to cancel]: ' || true)"
     [ -n "$profiles" ] || return 0
     install_profiles "$profiles"
 }
@@ -675,14 +746,14 @@ interactive_install() {
 interactive_remove() {
     print_status
     echo "Remove one or more desktops. Separate choices with spaces."
-    profiles="$(read_many_interactive 'Choices [1-8 ...; q to cancel]: ' || true)"
+    profiles="$(read_many_interactive 'Choices [1-9 ...; q to cancel]: ' || true)"
     [ -n "$profiles" ] || return 0
     remove_profiles "$profiles" 0
 }
 
 interactive_default() {
     print_status
-    printf 'New default [1-8; q to cancel]: '
+    printf 'New default [1-9; q to cancel]: '
     IFS= read -r raw || return 0
     case "$raw" in q|Q|quit|QUIT) return 0 ;; esac
     desktop="$(normalize_choice "$raw" 2>/dev/null || true)"
@@ -695,9 +766,21 @@ interactive_default() {
 
 interactive_repair() {
     print_status
-    profiles="$(read_many_interactive 'Repair choices [1-8 ...; q to cancel]: ' || true)"
+    profiles="$(read_many_interactive 'Repair choices [1-9 ...; q to cancel]: ' || true)"
     [ -n "$profiles" ] || return 0
     repair_profiles "$profiles"
+}
+
+interactive_upgrade() {
+    print_status
+    echo "Upgrade selected installed desktops, or enter all."
+    printf 'Upgrade choices [1-9 .../all; q to cancel]: '
+    IFS= read -r line || return 0
+    case "$line" in q|Q|quit|QUIT) return 0 ;; esac
+    # Intentional shell splitting: choices are whitespace-separated names/numbers.
+    # shellcheck disable=SC2086
+    profiles="$(normalize_upgrade_many $line)" || return $?
+    upgrade_profiles "$profiles"
 }
 
 interactive_menu() {
@@ -711,8 +794,10 @@ Actions:
   i) Install/add one or more desktops
   r) Remove desktop(s)
   d) Change default desktop
-  p) Repair/update desktop package group(s)
+  p) Repair desktop package group(s)
+  u) Upgrade installed desktop package(s)
   s) Start a desktop
+  1-9) Start that desktop directly
   q) Quit
 EOF
         printf 'Action: '
@@ -722,13 +807,18 @@ EOF
             r|R) interactive_remove ;;
             d|D) interactive_default ;;
             p|P) interactive_repair ;;
+            u|U) interactive_upgrade ;;
             s|S)
                 print_status
-                printf 'Desktop to start [1-8; q to cancel]: '
+                printf 'Desktop to start [1-9; q to cancel]: '
                 IFS= read -r raw || continue
                 case "$raw" in q|Q|quit|QUIT) continue ;; esac
                 desktop="$(normalize_choice "$raw" 2>/dev/null || true)"
                 [ -n "$desktop" ] || { echo "Unknown desktop: $raw" >&2; continue; }
+                start_profile "$desktop"
+                ;;
+            1|2|3|4|5|6|7|8|9)
+                desktop="$(normalize_choice "$action" 2>/dev/null || true)"
                 start_profile "$desktop"
                 ;;
             q|Q|quit|QUIT) return 0 ;;
@@ -814,6 +904,14 @@ case "$command" in
         else
             profiles="$(normalize_many "$@")" || exit $?
             repair_profiles "$profiles"
+        fi
+        ;;
+    upgrade|up)
+        if [ "$#" -eq 0 ]; then
+            interactive_upgrade
+        else
+            profiles="$(normalize_upgrade_many "$@")" || exit $?
+            upgrade_profiles "$profiles"
         fi
         ;;
     start)

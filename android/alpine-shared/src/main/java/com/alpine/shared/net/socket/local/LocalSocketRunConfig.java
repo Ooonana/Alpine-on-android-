@@ -105,7 +105,8 @@ public class LocalSocketRunConfig implements Serializable {
     public LocalSocketRunConfig(@NonNull String title, @NonNull String path, @NonNull ILocalSocketManager localSocketManagerClient) {
         mTitle = title;
         mLocalSocketManagerClient = localSocketManagerClient;
-        mAbstractNamespaceSocket = path.getBytes(StandardCharsets.UTF_8)[0] == 0;
+        byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
+        mAbstractNamespaceSocket = pathBytes.length > 0 && pathBytes[0] == 0;
 
         if (mAbstractNamespaceSocket)
             mPath = path;

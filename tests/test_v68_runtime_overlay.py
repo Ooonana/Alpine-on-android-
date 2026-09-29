@@ -18,6 +18,7 @@ PHOSH_RESIZE_SYNC = ROOTFS / "usr/local/bin/phosh-resize-sync"
 START_PHOSH_NESTED = ROOTFS / "usr/local/bin/start-phosh-nested"
 ANDROID_NETWORK_SETTINGS = ROOTFS / "usr/local/bin/android-network-settings"
 ANDROID_NETWORK_DESKTOP = ROOTFS / "usr/share/applications/alpine-android-network.desktop"
+ALPINE_BACKGROUND = ROOTFS / "usr/share/backgrounds/alpine-on-android.svg"
 NSSWITCH = ROOTFS / "etc/nsswitch.conf"
 HOST_MOTD = OVERLAY / "etc/motd"
 ROOTFS_MOTD = ROOTFS / "etc/motd"
@@ -32,6 +33,17 @@ GRADLE_WRAPPER_PROPERTIES = ROOT / "android/gradle/wrapper/gradle-wrapper.proper
 GRADLE_WRAPPER_JAR = ROOT / "android/gradle/wrapper/gradle-wrapper.jar"
 ALPINE_ACTIVITY = ROOT / "android/app/src/main/java/com/alpine/app/AlpineActivity.java"
 HELP_ACTIVITY = ROOT / "android/app/src/main/java/com/alpine/app/activities/HelpActivity.java"
+FILE_RECEIVER_ACTIVITY = ROOT / "android/app/src/main/java/com/alpine/app/api/file/FileReceiverActivity.java"
+DOCUMENTS_PROVIDER = ROOT / "android/app/src/main/java/com/alpine/filepicker/AlpineDocumentsProvider.java"
+RUN_COMMAND_SERVICE = ROOT / "android/app/src/main/java/com/alpine/app/RunCommandService.java"
+ALPINE_SERVICE = ROOT / "android/app/src/main/java/com/alpine/app/AlpineService.java"
+OPEN_RECEIVER = ROOT / "android/app/src/main/java/com/alpine/app/AlpineOpenReceiver.java"
+INTENT_UTILS = ROOT / "android/alpine-shared/src/main/java/com/alpine/shared/data/IntentUtils.java"
+AM_SOCKET_SERVER = ROOT / "android/alpine-shared/src/main/java/com/alpine/shared/shell/am/AmSocketServer.java"
+LOCAL_SOCKET_MANAGER = ROOT / "android/alpine-shared/src/main/java/com/alpine/shared/net/socket/local/LocalSocketManager.java"
+LOCAL_SOCKET_RUN_CONFIG = ROOT / "android/alpine-shared/src/main/java/com/alpine/shared/net/socket/local/LocalSocketRunConfig.java"
+LOCAL_CLIENT_SOCKET = ROOT / "android/alpine-shared/src/main/java/com/alpine/shared/net/socket/local/LocalClientSocket.java"
+LOCAL_SERVER_SOCKET = ROOT / "android/alpine-shared/src/main/java/com/alpine/shared/net/socket/local/LocalServerSocket.java"
 X11_MAIN_ACTIVITY = ROOT / "android/x11/src/main/java/com/termux/x11/MainActivity.java"
 X11_PREFERENCES = ROOT / "android/x11/src/main/java/com/termux/x11/LoriePreferences.java"
 X11_VIEW = ROOT / "android/x11/src/main/java/com/termux/x11/LorieView.java"
@@ -48,6 +60,9 @@ X11_NOTIFICATION_LOGO = ROOT / "android/x11/src/main/res/drawable/ic_alpine_disp
 TERMINAL_LOGO = ROOT / "android/app/src/main/res/drawable/ic_foreground.xml"
 X11_CMD_ENTRYPOINT = ROOT / "android/x11/src/main/java/com/termux/x11/CmdEntryPoint.java"
 X11_NATIVE_LIB = ROOT / "android/x11/src/main/jniLibs/arm64-v8a/libXlorie.so"
+TERMINAL_NATIVE = ROOT / "android/terminal-emulator/src/main/jni/alpine.c"
+LOCAL_SOCKET_NATIVE = ROOT / "android/alpine-shared/src/main/cpp/local-socket.cpp"
+TERMINAL_BUILD = ROOT / "android/terminal-emulator/build.gradle"
 JITPACK = ROOT / "android/jitpack.yml"
 ROOTFS_BUILDER = ROOT / "scripts/v68_rootfs.py"
 PREPARE = ROOT / "scripts/prepare-v68-bootstrap.py"
@@ -92,13 +107,13 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         build = APP_BUILD.read_text(encoding="utf-8")
         builder = ROOTFS_BUILDER.read_text(encoding="utf-8")
         prepare = PREPARE.read_text(encoding="utf-8")
-        self.assertIn('BOOTSTRAP_VERSION = "v69.6"', installer)
-        self.assertIn('"v69.5"', installer)
-        self.assertIn("versionCode 147", build)
-        self.assertIn('versionName "0.136.6-v69-dev"', build)
+        self.assertIn('BOOTSTRAP_VERSION = "v70"', installer)
+        self.assertIn('"v69.7"', installer)
+        self.assertIn("versionCode 149", build)
+        self.assertIn('versionName "0.137.0-v70-dev"', build)
         self.assertIn('ALPINE_VERSION = "3.23.6"', builder)
-        self.assertIn('b"v69.6\\n"', builder)
-        self.assertIn('b"v69.6\\n"', prepare)
+        self.assertIn('b"v70\\n"', builder)
+        self.assertIn('b"v70\\n"', prepare)
 
     def test_v68_build_toolchain_defaults_match_validated_build(self):
         properties = GRADLE_PROPERTIES.read_text(encoding="utf-8")
@@ -157,6 +172,146 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertIn("settings.setAllowContentAccess(false)", help_activity)
         self.assertIn("WebSettings.MIXED_CONTENT_NEVER_ALLOW", help_activity)
         self.assertNotIn("addJavascriptInterface", help_activity)
+        self.assertIn("Keep the trusted project help page visible", help_activity)
+
+    def test_v70_non_desktop_io_and_native_paths_are_hardened(self):
+        file_receiver = FILE_RECEIVER_ACTIVITY.read_text(encoding="utf-8")
+        documents = DOCUMENTS_PROVIDER.read_text(encoding="utf-8")
+        run_command = RUN_COMMAND_SERVICE.read_text(encoding="utf-8")
+        open_receiver = OPEN_RECEIVER.read_text(encoding="utf-8")
+        x11_manifest = X11_MANIFEST.read_text(encoding="utf-8")
+        x11_activity = X11_MAIN_ACTIVITY.read_text(encoding="utf-8")
+        terminal_native = TERMINAL_NATIVE.read_text(encoding="utf-8")
+        local_socket = LOCAL_SOCKET_NATIVE.read_text(encoding="utf-8")
+        app_build = APP_BUILD.read_text(encoding="utf-8")
+        terminal_build = TERMINAL_BUILD.read_text(encoding="utf-8")
+
+        self.assertIn("isSafeAttachmentFileName", file_receiver)
+        self.assertIn("Refusing received file path outside downloads directory", file_receiver)
+        self.assertIn("try (InputStream source = in; FileOutputStream f", file_receiver)
+        self.assertIn("isSafeDocumentId", documents)
+        self.assertIn("Document id is outside the Alpine home directory", documents)
+        self.assertIn("isInsideHome = false", documents)
+        self.assertIn("stopSelfResult(startId)", run_command)
+        self.assertNotIn("return stopService();", run_command)
+        self.assertIn("isPathWithinRoot(path, alpineFilesPath)", open_receiver)
+        self.assertIn("intentAction = Intent.ACTION_VIEW;", open_receiver)
+        self.assertIn("getFileFromUri", open_receiver)
+        self.assertIn("Content URI has no file path", open_receiver)
+
+        receiver = x11_manifest[x11_manifest.index('android:name="com.termux.x11.LoriePreferences$Receiver"'):]
+        self.assertIn('android:exported="false"', receiver.split("</receiver>", 1)[0])
+        self.assertIn("ContextCompat.RECEIVER_NOT_EXPORTED", x11_activity)
+        self.assertNotIn("registerReceiver(receiver, receiverFilter, RECEIVER_EXPORTED)", x11_activity)
+        self.assertIn("mPreferencesChangedCallback", x11_activity)
+        self.assertIn("final IBinder receivedBinder = receivedService.asBinder()", x11_activity)
+        self.assertIn("service.asBinder() != receivedBinder", x11_activity)
+
+        self.assertIn("ReleaseStringUTFChars(env, cwd, cmd_cwd)", terminal_native)
+        self.assertNotIn("ReleaseStringUTFChars(env, cmd, cmd_cwd)", terminal_native)
+        self.assertIn("copy_java_string_array", terminal_native)
+        self.assertIn("free_string_array", terminal_native)
+        self.assertIn("createSubprocess() received null required input", terminal_native)
+        self.assertIn("createSubprocess() requires at least argv[0]", terminal_native)
+        self.assertIn("SetIntArrayRegion", terminal_native)
+        self.assertNotIn("GetPrimitiveArrayCritical", terminal_native)
+        self.assertIn("struct termios tios = {0};", terminal_native)
+        self.assertIn("tcgetattr(ptm, &tios) != 0", terminal_native)
+        self.assertIn("if (tcgetattr(fd, &tios) != 0) return;", terminal_native)
+        self.assertIn("bytesRemaining = bytes - bytesRead", local_socket)
+        self.assertIn("read(fd, current, bytesRemaining)", local_socket)
+        self.assertNotIn("read(fd, current, bytes);", local_socket)
+        self.assertIn("if (pathArray == nullptr)", local_socket)
+        self.assertLess(
+            local_socket.index("env->GetArrayLength(pathArray)"),
+            local_socket.index("int fd = socket(AF_UNIX, SOCK_STREAM, 0)"),
+        )
+        self.assertNotIn("-fno-stack-protector", app_build)
+        self.assertNotIn("-fno-stack-protector", terminal_build)
+
+    def test_v70_third_pass_lifecycle_and_intent_inputs_are_hardened(self):
+        preferences = X11_PREFERENCES.read_text(encoding="utf-8")
+        alpine_service = ALPINE_SERVICE.read_text(encoding="utf-8")
+        run_command = RUN_COMMAND_SERVICE.read_text(encoding="utf-8")
+        file_receiver = FILE_RECEIVER_ACTIVITY.read_text(encoding="utf-8")
+        intent_utils = INTENT_UTILS.read_text(encoding="utf-8")
+        cmd_entry = X11_CMD_ENTRYPOINT.read_text(encoding="utf-8")
+        terminal_native = TERMINAL_NATIVE.read_text(encoding="utf-8")
+
+        self.assertEqual(preferences.count("getContentResolver().registerContentObserver("), 2)
+        self.assertIn("unregisterContentObserver(accessibilityObserver)", preferences)
+        self.assertIn("protected void onDestroy()", preferences)
+
+        self.assertIn("if (pm == null)", alpine_service)
+        self.assertIn("if (wm != null)", alpine_service)
+        self.assertIn("continuing with CPU WakeLock only", alpine_service)
+        self.assertIn("mWakeLock.isHeld()", alpine_service)
+        self.assertIn("mWifiLock.isHeld()", alpine_service)
+
+        self.assertIn("getParcelableExtraIfSet", intent_utils)
+        self.assertIn("Build.VERSION_CODES.TIRAMISU", intent_utils)
+        self.assertIn("clazz.isInstance(value)", intent_utils)
+        self.assertIn("catch (RuntimeException e)", intent_utils)
+        self.assertIn("PendingIntent.class", run_command)
+        self.assertIn("PendingIntent.class", alpine_service)
+        self.assertIn("Intent.EXTRA_STREAM, Uri.class", file_receiver)
+        self.assertNotIn("intent.getParcelableExtra(RUN_COMMAND_SERVICE.EXTRA_PENDING_INTENT)", run_command)
+        self.assertNotIn("intent.getParcelableExtra(ALPINE_SERVICE.EXTRA_PENDING_INTENT)", alpine_service)
+        self.assertNotIn("intent.getParcelableExtra(Intent.EXTRA_STREAM)", file_receiver)
+
+        self.assertIn("String packageName = intent.getPackage()", cmd_entry)
+        self.assertIn("packages != null && packages.length > 0", cmd_entry)
+        self.assertIn("packageName = BuildConfig.APPLICATION_ID", cmd_entry)
+        self.assertNotIn("getPackagesForUid(getuid())[0]", cmd_entry)
+
+        self.assertIn("if (setsid() < 0)", terminal_native)
+        self.assertIn("dup2(pts, STDIN_FILENO) < 0", terminal_native)
+        self.assertIn("dup2(pts, STDOUT_FILENO) < 0", terminal_native)
+        self.assertIn("dup2(pts, STDERR_FILENO) < 0", terminal_native)
+        self.assertIn('perror("dup2()")', terminal_native)
+
+    def test_v70_internal_component_and_local_socket_lifecycle_are_hardened(self):
+        manifest = APP_MANIFEST.read_text(encoding="utf-8")
+        am_socket = AM_SOCKET_SERVER.read_text(encoding="utf-8")
+        socket_manager = LOCAL_SOCKET_MANAGER.read_text(encoding="utf-8")
+        socket_config = LOCAL_SOCKET_RUN_CONFIG.read_text(encoding="utf-8")
+        client_socket = LOCAL_CLIENT_SOCKET.read_text(encoding="utf-8")
+        server_socket = LOCAL_SERVER_SOCKET.read_text(encoding="utf-8")
+        local_socket_native = LOCAL_SOCKET_NATIVE.read_text(encoding="utf-8")
+
+        settings_block = manifest[manifest.index('android:name=".app.activities.SettingsActivity"'):]
+        self.assertIn('android:exported="false"', settings_block.split("/>", 1)[0])
+
+        am_failure = am_socket[am_socket.index("error = runAmCommand"):am_socket.index(
+            "sendResultToClient(localSocketManager, clientSocket, 0"
+        )]
+        self.assertIn("return;", am_failure)
+
+        self.assertIn("mIsRunning = error == null;", socket_manager)
+        self.assertIn("if (!startLocalSocketManagerClientThread", socket_manager)
+        self.assertIn("clientSocket.closeClientSocket(true);", socket_manager)
+        self.assertIn("public boolean startLocalSocketManagerClientThread", socket_manager)
+        self.assertIn("catch (Throwable e)", socket_manager)
+        self.assertIn("synchronized void onServerStopped()", socket_manager)
+        self.assertIn("pathBytes.length > 0 && pathBytes[0] == 0", socket_config)
+        available_method = client_socket[client_socket.index("public Error available(MutableInt available, boolean checkDeadline)"):]
+        available_method = available_method[:available_method.index("public Error setReadTimeout()")]
+        self.assertIn("LocalSocketManager.available", available_method)
+        self.assertIn(", mFD);", available_method)
+        self.assertNotIn("mLocalSocketRunConfig.getFD()", available_method)
+        self.assertIn("return mBytes[0] & 0xff;", client_socket)
+        self.assertNotIn("try (BufferedWriter byteStreamWriter", client_socket)
+        self.assertIn("if (closeStreamOnFinish)", client_socket)
+        self.assertIn("byteStreamWriter.close();", client_socket)
+        self.assertIn("path.getBytes(StandardCharsets.UTF_8).length >= 108", server_socket)
+        self.assertIn("mClientSocketListener = new Thread(new ClientSocketListener())", server_socket)
+        self.assertIn("mClientSocketListener = null;", server_socket)
+        self.assertIn("return listenerError;", server_socket)
+        self.assertIn("mLocalSocketManager.onServerStopped();", server_socket)
+        self.assertIn("if (mIsRunning)", socket_manager)
+        self.assertIn("GetStringUTFChars(jString, nullptr)", local_socket_native)
+        self.assertNotIn('FindClass("java/lang/String")', local_socket_native)
+        self.assertIn("jstring errmsg = env->NewStringUTF", local_socket_native)
 
     def test_text_io_extra_namespace_uses_its_own_activity(self):
         text_io = TEXT_IO_ACTIVITY.read_text(encoding="utf-8")
@@ -180,9 +335,9 @@ class V68RuntimeOverlayTest(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             self.assertNotIn("@RequiresApi(Build.VERSION_CODES.O)", text, path)
 
-    def test_v69_6_migrates_v68_1_through_v69_5_in_place(self):
+    def test_v70_migrates_v68_1_through_v69_7_in_place(self):
         installer = INSTALLER.read_text(encoding="utf-8")
-        self.assertIn('PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2", "v68.3", "v68.4", "v69", "v69.1", "v69.2", "v69.3", "v69.4", "v69.5" }', installer)
+        self.assertIn('PATCHABLE_BOOTSTRAP_VERSIONS = { "v68.1", "v68.2", "v68.3", "v68.4", "v69", "v69.1", "v69.2", "v69.3", "v69.4", "v69.5", "v69.6", "v69.7" }', installer)
         self.assertIn("V68_HOTFIX_PATCH_FILES", installer)
         for path in (
             '"etc/bash.bashrc"',
@@ -195,6 +350,7 @@ class V68RuntimeOverlayTest(unittest.TestCase):
             'ROOTFS_RELATIVE_PATH + "/usr/local/bin/start-phosh-nested"',
             'ROOTFS_RELATIVE_PATH + "/usr/local/bin/android-network-settings"',
             'ROOTFS_RELATIVE_PATH + "/usr/share/applications/alpine-android-network.desktop"',
+            'ROOTFS_RELATIVE_PATH + "/usr/share/backgrounds/alpine-on-android.svg"',
             '"etc/motd"',
             'ROOTFS_RELATIVE_PATH + "/etc/motd"',
             'ROOTFS_RELATIVE_PATH + "/etc/alpine-bootstrap-version"',
@@ -431,6 +587,8 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertIn("width > maxDimension || height > maxDimension", view)
         self.assertIn('value.split("x", -1)', preferences)
         self.assertIn("width > 8192 || height > 8192", preferences)
+        self.assertIn('line.split("=", 2)', preferences)
+        self.assertIn('a.split(":", 2)', preferences)
 
     def test_start_x11_can_reopen_activity_when_server_is_already_running(self):
         start_x11 = START_X11.read_text(encoding="utf-8")
@@ -445,7 +603,7 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         installer = INSTALL_DESKTOP.read_text(encoding="utf-8")
         manager = DESKTOP_MANAGER.read_text(encoding="utf-8")
         launcher = START_DESKTOP.read_text(encoding="utf-8")
-        for desktop in ("xfce", "lxqt", "openbox", "mate", "plasma", "lxde", "plasma-mobile", "phosh"):
+        for desktop in ("xfce", "lxqt", "openbox", "mate", "plasma", "lxde", "plasma-mobile", "phosh", "gnome"):
             self.assertIn(desktop, manager)
             self.assertIn(desktop, launcher)
         self.assertIn('exec desktop-manager install "$@"', installer)
@@ -454,7 +612,8 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertIn("Install one or more desktops", manager)
         self.assertIn("lxsession openbox pcmanfm lxterminal tint2", manager)
         self.assertIn("plasma-mobile konsole breeze breeze-cursors xdg-desktop-portal-kde pulseaudio-utils xwayland", manager)
-        self.assertIn("phosh phoc pulseaudio-utils xrandr wlr-randr xwayland", manager)
+        self.assertIn("phosh phoc squeekboard pulseaudio-utils xrandr wlr-randr xwayland", manager)
+        self.assertIn("gnome-flashback gnome-session metacity gnome-panel gnome-control-center gnome-terminal pulseaudio-utils", manager)
         self.assertIn('start-x11 "$DISPLAY"', launcher)
         start_x11 = START_X11.read_text(encoding="utf-8")
         self.assertIn('chmod 1777 "$socket_dir"', start_x11)
@@ -462,6 +621,9 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertIn('tail -n 80 "$log_file" 2>/dev/null || true\n    exit 1', start_x11)
         self.assertIn("dbus-run-session", launcher)
         self.assertIn("LIBGL_ALWAYS_SOFTWARE", launcher)
+        self.assertIn("prepare_x11_desktop", launcher)
+        for desktop in ("xfce", "lxqt", "openbox", "mate", "lxde", "gnome"):
+            self.assertIn(f"prepare_x11_desktop {desktop}", launcher)
         self.assertIn("prepare_nested_wayland", launcher)
         self.assertIn("prepare_plasma_wayland", launcher)
         self.assertIn('chmod 1777 "$x11_socket_dir"', launcher)
@@ -479,6 +641,12 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertIn('export XDG_CONFIG_DIRS="$phosh_xdg_dir:${XDG_CONFIG_DIRS:-/etc/xdg}"', launcher)
         self.assertIn("Android 12+ may terminate large PRoot desktop process trees with signal 9", launcher)
         self.assertIn("run_session start-phosh-nested", launcher)
+        self.assertIn("prepare_x11_desktop gnome", launcher)
+        self.assertIn("prepare_gnome_runtime", launcher)
+        self.assertIn("gnome-flashback-nm-applet.desktop", launcher)
+        self.assertIn("command -v metacity", launcher)
+        self.assertIn("gnome-session --session=gnome-flashback-metacity", launcher)
+        self.assertIn("GNOME-Flashback:GNOME", launcher)
         self.assertIn("Starting LXDE compatibility session", launcher)
         self.assertNotIn("startplasma-x11", launcher)
         self.assertNotIn("kwin_x11", launcher)
@@ -527,6 +695,12 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertIn("desktop-manager remove [--legacy] <desktop> [desktop ...]", manager)
         self.assertIn("desktop-manager default <desktop>", manager)
         self.assertIn("desktop-manager repair <desktop> [desktop ...]", manager)
+        self.assertIn("desktop-manager upgrade <desktop> [desktop ...]", manager)
+        self.assertIn("desktop-manager upgrade all", manager)
+        self.assertIn('"$APK_CMD" add --upgrade --virtual "$virtual"', manager)
+        self.assertIn('"$APK_CMD" add --upgrade $COMMON_PACKAGES $packages', manager)
+        self.assertIn("normalize_upgrade_many", manager)
+        self.assertIn("installed_profiles", manager)
         self.assertIn('exec desktop-manager install "$@"', installer)
         self.assertNotIn('"$APK_CMD" add $COMMON_PACKAGES', installer)
         self.assertIn('ALPINE_DESKTOP_CONFIG_FILE', manager)
@@ -550,7 +724,7 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertIn("ERROR: refusing invalid desktop profile", manager)
         self.assertIn("cleanup_invalid_virtual_groups", manager)
         self.assertIn('"$APK_CMD" del "$pkg"', manager)
-        for valid in ("xfce", "lxqt", "openbox", "mate", "plasma", "lxde", "plasma-mobile", "phosh"):
+        for valid in ("xfce", "lxqt", "openbox", "mate", "plasma", "lxde", "plasma-mobile", "phosh", "gnome"):
             self.assertIn(f".alpine-desktop-{valid}", manager)
 
         # Android owns the physical network. The guest observes inherited
@@ -569,6 +743,54 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertIn('ROOTFS_RELATIVE_PATH + "/usr/local/bin/android-network-settings"', installer)
         self.assertIn('ROOTFS_RELATIVE_PATH + "/usr/share/applications/alpine-android-network.desktop"', installer)
 
+    def test_v69_7_refreshes_managed_dns_and_hardens_cross_desktop_sessions(self):
+        host = BASHRC.read_text(encoding="utf-8")
+        helper = ANDROID_NETWORK_SETTINGS.read_text(encoding="utf-8")
+        launcher = START_DESKTOP.read_text(encoding="utf-8")
+        manager = DESKTOP_MANAGER.read_text(encoding="utf-8")
+        wrapper = START_PHOSH_NESTED.read_text(encoding="utf-8")
+        installer = INSTALLER.read_text(encoding="utf-8")
+
+        self.assertIn('DNS_MANAGED_MARKER="# Managed by Alpine-on-Android V69.7"', host)
+        self.assertIn("resolver_is_legacy_managed", host)
+        self.assertIn("resolver_should_be_managed", host)
+        self.assertIn("ALPINE_DNS_PRESERVE", host)
+        self.assertIn('HOST_RESOLV_CONF="$PREFIX/etc/resolv.conf"', host)
+        self.assertIn('if [ "$network_action" = "refresh-dns" ]; then', host)
+        self.assertIn("sync_alpine_dns", host)
+        self.assertIn("nameserver 8.8.8.8", host)
+        self.assertIn("nameserver 8.8.4.4", host)
+
+        self.assertIn("refresh|refresh-dns", helper)
+        self.assertIn("submit_request refresh-dns", helper)
+        self.assertIn("DNS lookup check:", helper)
+        self.assertIn("dl-cdn.alpinelinux.org", helper)
+
+        self.assertIn("ALPINE_NETWORK_QUIET=1 android-network-settings refresh", launcher)
+        self.assertIn('PULSE_RUNTIME_PATH="$XDG_RUNTIME_DIR/pulse"', launcher)
+        self.assertIn("prepare_x11_desktop", launcher)
+        for desktop in ("xfce", "lxqt", "openbox", "mate", "lxde", "gnome"):
+            self.assertIn(f"prepare_x11_desktop {desktop}", launcher)
+        self.assertIn("export XDG_SESSION_TYPE=x11", launcher)
+        self.assertIn("export QT_QPA_PLATFORM=xcb", launcher)
+
+        self.assertIn("1|2|3|4|5|6|7|8|9", manager)
+        self.assertIn("1-9) Start that desktop directly", manager)
+        self.assertIn("phosh phoc squeekboard pulseaudio-utils xrandr wlr-randr xwayland", manager)
+        self.assertIn("gnome-flashback", manager)
+        self.assertIn("u) Upgrade installed desktop package(s)", manager)
+
+        self.assertIn("screen-keyboard-enabled true", wrapper)
+        self.assertNotIn("start_squeekboard_when_ready", wrapper)
+        self.assertNotIn('exec squeekboard', wrapper)
+        self.assertIn("sm.puri.OSK0", wrapper)
+        self.assertIn("ALPINE_BACKGROUND_URI", wrapper)
+        self.assertIn("/usr/share/backgrounds/gnome/", wrapper)
+        self.assertTrue(ALPINE_BACKGROUND.is_file())
+        self.assertIn("<svg", ALPINE_BACKGROUND.read_text(encoding="utf-8"))
+
+        self.assertIn('ROOTFS_RELATIVE_PATH + "/usr/share/backgrounds/alpine-on-android.svg"', installer)
+
     def test_launcher_keeps_proot_compatibility_without_package_manager_shim(self):
         text = BASHRC.read_text(encoding="utf-8")
         self.assertIn("# Alpine Auto-Launch (v68)", text)
@@ -586,6 +808,7 @@ class V68RuntimeOverlayTest(unittest.TestCase):
         self.assertIn('ALPINE_ANDROID_SDK="${ALPINE_ANDROID_SDK:-}"', text)
         self.assertIn("ALPINE_DNS_SERVERS", text)
         self.assertIn("ALPINE_DNS_FORCE", text)
+        self.assertIn("ALPINE_DNS_PRESERVE", text)
         self.assertIn('XDG_RUNTIME_DIR=/tmp/alpine-runtime-0', text)
         self.assertIn('RESOLV_CONF = b""', ROOTFS_BUILDER.read_text(encoding="utf-8"))
         self.assertIn("pid_identity_file_alive", text)

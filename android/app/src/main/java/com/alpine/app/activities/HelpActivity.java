@@ -55,8 +55,9 @@ public final class HelpActivity extends AppCompatActivity {
                     startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 } catch (ActivityNotFoundException e) {
                     // Android TV does not have a system browser.
-                    setContentView(progressLayout);
-                    return false;
+                    // Keep the trusted project help page visible instead of allowing an
+                    // arbitrary external URL to fall back into the embedded WebView.
+                    return true;
                 }
                 return true;
             }

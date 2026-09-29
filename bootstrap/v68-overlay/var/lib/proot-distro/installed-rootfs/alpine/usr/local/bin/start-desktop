@@ -23,6 +23,8 @@ normalize_choice() {
 ' plasma-mobile ;;
         phosh|PHOSH|Phosh) printf '%s
 ' phosh ;;
+        gnome|GNOME|Gnome|gnome-x11|GNOME-X11) printf '%s
+' gnome ;;
         *) return 1 ;;
     esac
 }
@@ -31,7 +33,7 @@ usage() {
     cat <<'EOF'
 Usage:
   start-desktop
-  start-desktop <xfce|lxqt|openbox|mate|plasma|lxde|plasma-mobile|phosh>
+  start-desktop <xfce|lxqt|openbox|mate|plasma|lxde|plasma-mobile|phosh|gnome>
 
 Without an argument, starts the default selected by desktop-manager/install-desktop.
 Set ALPINE_DESKTOP_DISPLAY=:N to choose another X11 display.
@@ -99,6 +101,13 @@ export XDG_RUNTIME_DIR
 mkdir -p "$XDG_RUNTIME_DIR" || exit 1
 chmod 0700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
 
+# Android may have changed Wi-Fi/VPN/DNS since the Alpine shell was opened.
+# Ask the host bridge to refresh only Alpine-on-Android-managed resolver state;
+# user-owned /etc/resolv.conf files are preserved by the host-side policy.
+if command -v android-network-settings >/dev/null 2>&1; then
+    ALPINE_NETWORK_QUIET=1 android-network-settings refresh >/dev/null 2>&1 || true
+fi
+
 if command -v dbus-uuidgen >/dev/null 2>&1; then
     dbus-uuidgen --ensure=/etc/machine-id >/dev/null 2>&1 || true
 fi
@@ -111,6 +120,10 @@ if command -v dbus-daemon >/dev/null 2>&1 && [ ! -S /run/dbus/system_bus_socket 
 fi
 
 if command -v pulseaudio >/dev/null 2>&1; then
+    PULSE_RUNTIME_PATH="$XDG_RUNTIME_DIR/pulse"
+    export PULSE_RUNTIME_PATH
+    mkdir -p "$PULSE_RUNTIME_PATH" 2>/dev/null || true
+    chmod 0700 "$PULSE_RUNTIME_PATH" 2>/dev/null || true
     pulseaudio --start --exit-idle-time=-1 >/tmp/alpine-pulseaudio.log 2>&1 || true
 fi
 
@@ -132,6 +145,40 @@ run_session_shell() {
         exec dbus-run-session -- sh -c "$1"
     fi
     exec sh -c "$1"
+}
+
+prepare_x11_desktop() {
+    desktop_name="$1"
+    unset WAYLAND_DISPLAY
+    export XDG_SESSION_TYPE=x11
+    export GDK_BACKEND=x11
+    export QT_QPA_PLATFORM=xcb
+    case "$desktop_name" in
+        xfce)
+            export XDG_CURRENT_DESKTOP=XFCE
+            export XDG_SESSION_DESKTOP=xfce
+            ;;
+        lxqt)
+            export XDG_CURRENT_DESKTOP=LXQt
+            export XDG_SESSION_DESKTOP=lxqt
+            ;;
+        openbox)
+            export XDG_CURRENT_DESKTOP=OPENBOX
+            export XDG_SESSION_DESKTOP=openbox
+            ;;
+        mate)
+            export XDG_CURRENT_DESKTOP=MATE
+            export XDG_SESSION_DESKTOP=mate
+            ;;
+        lxde)
+            export XDG_CURRENT_DESKTOP=LXDE
+            export XDG_SESSION_DESKTOP=LXDE
+            ;;
+        gnome)
+            export XDG_CURRENT_DESKTOP='GNOME-Flashback:GNOME'
+            export XDG_SESSION_DESKTOP=gnome-flashback-metacity
+            ;;
+    esac
 }
 
 prepare_nested_wayland() {
@@ -192,8 +239,27 @@ warn_android_process_limits() {
 }
 
 warn_android_network_passthrough() {
-    echo "NOTE: Networking is inherited from Android; Phosh/Plasma do not own the device Wi-Fi interface." >&2
+    echo "NOTE: Networking is inherited from Android; this PRoot desktop does not own the device Wi-Fi interface." >&2
     echo "      Use 'android-network-settings' (also available in the app grid) to change Android network settings." >&2
+}
+
+prepare_gnome_runtime() {
+    # GNOME Flashback ships an nm-applet autostart, but NetworkManager inside
+    # PRoot cannot own Android's physical Wi-Fi interface. Mask only that
+    # session autostart and keep the Android network-settings handoff instead.
+    gnome_xdg_dir="$XDG_RUNTIME_DIR/alpine-gnome-xdg"
+    gnome_autostart_dir="$gnome_xdg_dir/autostart"
+    rm -rf "$gnome_xdg_dir" || return 1
+    mkdir -p "$gnome_autostart_dir" || return 1
+    if [ -f /etc/xdg/autostart/gnome-flashback-nm-applet.desktop ]; then
+        cat > "$gnome_autostart_dir/gnome-flashback-nm-applet.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Disabled by Alpine-on-Android GNOME session
+Hidden=true
+EOF
+    fi
+    export XDG_CONFIG_DIRS="$gnome_xdg_dir:${XDG_CONFIG_DIRS:-/etc/xdg}"
 }
 
 warn_phosh_support_packages() {
@@ -252,6 +318,7 @@ case "$desktop" in
             echo "ERROR: XFCE is not installed. Run: install-desktop xfce" >&2
             exit 1
         }
+        prepare_x11_desktop xfce
         echo "Starting XFCE..."
         run_session startxfce4
         ;;
@@ -260,6 +327,7 @@ case "$desktop" in
             echo "ERROR: LXQt is not installed. Run: install-desktop lxqt" >&2
             exit 1
         }
+        prepare_x11_desktop lxqt
         echo "Starting LXQt..."
         run_session startlxqt
         ;;
@@ -268,6 +336,7 @@ case "$desktop" in
             echo "ERROR: Openbox is not installed. Run: install-desktop openbox" >&2
             exit 1
         }
+        prepare_x11_desktop openbox
         echo "Starting Openbox..."
         run_session_shell 'if command -v pcmanfm >/dev/null 2>&1; then pcmanfm --desktop >/tmp/alpine-openbox-pcmanfm.log 2>&1 & fi; if command -v tint2 >/dev/null 2>&1; then tint2 >/tmp/alpine-openbox-tint2.log 2>&1 & fi; exec openbox-session'
         ;;
@@ -276,6 +345,7 @@ case "$desktop" in
             echo "ERROR: MATE is not installed. Run: install-desktop mate" >&2
             exit 1
         }
+        prepare_x11_desktop mate
         echo "Starting MATE..."
         run_session mate-session
         ;;
@@ -296,8 +366,25 @@ case "$desktop" in
             echo "ERROR: LXDE compatibility session is not installed. Run: install-desktop lxde" >&2
             exit 1
         }
+        prepare_x11_desktop lxde
         echo "Starting LXDE compatibility session..."
         run_session_shell 'if command -v lxsettings-daemon >/dev/null 2>&1; then lxsettings-daemon >/tmp/alpine-lxde-settings.log 2>&1 & fi; if command -v pcmanfm >/dev/null 2>&1; then pcmanfm --desktop >/tmp/alpine-lxde-pcmanfm.log 2>&1 & fi; if command -v tint2 >/dev/null 2>&1; then tint2 >/tmp/alpine-lxde-tint2.log 2>&1 & fi; exec openbox-session'
+        ;;
+    gnome)
+        command -v gnome-session >/dev/null 2>&1 || {
+            echo "ERROR: GNOME Flashback is not installed. Run: install-desktop gnome" >&2
+            exit 1
+        }
+        command -v metacity >/dev/null 2>&1 || {
+            echo "ERROR: GNOME Flashback window manager is missing. Run: desktop-manager repair gnome" >&2
+            exit 1
+        }
+        prepare_x11_desktop gnome
+        prepare_gnome_runtime || exit 1
+        warn_android_network_passthrough
+        warn_android_process_limits
+        echo "Starting GNOME Flashback (Metacity/X11 on $DISPLAY)..."
+        run_session gnome-session --session=gnome-flashback-metacity
         ;;
     plasma-mobile)
         command -v startplasmamobile >/dev/null 2>&1 || {

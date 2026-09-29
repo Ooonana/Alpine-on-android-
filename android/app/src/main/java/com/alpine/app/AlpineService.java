@@ -312,13 +312,34 @@ public final class AlpineService extends Service implements AppShell.AppShellCli
         Logger.logDebug(LOG_TAG, "Acquiring WakeLocks");
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, AlpineConstants.ALPINE_APP_NAME.toLowerCase(Locale.ROOT) + ":service-wakelock");
-        mWakeLock.acquire();
+        if (pm == null) {
+            Logger.logError(LOG_TAG, "Cannot acquire WakeLock because the Android power service is unavailable");
+            return;
+        }
+        try {
+            mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, AlpineConstants.ALPINE_APP_NAME.toLowerCase(Locale.ROOT) + ":service-wakelock");
+            mWakeLock.acquire();
+        } catch (RuntimeException e) {
+            mWakeLock = null;
+            Logger.logStackTraceWithMessage(LOG_TAG, "Failed to acquire Android WakeLock", e);
+            return;
+        }
 
         // http://tools.android.com/tech-docs/lint-in-studio-2-3#TOC-WifiManager-Leak
         WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        mWifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, AlpineConstants.ALPINE_APP_NAME.toLowerCase(Locale.ROOT));
-        mWifiLock.acquire();
+        if (wm != null) {
+            try {
+                mWifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, AlpineConstants.ALPINE_APP_NAME.toLowerCase(Locale.ROOT));
+                mWifiLock.acquire();
+            } catch (RuntimeException e) {
+                mWifiLock = null;
+                // A CPU wake lock is still useful on devices where Wi-Fi is absent or where an OEM
+                // refuses a Wi-Fi lock, so do not throw away the successfully acquired WakeLock.
+                Logger.logStackTraceWithMessage(LOG_TAG, "Failed to acquire optional Android Wi-Fi lock", e);
+            }
+        } else {
+            Logger.logWarn(LOG_TAG, "Android Wi-Fi service is unavailable; continuing with CPU WakeLock only");
+        }
 
         if (!PermissionUtils.checkIfBatteryOptimizationsDisabled(this)) {
             PermissionUtils.requestDisableBatteryOptimizations(this);
@@ -340,12 +361,20 @@ public final class AlpineService extends Service implements AppShell.AppShellCli
         Logger.logDebug(LOG_TAG, "Releasing WakeLocks");
 
         if (mWakeLock != null) {
-            mWakeLock.release();
+            try {
+                if (mWakeLock.isHeld()) mWakeLock.release();
+            } catch (RuntimeException e) {
+                Logger.logStackTraceWithMessage(LOG_TAG, "Failed to release Android WakeLock", e);
+            }
             mWakeLock = null;
         }
 
         if (mWifiLock != null) {
-            mWifiLock.release();
+            try {
+                if (mWifiLock.isHeld()) mWifiLock.release();
+            } catch (RuntimeException e) {
+                Logger.logStackTraceWithMessage(LOG_TAG, "Failed to release Android Wi-Fi lock", e);
+            }
             mWifiLock = null;
         }
 
@@ -398,7 +427,8 @@ public final class AlpineService extends Service implements AppShell.AppShellCli
         executionCommand.commandDescription = IntentUtils.getStringExtraIfSet(intent, ALPINE_SERVICE.EXTRA_COMMAND_DESCRIPTION, null);
         executionCommand.commandHelp = IntentUtils.getStringExtraIfSet(intent, ALPINE_SERVICE.EXTRA_COMMAND_HELP, null);
         executionCommand.pluginAPIHelp = IntentUtils.getStringExtraIfSet(intent, ALPINE_SERVICE.EXTRA_PLUGIN_API_HELP, null);
-        executionCommand.resultConfig.resultPendingIntent = intent.getParcelableExtra(ALPINE_SERVICE.EXTRA_PENDING_INTENT);
+        executionCommand.resultConfig.resultPendingIntent = IntentUtils.getParcelableExtraIfSet(
+            intent, ALPINE_SERVICE.EXTRA_PENDING_INTENT, PendingIntent.class);
         executionCommand.resultConfig.resultDirectoryPath = IntentUtils.getStringExtraIfSet(intent, ALPINE_SERVICE.EXTRA_RESULT_DIRECTORY, null);
         if (executionCommand.resultConfig.resultDirectoryPath != null) {
             executionCommand.resultConfig.resultSingleFile = intent.getBooleanExtra(ALPINE_SERVICE.EXTRA_RESULT_SINGLE_FILE, false);

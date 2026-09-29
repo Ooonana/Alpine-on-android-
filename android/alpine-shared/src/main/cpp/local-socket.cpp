@@ -18,16 +18,18 @@
 
 using namespace std;
 
+bool checkJniException(JNIEnv *env);
 
 /* Convert a jstring to a std:string. */
 string jstring_to_stdstr(JNIEnv *env, jstring jString) {
-    jclass stringClass = env->FindClass("java/lang/String");
-    jmethodID getBytes = env->GetMethodID(stringClass, "getBytes", "()[B");
-    jbyteArray jStringBytesArray = (jbyteArray) env->CallObjectMethod(jString, getBytes);
-    jsize length = env->GetArrayLength(jStringBytesArray);
-    jbyte* jStringBytes = env->GetByteArrayElements(jStringBytesArray, nullptr);
-    std::string stdString((char *)jStringBytes, length);
-    env->ReleaseByteArrayElements(jStringBytesArray, jStringBytes, JNI_ABORT);
+    if (jString == nullptr) return "";
+
+    const char *chars = env->GetStringUTFChars(jString, nullptr);
+    if (checkJniException(env) || chars == nullptr) return "";
+
+    std::string stdString(chars);
+    env->ReleaseStringUTFChars(jString, chars);
+    if (checkJniException(env)) return "";
     return stdString;
 }
 
@@ -64,10 +66,24 @@ string replace_null_with_space(string str) {
 
 /* Get class name of a jclazz object with a call to `Class.getName()`. */
 string get_class_name(JNIEnv *env, jclass clazz) {
+    if (clazz == nullptr) return "";
     jclass classClass = env->FindClass("java/lang/Class");
+    if (checkJniException(env) || classClass == nullptr) return "";
     jmethodID getName = env->GetMethodID(classClass, "getName", "()Ljava/lang/String;");
+    if (checkJniException(env) || getName == nullptr) {
+        env->DeleteLocalRef(classClass);
+        return "";
+    }
     jstring className = (jstring) env->CallObjectMethod(clazz, getName);
-    return jstring_to_stdstr(env, className);
+    if (checkJniException(env) || className == nullptr) {
+        env->DeleteLocalRef(classClass);
+        return "";
+    }
+
+    string name = jstring_to_stdstr(env, className);
+    env->DeleteLocalRef(className);
+    env->DeleteLocalRef(classClass);
+    return name;
 }
 
 
@@ -184,7 +200,11 @@ jobject getJniResult(JNIEnv *env, jstring title, const int retvalParam, const in
     if (!errmsgParam.empty())
         errmsgParam = get_title_and_message(env, title, string(errmsgParam));
 
-    jobject obj = env->NewObject(clazz, constructor, retvalParam, errnoParam, env->NewStringUTF(errmsgParam.c_str()), intDataParam);
+    jstring errmsg = env->NewStringUTF(errmsgParam.c_str());
+    if (checkJniException(env) || errmsg == NULL) return NULL;
+
+    jobject obj = env->NewObject(clazz, constructor, retvalParam, errnoParam, errmsg, intDataParam);
+    env->DeleteLocalRef(errmsg);
     if (checkJniException(env)) return NULL;
     if (obj == NULL) {
         log_error(get_title_and_message(env, title,
@@ -261,27 +281,32 @@ Java_com_alpine_shared_net_socket_local_LocalSocketManager_createServerSocketNat
                                                to_string(backlog) + "\" is not between 1-500");
     }
 
-    // Create server socket
-    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (fd == -1) {
-        return getJniResult(env, logTitle, -1, errno, "createServerSocketNative(): Create local socket failed");
+    if (pathArray == nullptr) {
+        return getJniResult(env, logTitle, -1, "createServerSocketNative(): Path passed is null");
+    }
+
+    // Validate Java input before acquiring native resources so exceptional JNI paths cannot leak
+    // a socket fd or leave byte-array elements pinned.
+    int chars = env->GetArrayLength(pathArray);
+    if (checkJniException(env)) return NULL;
+    // On Linux, sun_path is 108 bytes (UNIX_PATH_MAX) in size.
+    if (chars >= 108 || chars >= sizeof(struct sockaddr_un) - sizeof(sa_family_t)) {
+        return getJniResult(env, logTitle, -1, "createServerSocketNative(): Path passed is too long");
     }
 
     jbyte* path = env->GetByteArrayElements(pathArray, nullptr);
     if (checkJniException(env)) return NULL;
     if (path == nullptr) {
-        close(fd);
-        return getJniResult(env, logTitle, -1, "createServerSocketNative(): Path passed is null");
+        return getJniResult(env, logTitle, -1, "createServerSocketNative(): Failed to access path array");
     }
 
-    // On Linux, sun_path is 108 bytes (UNIX_PATH_MAX) in size
-    int chars = env->GetArrayLength(pathArray);
-    if (checkJniException(env)) return NULL;
-    if (chars >= 108 || chars >= sizeof(struct sockaddr_un) - sizeof(sa_family_t)) {
+    // Create the socket only after Java input acquisition succeeds.
+    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (fd == -1) {
+        int errnoBackup = errno;
         env->ReleaseByteArrayElements(pathArray, path, JNI_ABORT);
         if (checkJniException(env)) return NULL;
-        close(fd);
-        return getJniResult(env, logTitle, -1, "createServerSocketNative(): Path passed is too long");
+        return getJniResult(env, logTitle, -1, errnoBackup, "createServerSocketNative(): Create local socket failed");
     }
 
     struct sockaddr_un adr = {.sun_family = AF_UNIX};
@@ -358,16 +383,19 @@ Java_com_alpine_shared_net_socket_local_LocalSocketManager_readNative(JNIEnv *en
         return getJniResult(env, logTitle, -1, "readNative(): Invalid fd \"" + to_string(fd) + "\" passed");
     }
 
+    if (dataArray == nullptr) {
+        return getJniResult(env, logTitle, -1, "readNative(): data passed is null");
+    }
+    int bytes = env->GetArrayLength(dataArray);
+    if (checkJniException(env)) return NULL;
     jbyte* data = env->GetByteArrayElements(dataArray, nullptr);
     if (checkJniException(env)) return NULL;
     if (data == nullptr) {
-        return getJniResult(env, logTitle, -1, "readNative(): data passed is null");
+        return getJniResult(env, logTitle, -1, "readNative(): failed to access data array");
     }
 
     struct timespec time = {};
     jbyte* current = data;
-    int bytes = env->GetArrayLength(dataArray);
-    if (checkJniException(env)) return NULL;
     int bytesRead = 0;
     while (bytesRead < bytes) {
         if (deadline > 0) {
@@ -387,7 +415,8 @@ Java_com_alpine_shared_net_socket_local_LocalSocketManager_readNative(JNIEnv *en
         }
 
         // Read data from socket
-        int ret = read(fd, current, bytes);
+        const int bytesRemaining = bytes - bytesRead;
+        int ret = read(fd, current, bytesRemaining);
         if (ret == -1) {
             int errnoBackup = errno;
             env->ReleaseByteArrayElements(dataArray, data, 0);
@@ -421,16 +450,19 @@ Java_com_alpine_shared_net_socket_local_LocalSocketManager_sendNative(JNIEnv *en
         return getJniResult(env, logTitle, -1, "sendNative(): Invalid fd \"" + to_string(fd) + "\" passed");
     }
 
+    if (dataArray == nullptr) {
+        return getJniResult(env, logTitle, -1, "sendNative(): data passed is null");
+    }
+    int bytes = env->GetArrayLength(dataArray);
+    if (checkJniException(env)) return NULL;
     jbyte* data = env->GetByteArrayElements(dataArray, nullptr);
     if (checkJniException(env)) return NULL;
     if (data == nullptr) {
-        return getJniResult(env, logTitle, -1, "sendNative(): data passed is null");
+        return getJniResult(env, logTitle, -1, "sendNative(): failed to access data array");
     }
 
     struct timespec time = {};
     jbyte* current = data;
-    int bytes = env->GetArrayLength(dataArray);
-    if (checkJniException(env)) return NULL;
     while (bytes > 0) {
         if (deadline > 0) {
             if (clock_gettime(CLOCK_REALTIME, &time) != -1) {
@@ -455,6 +487,11 @@ Java_com_alpine_shared_net_socket_local_LocalSocketManager_sendNative(JNIEnv *en
             env->ReleaseByteArrayElements(dataArray, data, JNI_ABORT);
             if (checkJniException(env)) return NULL;
             return getJniResult(env, logTitle, -1, errnoBackup, "sendNative(): Failed to send on fd " + to_string(fd));
+        }
+        if (ret == 0) {
+            env->ReleaseByteArrayElements(dataArray, data, JNI_ABORT);
+            if (checkJniException(env)) return NULL;
+            return getJniResult(env, logTitle, -1, "sendNative(): send made no progress on fd " + to_string(fd));
         }
 
         bytes -= ret;

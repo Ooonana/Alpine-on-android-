@@ -56,6 +56,7 @@ import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.math.MathUtils;
 import androidx.viewpager.widget.ViewPager;
@@ -91,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
     private static boolean externalKeyboardConnected = false;
     private View.OnKeyListener mLorieKeyListener;
     private final Runnable mConnectionRetry = this::tryConnect;
+    private final Runnable mPreferencesChangedCallback = this::onPreferencesChangedCallback;
     private boolean filterOutWinKey = false;
     boolean useTermuxEKBarBehaviour = false;
     private boolean isInPictureInPictureMode = false;
@@ -239,10 +241,9 @@ public class MainActivity extends AppCompatActivity {
         receiverFilter.addAction(ACTION_PREFERENCES_CHANGED);
         receiverFilter.addAction(ACTION_STOP);
         receiverFilter.addAction(ACTION_CUSTOM);
-        if (SDK_INT >= VERSION_CODES.TIRAMISU)
-            registerReceiver(receiver, receiverFilter, RECEIVER_EXPORTED);
-        else
-            registerReceiver(receiver, receiverFilter);
+        // CmdEntryPoint and preference broadcasts are produced by processes under this app UID.
+        // They do not need to be writable by unrelated applications.
+        ContextCompat.registerReceiver(this, receiver, receiverFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
         receiverRegistered = true;
 
         inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -278,6 +279,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         handler.removeCallbacks(mConnectionRetry);
+        handler.removeCallbacks(mPreferencesChangedCallback);
         if (prefs != null)
             prefs.get().unregisterOnSharedPreferenceChangeListener(preferencesChangedListener);
         if (receiverRegistered) {
@@ -716,9 +718,14 @@ public class MainActivity extends AppCompatActivity {
         if (ibinder == null)
             return;
 
-        service = ICmdEntryInterface.Stub.asInterface(ibinder);
+        ICmdEntryInterface receivedService = ICmdEntryInterface.Stub.asInterface(ibinder);
+        service = receivedService;
         try {
-            service.asBinder().linkToDeath(() -> {
+            final IBinder receivedBinder = receivedService.asBinder();
+            receivedBinder.linkToDeath(() -> {
+                if (service == null || service.asBinder() != receivedBinder)
+                    return;
+
                 service = null;
 
                 Log.v("Lorie", "Disconnected");
@@ -785,8 +792,8 @@ public class MainActivity extends AppCompatActivity {
         if ("additionalKbdVisible".equals(key))
             return;
 
-        handler.removeCallbacks(this::onPreferencesChangedCallback);
-        handler.postDelayed(this::onPreferencesChangedCallback, 100);
+        handler.removeCallbacks(mPreferencesChangedCallback);
+        handler.postDelayed(mPreferencesChangedCallback, 100);
     }
 
     @SuppressLint("UnsafeIntentLaunch")

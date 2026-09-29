@@ -42,8 +42,8 @@ android {
     defaultConfig {
         minSdkVersion project.properties.minSdkVersion.toInteger()
         targetSdkVersion project.properties.targetSdkVersion.toInteger()
-        versionCode 147
-        versionName "0.136.6-v69-dev"
+        versionCode 149
+        versionName "0.137.0-v70-dev"
 
         if (appVersionName) versionName = appVersionName
         validateVersionName(versionName)
@@ -62,7 +62,7 @@ android {
 
         externalNativeBuild {
             ndkBuild {
-                cFlags "-std=c11", "-Wall", "-Wextra", "-Werror", "-Os", "-fno-stack-protector", "-Wl,--gc-sections"
+                cFlags "-std=c11", "-Wall", "-Wextra", "-Werror", "-Os", "-Wl,--gc-sections"
             }
         }
     }

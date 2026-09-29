@@ -1,6 +1,10 @@
 package com.alpine.app.api.file;
 
+import android.content.Intent;
+import android.net.Uri;
+
 import com.alpine.app.api.file.FileReceiverActivity;
+import com.alpine.shared.data.IntentUtils;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -31,6 +35,33 @@ public class FileReceiverActivityTest {
         for (String url : invalidUrls) {
             Assert.assertFalse(FileReceiverActivity.isSharedTextAnUrl(url));
         }
+    }
+
+    @Test
+    public void testReceivedFileNameMustBeABasename() {
+        Assert.assertTrue(FileReceiverActivity.isSafeAttachmentFileName("photo 01.png"));
+        Assert.assertTrue(FileReceiverActivity.isSafeAttachmentFileName(".hidden"));
+
+        Assert.assertFalse(FileReceiverActivity.isSafeAttachmentFileName(null));
+        Assert.assertFalse(FileReceiverActivity.isSafeAttachmentFileName(""));
+        Assert.assertFalse(FileReceiverActivity.isSafeAttachmentFileName("."));
+        Assert.assertFalse(FileReceiverActivity.isSafeAttachmentFileName(".."));
+        Assert.assertFalse(FileReceiverActivity.isSafeAttachmentFileName("../escape.txt"));
+        Assert.assertFalse(FileReceiverActivity.isSafeAttachmentFileName("subdir/file.txt"));
+        Assert.assertFalse(FileReceiverActivity.isSafeAttachmentFileName("subdir\\file.txt"));
+        Assert.assertFalse(FileReceiverActivity.isSafeAttachmentFileName("bad\0name"));
+    }
+
+    @Test
+    public void testMalformedParcelableExtraFailsClosed() {
+        Intent intent = new Intent();
+        Uri expected = Uri.parse("content://example.test/item/1");
+        intent.putExtra(Intent.EXTRA_STREAM, expected);
+        Assert.assertEquals(expected,
+            IntentUtils.getParcelableExtraIfSet(intent, Intent.EXTRA_STREAM, Uri.class));
+
+        intent.putExtra(Intent.EXTRA_STREAM, "not-a-uri");
+        Assert.assertNull(IntentUtils.getParcelableExtraIfSet(intent, Intent.EXTRA_STREAM, Uri.class));
     }
 
 }

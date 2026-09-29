@@ -45,7 +45,7 @@ public class AlpineOpenReceiver extends BroadcastReceiver {
 
         final String contentTypeExtra = intent.getStringExtra("content-type");
         final boolean useChooser = intent.getBooleanExtra("chooser", false);
-        final String intentAction = intent.getAction() == null ? Intent.ACTION_VIEW : intent.getAction();
+        String intentAction = intent.getAction() == null ? Intent.ACTION_VIEW : intent.getAction();
         switch (intentAction) {
             case Intent.ACTION_SEND:
             case Intent.ACTION_VIEW:
@@ -53,6 +53,7 @@ public class AlpineOpenReceiver extends BroadcastReceiver {
                 break;
             default:
                 Logger.logError(LOG_TAG, "Invalid action '" + intentAction + "', using 'view'");
+                intentAction = Intent.ACTION_VIEW;
                 break;
         }
 
@@ -136,7 +137,8 @@ public class AlpineOpenReceiver extends BroadcastReceiver {
 
         @Override
         public Cursor query(@NonNull Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
-            File file = new File(uri.getPath());
+            File file = getFileFromUri(uri);
+            validateFileAccess(file);
 
             if (projection == null) {
                 projection = new String[]{
@@ -155,7 +157,7 @@ public class AlpineOpenReceiver extends BroadcastReceiver {
                         value = file.getName();
                         break;
                     case MediaStore.MediaColumns.SIZE:
-                        value = (int) file.length();
+                        value = file.length();
                         break;
                     case MediaStore.MediaColumns._ID:
                         value = 1;
@@ -174,6 +176,7 @@ public class AlpineOpenReceiver extends BroadcastReceiver {
         @Override
         public String getType(@NonNull Uri uri) {
             String path = uri.getLastPathSegment();
+            if (path == null) return "application/octet-stream";
             int extIndex = path.lastIndexOf('.') + 1;
             if (extIndex > 0) {
                 MimeTypeMap mimeMap = MimeTypeMap.getSingleton();
@@ -200,36 +203,49 @@ public class AlpineOpenReceiver extends BroadcastReceiver {
 
         @Override
         public ParcelFileDescriptor openFile(@NonNull Uri uri, @NonNull String mode) throws FileNotFoundException {
-            File file = new File(uri.getPath());
-            try {
-                String path = file.getCanonicalPath();
-                String callingPackageName = getCallingPackage();
-                Logger.logDebug(LOG_TAG, "Open file request received from " + callingPackageName + " for \"" + path + "\" with mode \"" + mode + "\"");
-                String storagePath = Environment.getExternalStorageDirectory().getCanonicalPath();
-                // See https://support.google.com/faqs/answer/7496913:
-                if (!(path.startsWith(AlpineConstants.ALPINE_FILES_DIR_PATH) || path.startsWith(storagePath))) {
-                    throw new IllegalArgumentException("Invalid path: " + path);
-                }
+            File file = getFileFromUri(uri);
+            String path = validateFileAccess(file);
+            String callingPackageName = getCallingPackage();
+            Logger.logDebug(LOG_TAG, "Open file request received from " + callingPackageName + " for \"" + path + "\" with mode \"" + mode + "\"");
 
-                // If AlpineConstants.PROP_ALLOW_EXTERNAL_APPS property to not set to "true", then throw exception
-                String errmsg = AlpinePluginUtils.checkIfAllowExternalAppsPolicyIsViolated(getContext(), LOG_TAG);
-                if (errmsg != null) {
-                    throw new IllegalArgumentException(errmsg);
-                }
-
-                // **DO NOT** allow these files to be modified by ContentProvider exposed to external
-                // apps, since they may silently modify the values for security properties like
-                // AlpineConstants.PROP_ALLOW_EXTERNAL_APPS set by users without their explicit consent.
-                if (AlpineConstants.ALPINE_PROPERTIES_FILE_PATHS_LIST.contains(path) ||
-                    AlpineConstants.ALPINE_FLOAT_PROPERTIES_FILE_PATHS_LIST.contains(path)) {
-                    mode = "r";
-                }
-
-            } catch (IOException e) {
-                throw new IllegalArgumentException(e);
+            // **DO NOT** allow these files to be modified by ContentProvider exposed to external
+            // apps, since they may silently modify the values for security properties like
+            // AlpineConstants.PROP_ALLOW_EXTERNAL_APPS set by users without their explicit consent.
+            if (AlpineConstants.ALPINE_PROPERTIES_FILE_PATHS_LIST.contains(path) ||
+                AlpineConstants.ALPINE_FLOAT_PROPERTIES_FILE_PATHS_LIST.contains(path)) {
+                mode = "r";
             }
 
             return ParcelFileDescriptor.open(file, ParcelFileDescriptor.parseMode(mode));
+        }
+
+        private File getFileFromUri(@NonNull Uri uri) {
+            String path = uri.getPath();
+            if (DataUtils.isNullOrEmpty(path))
+                throw new IllegalArgumentException("Content URI has no file path");
+            return new File(path);
+        }
+
+        private String validateFileAccess(File file) {
+            try {
+                String path = file.getCanonicalPath();
+                String alpineFilesPath = new File(AlpineConstants.ALPINE_FILES_DIR_PATH).getCanonicalPath();
+                String storagePath = Environment.getExternalStorageDirectory().getCanonicalPath();
+                // See https://support.google.com/faqs/answer/7496913:
+                if (!(isPathWithinRoot(path, alpineFilesPath) || isPathWithinRoot(path, storagePath))) {
+                    throw new IllegalArgumentException("Invalid path: " + path);
+                }
+
+                String errmsg = AlpinePluginUtils.checkIfAllowExternalAppsPolicyIsViolated(getContext(), LOG_TAG);
+                if (errmsg != null) throw new IllegalArgumentException(errmsg);
+                return path;
+            } catch (IOException e) {
+                throw new IllegalArgumentException(e);
+            }
+        }
+
+        private static boolean isPathWithinRoot(String path, String root) {
+            return path.equals(root) || path.startsWith(root + File.separator);
         }
     }
 
